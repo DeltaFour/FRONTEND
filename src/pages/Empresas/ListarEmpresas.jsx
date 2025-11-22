@@ -1,7 +1,14 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import api from "../../services/api";
-import { FaBuilding, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
+import {
+  FaBuilding,
+  FaEdit,
+  FaTrash,
+  FaPlus,
+  FaLock,
+  FaUnlockAlt,
+} from "react-icons/fa";
 
 const ListarEmpresas = () => {
   const [empresas, setEmpresas] = useState([]);
@@ -25,25 +32,31 @@ const ListarEmpresas = () => {
     fetchCompanies();
   }, [fetchCompanies]);
 
-  const handleDelete = async (companyId, companyName) => {
-    if (
-      !window.confirm(
-        `Tem certeza que deseja EXCLUIR a empresa "${companyName}"? Esta ação é irreversível.`
-      )
-    ) {
+  const handleToggleActivation = async (empresa) => {
+    const currentStatus = empresa.isActive;
+    const newStatus = !currentStatus;
+    const action = newStatus ? "ativar" : "desativar";
+    const endpoint = newStatus ? "active" : "desactive";
+    const confirmMsg = `Tem certeza que deseja ${action} a empresa "${empresa.name}"?`;
+
+    if (!window.confirm(confirmMsg)) {
       return;
     }
 
     try {
-      await api.delete(`/super-admin/company/${companyId}`);
+      await api.post(`/super-admin/company/${empresa.id}/${endpoint}`);
 
-      setEmpresas((prev) => prev.filter((empresa) => empresa.id !== companyId));
-      alert(`Empresa "${companyName}" excluída com sucesso!`);
+      alert(`Empresa "${empresa.name}" ${action}da com sucesso!`);
+
+      setEmpresas((prev) =>
+        prev.map((e) =>
+          e.id === empresa.id ? { ...e, isActive: newStatus } : e
+        )
+      );
     } catch (err) {
-      console.error("Erro ao excluir empresa:", err.response || err);
       const message =
         err.response?.data?.message ||
-        "Erro ao excluir a empresa. Tente novamente.";
+        `Erro ao ${action} a empresa. Tente novamente.`;
       alert(message);
     }
   };
@@ -102,10 +115,22 @@ const ListarEmpresas = () => {
                       <FaEdit className="inline mr-1" /> Editar
                     </Link>
                     <button
-                      onClick={() => handleDelete(empresa.id, empresa.name)}
-                      className="text-red-600 hover:text-red-900 p-1 inline-flex items-center ml-2"
+                      onClick={() => handleToggleActivation(empresa)}
+                      className={`p-1 inline-flex items-center ml-2 font-medium transition duration-150 ${
+                        empresa.isActive
+                          ? "text-red-600 hover:text-red-800" // Empresa Ativa: Mostra opção DESATIVAR (Cor Vermelha)
+                          : "text-green-600 hover:text-green-800" // Empresa Inativa: Mostra opção ATIVAR (Cor Verde)
+                      }`}
                     >
-                      <FaTrash className="inline mr-1" /> Excluir
+                      {empresa.isActive ? (
+                        <>
+                          <FaLock className="inline mr-1" /> Desativar
+                        </>
+                      ) : (
+                        <>
+                          <FaUnlockAlt className="inline mr-1" /> Ativar
+                        </>
+                      )}
                     </button>
                   </td>
                 </tr>

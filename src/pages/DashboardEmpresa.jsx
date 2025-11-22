@@ -1,18 +1,46 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { FaUsers, FaClock, FaSignOutAlt } from "react-icons/fa";
+import api from "../services/api";
+import { FaUsers, FaClock, FaSignOutAlt, FaBuilding } from "react-icons/fa";
 
 const DashboardEmpresa = () => {
   const { user, logout } = useAuth();
+  const [companyName, setCompanyName] = useState("Carregando...");
+
+  useEffect(() => {
+    const fetchCompanyName = async () => {
+      const companyId = user?.companyId;
+
+      if (!companyId) {
+        setCompanyName("Empresa Não Encontrada");
+        return;
+      }
+
+      try {
+        const response = await api.get(`/super-admin/company/${companyId}`);
+        setCompanyName(response.data.name || "Nome Indisponível");
+      } catch (error) {
+        console.error("Erro ao buscar nome da empresa:", error);
+        setCompanyName("Erro de API");
+      }
+    };
+
+    if (user && user.companyId) {
+      fetchCompanyName();
+    }
+  }, [user]);
 
   return (
     <div className="flex h-screen bg-gray-100">
       <div className="w-64 bg-indigo-800 text-white flex flex-col">
         <div className="p-6">
-          <h1 className="text-2xl font-extrabold truncate">
-            Empresa | {user?.name || "Dashboard"}
+          <h1 className="text-2xl font-extrabold truncate flex items-center mb-1">
+            <FaBuilding className="mr-2" /> {companyName}
           </h1>
+          <h2 className="text-base font-semibold truncate opacity-80">
+            Bem vindo(a), {user?.name || user?.email || "Admin"}
+          </h2>
         </div>
         <nav className="flex-1 px-4 py-2">
           <Link

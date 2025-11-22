@@ -7,6 +7,7 @@ import DashboardEmpresa from "../pages/DashboardEmpresa";
 import ListarEmpresas from "../pages/Empresas/ListarEmpresas";
 import CriarEmpresa from "../pages/Empresas/CriarEmpresa";
 import EditarEmpresa from "../pages/Empresas/EditarEmpresa";
+import ListarFuncionarios from "../pages/Funcionarios/ListarFuncionarios";
 
 const ProtectedRoute = ({ allowedRoles = [] }) => {
   const { user, isAuthenticated } = useAuth();
@@ -39,12 +40,12 @@ const AppRoutes = () => (
         </Route>
       </Route>
 
-      <Route
-        element={
-          <ProtectedRoute allowedRoles={["COMPANY_ADMIN", "EMPLOYEE"]} />
-        }
-      >
+      <Route element={<ProtectedRoute allowedRoles={["ADMIN", "EMPLOYEE"]} />}>
         <Route path="/dashboard-empresa" element={<DashboardEmpresa />} />
+        <Route
+          path="/dashboard-empresa/funcionarios"
+          element={<ListarFuncionarios />}
+        />
       </Route>
 
       <Route path="/" element={<Navigate to="/dashboard-admin" />} />

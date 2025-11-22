@@ -8,7 +8,7 @@ const DashboardAdmin = () => {
   return (
     <div className="flex h-screen bg-gray-100">
       <div className="w-64 bg-gray-800 text-white p-4 flex flex-col">
-        <h1 className="text-xl font-bold mb-6">Painel do Admin</h1>
+        <h1 className="text-xl font-bold mb-6 ">Painel do Admin</h1>
         <nav className="flex-1">
           <Link
             to="/dashboard-admin"
@@ -29,10 +29,12 @@ const DashboardAdmin = () => {
       </div>
 
       <main className="flex-1 p-8 overflow-y-auto">
-        <h2 className="text-3xl font-semibold mb-6">
+        <h2 className="text-3xl font-semibold mb-6 text-gray-800">
           Dashboard Administrativa
         </h2>
-        <p>Bem-vindo, Super Admin! Use o menu lateral para gerenciar.</p>
+        <p className="text-gray-800">
+          Bem-vindo, Super Admin! Use o menu lateral para gerenciar.
+        </p>
         <Outlet />
       </main>
     </div>

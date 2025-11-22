@@ -28,7 +28,7 @@ const Login = () => {
 
       if (userRole === "SUPER_ADMIN") {
         navigate("/dashboard-admin");
-      } else if (userRole === "CompanyAdmin" || userRole === "Employee") {
+      } else if (userRole === "CompanyAdmin" || userRole === "ADMIN") {
         navigate("/dashboard-empresa");
       } else {
         setError(`Perfil desconhecido: ${userRole}. Consulte o backend.`);
