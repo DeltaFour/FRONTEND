@@ -8,16 +8,10 @@ const DashboardAdmin = () => {
   return (
     <div className="flex h-screen bg-gray-100">
       <div className="w-64 bg-gray-800 text-white p-4 flex flex-col">
-        <h1 className="text-xl font-bold mb-6">Admin Panel</h1>
+        <h1 className="text-xl font-bold mb-6">Painel do Admin</h1>
         <nav className="flex-1">
           <Link
             to="/dashboard-admin"
-            className="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"
-          >
-            Dashboard
-          </Link>
-          <Link
-            to="/empresas"
             className="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"
           >
             Empresas

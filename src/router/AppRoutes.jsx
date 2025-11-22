@@ -5,6 +5,8 @@ import Login from "../pages/Login";
 import DashboardAdmin from "../pages/DashboardAdmin";
 import DashboardEmpresa from "../pages/DashboardEmpresa";
 import ListarEmpresas from "../pages/Empresas/ListarEmpresas";
+import CriarEmpresa from "../pages/Empresas/CriarEmpresa";
+import EditarEmpresa from "../pages/Empresas/EditarEmpresa";
 
 const ProtectedRoute = ({ allowedRoles = [] }) => {
   const { user, isAuthenticated } = useAuth();
@@ -26,12 +28,21 @@ const AppRoutes = () => (
       <Route path="/login" element={<Login />} />
 
       <Route element={<ProtectedRoute allowedRoles={["SUPER_ADMIN"]} />}>
-        <Route path="/dashboard-admin" element={<DashboardAdmin />} />
-        <Route path="/empresas" element={<ListarEmpresas />} />
+        <Route path="/dashboard-admin" element={<DashboardAdmin />}>
+          <Route index element={<ListarEmpresas />} />
+
+          <Route path="empresas" element={<ListarEmpresas />} />
+
+          <Route path="empresas/criar" element={<CriarEmpresa />} />
+
+          <Route path="empresas/editar/:id" element={<EditarEmpresa />} />
+        </Route>
       </Route>
 
       <Route
-        element={<ProtectedRoute allowedRoles={["CompanyAdmin", "Employee"]} />}
+        element={
+          <ProtectedRoute allowedRoles={["COMPANY_ADMIN", "EMPLOYEE"]} />
+        }
       >
         <Route path="/dashboard-empresa" element={<DashboardEmpresa />} />
       </Route>

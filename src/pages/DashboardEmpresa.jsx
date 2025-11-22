@@ -1,34 +1,48 @@
 import React from "react";
+import { Link, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { FaUsers, FaClock, FaSignOutAlt } from "react-icons/fa";
 
 const DashboardEmpresa = () => {
   const { user, logout } = useAuth();
 
   return (
-    <div className="min-h-screen bg-blue-50 p-10">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-blue-800">
-          Dashboard da Empresa
-        </h1>
-        <div className="text-right">
-          <p className="text-sm text-gray-600">
-            Logado como: {user?.email} ({user?.role})
-          </p>
+    <div className="flex h-screen bg-gray-100">
+      <div className="w-64 bg-indigo-800 text-white flex flex-col">
+        <div className="p-6">
+          <h1 className="text-2xl font-extrabold truncate">
+            Empresa | {user?.name || "Dashboard"}
+          </h1>
+        </div>
+        <nav className="flex-1 px-4 py-2">
+          <Link
+            to="/dashboard-empresa/funcionarios"
+            className="flex items-center py-2.5 px-4 rounded-lg transition duration-200 hover:bg-indigo-700 mb-2"
+          >
+            <FaUsers className="mr-3" /> Gerenciar Funcionários
+          </Link>
+          <Link
+            to="/dashboard-empresa/ponto"
+            className="flex items-center py-2.5 px-4 rounded-lg transition duration-200 hover:bg-indigo-700"
+          >
+            <FaClock className="mr-3" /> Meu Ponto
+          </Link>
+        </nav>
+
+        <div className="mt-auto p-4 border-t border-indigo-700">
+          <p className="text-sm font-semibold mb-2">Perfil: {user?.role}</p>
           <button
             onClick={logout}
-            className="mt-1 text-red-500 hover:text-red-600 font-semibold"
+            className="flex items-center text-sm text-red-300 hover:text-red-100 transition duration-150"
           >
-            Sair
+            <FaSignOutAlt className="mr-2" /> Sair
           </button>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-lg shadow-lg">
-        <p className="text-gray-700">
-          Esta é a área do administrador da empresa ou funcionário. Aqui serão
-          listados funcionários e realizados os controles de ponto.
-        </p>
-      </div>
+      <main className="flex-1 p-8 overflow-y-auto">
+        <Outlet />
+      </main>
     </div>
   );
 };
