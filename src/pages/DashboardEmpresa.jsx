@@ -18,7 +18,7 @@ const DashboardEmpresa = () => {
       }
 
       try {
-        const response = await api.get(`/super-admin/company/${companyId}`);
+        const response = await api.get(`/admin-control/company/${companyId}`);
         setCompanyName(response.data.name || "Nome Indisponível");
       } catch (error) {
         console.error("Erro ao buscar nome da empresa:", error);

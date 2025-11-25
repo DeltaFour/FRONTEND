@@ -16,7 +16,7 @@ const EditarEmpresa = () => {
     const fetchCompany = async () => {
       try {
         setLoading(true);
-        const response = await api.get(`/super-admin/company/${id}`);
+        const response = await api.get(`/admin-control/company/${id}`);
         const { name, cnpj } = response.data;
         setFormData({ name, cnpj });
       } catch (err) {
@@ -46,7 +46,7 @@ const EditarEmpresa = () => {
     };
 
     try {
-      await api.put(`/super-admin/company/${id}`, payload);
+      await api.put(`/admin-control/company/${id}`, payload);
 
       setSuccess(`Empresa "${formData.name}" atualizada com sucesso!`);
 

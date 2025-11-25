@@ -30,7 +30,7 @@ const CriarEmpresa = () => {
     const payload = {
       name: formData.nome,
       cnpj: formData.cnpj,
-      Employee: {
+      user: {
         email: formData.emailAdmin,
         name: formData.nameAdmin,
         password: formData.senhaAdmin,
@@ -38,7 +38,7 @@ const CriarEmpresa = () => {
     };
 
     try {
-      const response = await api.post("/super-admin/company", payload);
+      const response = await api.post("/admin-control/company", payload);
 
       setSuccess(`Empresa "${formData.nome}" criada com sucesso!`);
 

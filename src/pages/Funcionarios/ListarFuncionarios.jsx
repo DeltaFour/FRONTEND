@@ -8,11 +8,11 @@ const ListarFuncionarios = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchEmployees = useCallback(async () => {
+  const fetchusers = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.get("/employee");
+      const response = await api.get("/user");
       const dataToSet = response.data.data || response.data;
       setFuncionarios(dataToSet);
     } catch (err) {
@@ -26,8 +26,8 @@ const ListarFuncionarios = () => {
   }, []);
 
   useEffect(() => {
-    fetchEmployees();
-  }, [fetchEmployees]);
+    fetchusers();
+  }, [fetchusers]);
 
   const handleToggleActivation = async (func) => {
     const currentStatus = func.isActive;
@@ -44,7 +44,7 @@ const ListarFuncionarios = () => {
     }
 
     try {
-      await api.post(`/employee/${func.id}/${endpoint}`);
+      await api.post(`/user/${func.id}/${endpoint}`);
 
       alert(`Funcionário ${func.name} ${action}do com sucesso!`);
 
