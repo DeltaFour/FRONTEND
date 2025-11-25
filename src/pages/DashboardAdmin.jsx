@@ -18,7 +18,7 @@ const DashboardAdmin = () => {
           </Link>
         </nav>
         <div className="mt-auto">
-          <p className="text-sm">Logado como: {user?.email}</p>
+          <p className="text-sm">Logado como: {user?.name}</p>
           <button
             onClick={logout}
             className="mt-2 text-red-400 hover:text-red-500 text-sm"
@@ -28,7 +28,7 @@ const DashboardAdmin = () => {
         </div>
       </div>
 
-      <main className="flex-1 p-8 overflow-y-auto">
+      <main className="flex-1 p-8 overflow-y-auto text-gray-800">
         <h2 className="text-3xl font-semibold mb-6">
           Dashboard Administrativa
         </h2>
