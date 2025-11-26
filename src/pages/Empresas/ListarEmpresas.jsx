@@ -11,7 +11,9 @@ const ListarEmpresas = () => {
   const fetchCompanies = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get("/admin-control/company", { withCredentials: true });
+      const response = await api.get("/admin-control/company/list", {
+        withCredentials: true,
+      });
       setEmpresas(response.data.data);
     } catch {
       setError("Não foi possível carregar a lista de empresas.");
@@ -26,10 +28,16 @@ const ListarEmpresas = () => {
 
   const toggleStatus = async (companyId) => {
     try {
-      await api.post(`/admin-control/company/${companyId}/change-status`, {}, { withCredentials: true });
+      await api.post(
+        `/admin-control/company/change-status/${companyId}`,
+        {},
+        { withCredentials: true }
+      );
       setEmpresas((prev) =>
         prev.map((empresa) =>
-          empresa.id === companyId ? { ...empresa, isActive: !empresa.isActive } : empresa
+          empresa.id === companyId
+            ? { ...empresa, isActive: !empresa.isActive }
+            : empresa
         )
       );
     } catch {
@@ -37,13 +45,19 @@ const ListarEmpresas = () => {
     }
   };
 
-  if (loading) return <div className="text-center py-8">Carregando lista de empresas...</div>;
-  if (error) return <div className="text-red-600 p-4 bg-red-100 rounded">{error}</div>;
+  if (loading)
+    return (
+      <div className="text-center py-8">Carregando lista de empresas...</div>
+    );
+  if (error)
+    return <div className="text-red-600 p-4 bg-red-100 rounded">{error}</div>;
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-xl">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 flex items-center">Gerenciamento de Empresas</h2>
+        <h2 className="text-2xl font-bold text-gray-800 flex items-center">
+          Gerenciamento de Empresas
+        </h2>
         <Link
           to="/dashboard-admin/empresas/criar"
           className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-150 shadow-md flex items-center"
@@ -55,17 +69,27 @@ const ListarEmpresas = () => {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CNPJ</th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Ativa</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Nome
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                CNPJ
+              </th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Ativa
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {empresas.length > 0 ? (
               empresas.map((empresa) => (
                 <tr key={empresa.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{empresa.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{empresa.cnpj}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {empresa.name}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {empresa.cnpj}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                     <div className="flex justify-center items-center">
                       <div
@@ -86,7 +110,9 @@ const ListarEmpresas = () => {
               ))
             ) : (
               <tr>
-                <td colSpan="4" className="px-6 py-4 text-center text-gray-500">Nenhuma empresa encontrada.</td>
+                <td colSpan="4" className="px-6 py-4 text-center text-gray-500">
+                  Nenhuma empresa encontrada.
+                </td>
               </tr>
             )}
           </tbody>

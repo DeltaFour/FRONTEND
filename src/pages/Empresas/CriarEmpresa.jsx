@@ -38,7 +38,7 @@ const CriarEmpresa = () => {
     };
 
     try {
-      const response = await api.post("/admin-control/company", payload);
+      const response = await api.post("/admin-control/company/create", payload);
 
       setSuccess(`Empresa "${formData.nome}" criada com sucesso!`);
 

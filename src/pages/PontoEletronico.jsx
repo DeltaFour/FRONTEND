@@ -51,7 +51,7 @@ const PontoEletronico = () => {
     };
 
     try {
-      await api.post("/user/punch-in", payload);
+      await api.post("v1/user/punch-in", payload);
 
       alert(`Ponto de ${punchType} registrado com sucesso!`);
 

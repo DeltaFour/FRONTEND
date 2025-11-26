@@ -59,7 +59,7 @@ const PontoParaFuncionario = () => {
     };
 
     try {
-      await api.post("/user/punch-for-user", payload);
+      await api.post("user/punch-for-user", payload);
 
       alert(`Ponto de ${formData.type} registrado com sucesso para o usuário!`);
       navigate("/dashboard-empresa/funcionarios");

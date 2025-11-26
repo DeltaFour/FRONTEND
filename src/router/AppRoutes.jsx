@@ -16,7 +16,7 @@ const ProtectedRoute = ({ allowedRoles = [] }) => {
   const { user, isAuthenticated } = useAuth();
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="v1/login" replace />;
   }
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
@@ -29,7 +29,7 @@ const ProtectedRoute = ({ allowedRoles = [] }) => {
 const AppRoutes = () => (
   <BrowserRouter>
     <Routes>
-      <Route path="/login" element={<Login />} />
+      <Route path="v1/login" element={<Login />} />
 
       <Route element={<ProtectedRoute allowedRoles={["SUPER_ADMIN"]} />}>
         <Route path="/dashboard-admin" element={<DashboardAdmin />}>
