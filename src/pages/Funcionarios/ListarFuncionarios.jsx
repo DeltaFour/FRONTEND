@@ -221,7 +221,7 @@ const ListarFuncionarios = () => {
 
   const fetchEmployees = useCallback(async () => {
     try {
-      const response = await api.get("/user");
+      const response = await api.get("/user/list");
       setFuncionarios(response.data.data || response.data);
     } catch (err) {
       console.error("Erro ao buscar usuários:", err);
@@ -231,7 +231,7 @@ const ListarFuncionarios = () => {
 
   const fetchShifts = useCallback(async () => {
     try {
-      const response = await api.get("/workshift");
+      const response = await api.get("/workshift/list");
 
       const rawData =
         response.data.data ||

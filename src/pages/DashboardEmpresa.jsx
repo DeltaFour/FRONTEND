@@ -74,7 +74,7 @@ const DashboardEmpresa = () => {
           </Link>
 
           <Link
-            to="/dashboard-admin/turnos"
+            to="/dashboard-empresa/turnos"
             className="flex items-center py-2.5 px-4 rounded-lg transition duration-200 hover:bg-indigo-700"
           >
             <FaHourglassHalf className="mr-3" /> Gerenciar Turnos

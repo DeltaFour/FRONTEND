@@ -31,7 +31,7 @@ const CriarFuncionario = () => {
   useEffect(() => {
     const fetchShifts = async () => {
       try {
-        const response = await api.get("/workshift");
+        const response = await api.get("/workshift/list");
         setShifts(response.data.data || response.data);
       } catch (err) {
         console.error("Erro ao carregar turnos:", err);
