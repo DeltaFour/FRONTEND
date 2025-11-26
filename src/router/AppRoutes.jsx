@@ -8,6 +8,9 @@ import ListarEmpresas from "../pages/Empresas/ListarEmpresas";
 import CriarEmpresa from "../pages/Empresas/CriarEmpresa";
 import EditarEmpresa from "../pages/Empresas/EditarEmpresa";
 import ListarFuncionarios from "../pages/Funcionarios/ListarFuncionarios";
+import PontoEletronico from "../pages/PontoEletronico";
+import GerenciarTurnos from "../pages/GerenciarTurnos";
+import PontoParaFuncionario from "../pages/PontoParaFuncionario";
 
 const ProtectedRoute = ({ allowedRoles = [] }) => {
   const { user, isAuthenticated } = useAuth();
@@ -40,12 +43,14 @@ const AppRoutes = () => (
         </Route>
       </Route>
 
-      <Route element={<ProtectedRoute allowedRoles={["ADMIN", "user"]} />}>
-        <Route path="/dashboard-empresa" element={<DashboardEmpresa />} />
-        <Route
-          path="/dashboard-empresa/funcionarios"
-          element={<ListarFuncionarios />}
-        />
+      <Route element={<ProtectedRoute allowedRoles={["ADMIN", "employee"]} />}>
+        <Route path="/dashboard-empresa" element={<DashboardEmpresa />}>
+          <Route index element={<ListarFuncionarios />} />
+          <Route path="funcionarios" element={<ListarFuncionarios />} />
+          <Route path="ponto" element={<PontoEletronico />} />
+          <Route path="ponto/terceiros" element={<PontoParaFuncionario />} />
+          <Route path="turnos" element={<GerenciarTurnos />} />
+        </Route>
       </Route>
 
       <Route path="/" element={<Navigate to="/dashboard-admin" />} />

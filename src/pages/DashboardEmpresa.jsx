@@ -2,7 +2,15 @@ import React, { useState, useEffect } from "react";
 import { Link, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
-import { FaUsers, FaClock, FaSignOutAlt, FaBuilding } from "react-icons/fa";
+import {
+  FaUsers,
+  FaClock,
+  FaSignOutAlt,
+  FaBuilding,
+  FaUserFriends,
+  FaCalendarCheck,
+  FaHourglassHalf,
+} from "react-icons/fa";
 
 const DashboardEmpresa = () => {
   const { user, logout } = useAuth();
@@ -18,7 +26,7 @@ const DashboardEmpresa = () => {
       }
 
       try {
-        const response = await api.get(`/admin-control/company/${companyId}`);
+        const response = await api.get(`/super-admin/company/${companyId}`);
         setCompanyName(response.data.name || "Nome Indisponível");
       } catch (error) {
         console.error("Erro ao buscar nome da empresa:", error);
@@ -42,18 +50,34 @@ const DashboardEmpresa = () => {
             Bem vindo(a), {user?.name || user?.email || "Admin"}
           </h2>
         </div>
-        <nav className="flex-1 px-4 py-2">
+
+        <nav className="flex-1 px-4 py-2 space-y-1">
           <Link
-            to="/dashboard-empresa/funcionarios"
-            className="flex items-center py-2.5 px-4 rounded-lg transition duration-200 hover:bg-indigo-700 mb-2"
+            to="funcionarios"
+            className="flex items-center py-2.5 px-4 rounded-lg transition duration-200 hover:bg-indigo-700"
           >
             <FaUsers className="mr-3" /> Gerenciar Funcionários
           </Link>
+
           <Link
-            to="/dashboard-empresa/ponto"
+            to="ponto"
             className="flex items-center py-2.5 px-4 rounded-lg transition duration-200 hover:bg-indigo-700"
           >
             <FaClock className="mr-3" /> Meu Ponto
+          </Link>
+
+          <Link
+            to="ponto/terceiros"
+            className="flex items-center py-2.5 px-4 rounded-lg transition duration-200 hover:bg-indigo-700"
+          >
+            <FaUserFriends className="mr-3" /> Ponto de Terceiros
+          </Link>
+
+          <Link
+            to="/dashboard-admin/turnos"
+            className="flex items-center py-2.5 px-4 rounded-lg transition duration-200 hover:bg-indigo-700"
+          >
+            <FaHourglassHalf className="mr-3" /> Gerenciar Turnos
           </Link>
         </nav>
 
