@@ -31,7 +31,7 @@ const FormularioFuncionario = ({ employeeData, onClose, onSave, shifts }) => {
     roleName: employeeData?.roleName || "EMPLOYEE",
     isAllowedBypassCoord: employeeData?.isAllowedBypassCoord || false,
     shiftId: employeeData?.shiftDto?.[0]?.shiftId || "",
-    employeeShiftId: employeeData?.shiftDto?.[0]?.id || "",
+    userShiftId: employeeData?.shiftDto?.[0]?.id || "",
     imageBase64: "",
   });
   const [submitting, setSubmitting] = useState(false);
@@ -70,7 +70,7 @@ const FormularioFuncionario = ({ employeeData, onClose, onSave, shifts }) => {
     setSubmitting(true);
     setError(null);
 
-    const employeeShiftArray = [];
+    const userShiftArray = [];
     if (formData.shiftId) {
       const shiftObject = {
         shiftId: formData.shiftId,
@@ -80,10 +80,10 @@ const FormularioFuncionario = ({ employeeData, onClose, onSave, shifts }) => {
       };
 
       if (isEditing) {
-        shiftObject.id = formData.employeeShiftId;
+        shiftObject.id = formData.userShiftId;
       }
 
-      employeeShiftArray.push(shiftObject);
+      userShiftArray.push(shiftObject);
     }
 
     const payload = {
@@ -92,7 +92,7 @@ const FormularioFuncionario = ({ employeeData, onClose, onSave, shifts }) => {
       cellPhone: formData.cellPhone,
       roleName: formData.roleName,
       isAllowedBypassCoord: formData.isAllowedBypassCoord,
-      employeeShift: employeeShiftArray,
+      userShift: userShiftArray,
       imageBase64: formData.imageBase64,
     };
 
@@ -331,7 +331,7 @@ const ListarFuncionarios = () => {
       return;
     }
     try {
-      await api.delete(`/user/${funcId}`);
+      await api.delete(`/user/change-status/${funcId}`);
       setFuncionarios((prev) => prev.filter((f) => f.id !== funcId));
       alert(`Usuário "${funcName}" excluído com sucesso!`);
     } catch (err) {
@@ -384,7 +384,7 @@ const ListarFuncionarios = () => {
     setEditingEmployee({
       ...func,
       shiftId: func.shiftDto?.[0]?.shiftId || "",
-      employeeShiftId: func.shiftDto?.[0]?.id || "",
+      userShiftId: func.shiftDto?.[0]?.id || "",
     });
     setCurrentView("edit");
   };

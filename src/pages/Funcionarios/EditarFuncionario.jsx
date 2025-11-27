@@ -19,7 +19,7 @@ const EditarFuncionario = () => {
     cellPhone: "",
     roleName: "",
     shiftId: "",
-    employeeShiftId: "",
+    userShiftId: "",
     isAllowedBypassCoord: false,
   });
   const [loading, setLoading] = useState(true);
@@ -50,7 +50,7 @@ const EditarFuncionario = () => {
           roleName: employee.roleName || "",
           isAllowedBypassCoord: employee.isAllowedBypassCoord || false,
           shiftId: currentShift.id || "",
-          employeeShiftId: currentShift.id || "",
+          userShiftId: currentShift.id || "",
         });
       } catch (err) {
         console.error("Erro ao buscar dados:", err.response || err);
@@ -78,9 +78,9 @@ const EditarFuncionario = () => {
     setError(null);
     setSuccess(null);
 
-    const employeeShiftArray = [
+    const userShiftArray = [
       {
-        id: formData.employeeShiftId,
+        id: formData.userShiftId,
         shiftId: formData.shiftId,
         startDate: new Date().toISOString(),
         endDate: new Date().toISOString(),
@@ -93,7 +93,7 @@ const EditarFuncionario = () => {
       name: formData.name,
       cellPhone: formData.cellPhone,
       isAllowedBypassCoord: formData.isAllowedBypassCoord,
-      employeeShift: employeeShiftArray,
+      userShift: userShiftArray,
     };
 
     try {
