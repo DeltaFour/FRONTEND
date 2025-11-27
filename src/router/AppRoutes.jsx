@@ -8,7 +8,6 @@ import ListarEmpresas from "../pages/Empresas/ListarEmpresas";
 import CriarEmpresa from "../pages/Empresas/CriarEmpresa";
 import EditarEmpresa from "../pages/Empresas/EditarEmpresa";
 import ListarFuncionarios from "../pages/Funcionarios/ListarFuncionarios";
-import PontoEletronico from "../pages/PontoEletronico";
 import GerenciarTurnos from "../pages/GerenciarTurnos";
 import PontoParaFuncionario from "../pages/PontoParaFuncionario";
 
@@ -47,7 +46,6 @@ const AppRoutes = () => (
         <Route path="/dashboard-empresa" element={<DashboardEmpresa />}>
           <Route index element={<ListarFuncionarios />} />
           <Route path="funcionarios" element={<ListarFuncionarios />} />
-          <Route path="ponto" element={<PontoEletronico />} />
           <Route path="ponto/terceiros" element={<PontoParaFuncionario />} />
           <Route path="turnos" element={<GerenciarTurnos />} />
         </Route>

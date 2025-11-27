@@ -23,7 +23,7 @@ const PontoParaFuncionario = () => {
 
   const fetchEmployees = useCallback(async () => {
     try {
-      const response = await api.get("/user");
+      const response = await api.get("/user/list");
       const dataToSet = (response.data.data || response.data).filter(
         (f) => f.roleName !== "COMPANY_ADMIN"
       );

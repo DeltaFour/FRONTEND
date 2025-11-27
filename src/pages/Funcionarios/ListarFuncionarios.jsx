@@ -8,9 +8,17 @@ import {
   FaTimes,
   FaSave,
   FaClock,
-  FaMobileAlt,
-  FaUserShield,
 } from "react-icons/fa";
+
+const AVAILABLE_ROLES = [
+  { value: "ADMIN", label: "Administrador (Empresa)" },
+  { value: "RH", label: "Recursos Humanos (RH)" },
+  { value: "EMPLOYEE", label: "Funcionário Padrão" },
+];
+
+// =======================================================================
+// 1. Componente de Formulário Lateral
+// =======================================================================
 
 const FormularioFuncionario = ({ employeeData, onClose, onSave, shifts }) => {
   const isEditing = !!employeeData?.id;
@@ -19,14 +27,23 @@ const FormularioFuncionario = ({ employeeData, onClose, onSave, shifts }) => {
     name: employeeData?.name || "",
     email: employeeData?.email || "",
     password: "",
-    cellPhone: employeeData?.cellphone || "",
+    cellPhone: employeeData?.cellPhone || "",
     roleName: employeeData?.roleName || "EMPLOYEE",
     isAllowedBypassCoord: employeeData?.isAllowedBypassCoord || false,
     shiftId: employeeData?.shiftDto?.[0]?.shiftId || "",
     employeeShiftId: employeeData?.shiftDto?.[0]?.id || "",
+    imageBase64: "",
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+
+  const fileToBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result.split(",")[1]);
+      reader.onerror = (error) => reject(error);
+    });
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -36,6 +53,18 @@ const FormularioFuncionario = ({ employeeData, onClose, onSave, shifts }) => {
     }));
   };
 
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      try {
+        const base64String = await fileToBase64(file);
+        setFormData((prev) => ({ ...prev, imageBase64: base64String }));
+      } catch (err) {
+        setError("Falha ao carregar a imagem.");
+      }
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -43,15 +72,18 @@ const FormularioFuncionario = ({ employeeData, onClose, onSave, shifts }) => {
 
     const employeeShiftArray = [];
     if (formData.shiftId) {
-      employeeShiftArray.push({
-        id: isEditing
-          ? formData.employeeShiftId
-          : "00000000-0000-0000-0000-000000000000",
+      const shiftObject = {
         shiftId: formData.shiftId,
         startDate: new Date().toISOString(),
         endDate: null,
         isActive: true,
-      });
+      };
+
+      if (isEditing) {
+        shiftObject.id = formData.employeeShiftId;
+      }
+
+      employeeShiftArray.push(shiftObject);
     }
 
     const payload = {
@@ -61,6 +93,7 @@ const FormularioFuncionario = ({ employeeData, onClose, onSave, shifts }) => {
       roleName: formData.roleName,
       isAllowedBypassCoord: formData.isAllowedBypassCoord,
       employeeShift: employeeShiftArray,
+      imageBase64: formData.imageBase64,
     };
 
     if (!isEditing) {
@@ -68,8 +101,13 @@ const FormularioFuncionario = ({ employeeData, onClose, onSave, shifts }) => {
       payload.password = formData.password;
     }
 
-    onSave(payload, isEditing);
-    setSubmitting(false);
+    try {
+      await onSave(payload, isEditing);
+    } catch (err) {
+      setError("Falha ao se comunicar com o servidor. Tente novamente.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -150,8 +188,11 @@ const FormularioFuncionario = ({ employeeData, onClose, onSave, shifts }) => {
             required
             className="border p-2 w-full rounded mt-1"
           >
-            <option value="EMPLOYEE">Funcionário Padrão</option>
-            <option value="COMPANY_ADMIN">Administrador da Empresa</option>
+            {AVAILABLE_ROLES.map((role) => (
+              <option key={role.value} value={role.value}>
+                {role.label}
+              </option>
+            ))}
           </select>
         </label>
 
@@ -167,7 +208,6 @@ const FormularioFuncionario = ({ employeeData, onClose, onSave, shifts }) => {
             className="border p-2 w-full rounded mt-1"
           >
             <option value="">Selecione o Turno</option>
-
             {shifts &&
               Array.isArray(shifts) &&
               shifts.map((shift) => (
@@ -177,6 +217,19 @@ const FormularioFuncionario = ({ employeeData, onClose, onSave, shifts }) => {
               ))}
           </select>
         </label>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Foto do Rosto
+          </label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            required={!isEditing}
+            className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+          />
+        </div>
 
         <div className="flex items-center">
           <input
@@ -209,6 +262,10 @@ const FormularioFuncionario = ({ employeeData, onClose, onSave, shifts }) => {
     </div>
   );
 };
+
+// =======================================================================
+// 2. Componente Principal (Listagem e Controle de View)
+// =======================================================================
 
 const ListarFuncionarios = () => {
   const [funcionarios, setFuncionarios] = useState([]);
@@ -247,7 +304,6 @@ const ListarFuncionarios = () => {
         if (Array.isArray(arrayData)) {
           setShifts(arrayData);
         } else {
-          console.error("Dados de turnos não são um array:", rawData);
           setShifts([]);
         }
       }
@@ -289,14 +345,24 @@ const ListarFuncionarios = () => {
   };
 
   const handleSaveEmployee = async (payload, isEditing) => {
-    const endpoint = "/user";
+    const endpoint = isEditing ? "/user/update" : "/user/create";
     const method = isEditing ? api.patch : api.post;
 
     try {
       await method(endpoint, payload);
       alert(`Funcionário ${isEditing ? "atualizado" : "criado"} com sucesso!`);
       setCurrentView("list");
-      fetchEmployees();
+
+      setLoading(true);
+      setTimeout(async () => {
+        try {
+          await fetchEmployees();
+        } catch (e) {
+          console.error("Erro na recarga após salvar:", e);
+        } finally {
+          setLoading(false);
+        }
+      }, 500);
     } catch (err) {
       const message =
         err.response?.data?.message ||
@@ -305,6 +371,7 @@ const ListarFuncionarios = () => {
           : "Erro ao salvar os dados. Detalhes no console.");
       alert(`Erro: ${message}`);
       console.error("Erro ao salvar funcionário:", err.response || err);
+      throw err;
     }
   };
 

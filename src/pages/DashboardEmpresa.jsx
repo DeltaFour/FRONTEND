@@ -40,14 +40,18 @@ const DashboardEmpresa = () => {
   }, [user]);
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      <div className="w-64 bg-indigo-800 text-white flex flex-col">
+    <div className="flex h-screen bg-brand-background">
+      <div className="w-64 bg-brand-primary text-white flex flex-col">
         <div className="p-6">
           <h1 className="text-2xl font-extrabold truncate flex items-center mb-1">
             <FaBuilding className="mr-2" /> {companyName}
           </h1>
           <h2 className="text-base font-semibold truncate opacity-80">
-            Bem vindo(a), {user?.name || user?.email || "Admin"}
+            Bem vindo(a)
+            <br />
+            <span className="font-normal">
+              {user?.name || user?.email || "Admin"}
+            </span>
           </h2>
         </div>
 
@@ -58,14 +62,6 @@ const DashboardEmpresa = () => {
           >
             <FaUsers className="mr-3" /> Gerenciar Funcionários
           </Link>
-
-          <Link
-            to="ponto"
-            className="flex items-center py-2.5 px-4 rounded-lg transition duration-200 hover:bg-indigo-700"
-          >
-            <FaClock className="mr-3" /> Meu Ponto
-          </Link>
-
           <Link
             to="ponto/terceiros"
             className="flex items-center py-2.5 px-4 rounded-lg transition duration-200 hover:bg-indigo-700"
