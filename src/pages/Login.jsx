@@ -1,37 +1,76 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Mail, Lock, Eye, EyeOff, Clock, ArrowRight } from "lucide-react";
 
 const Login = () => {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(
+    localStorage.getItem("rememberMeEmail") || ""
+  );
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(
+    !!localStorage.getItem("rememberMeEmail")
+  );
 
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
+
+  // Redireciona se já estiver autenticado (ex: após F5)
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const userRole = user.role;
+      if (userRole === "SUPER_ADMIN") {
+        navigate("/dashboard-admin", { replace: true });
+      } else if (
+        userRole === "ADMIN" ||
+        userRole === "EMPLOYEE" ||
+        userRole === "RH"
+      ) {
+        navigate("/dashboard-empresa", { replace: true });
+      }
+    }
+  }, [isAuthenticated, user, navigate]);
+
+  useEffect(() => {
+    if (rememberMe && email) {
+      localStorage.setItem("rememberMeEmail", email);
+    } else if (!rememberMe) {
+      localStorage.removeItem("rememberMeEmail");
+    }
+  }, [rememberMe, email]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    const userData = await login(email, password);
+    const userData = await login(email, password, rememberMe);
     setLoading(false);
 
     if (userData) {
-      const fullRole = userData.role;
-      const userRole = fullRole.split(".").pop();
+      // Lógica para salvar/remover o email após login bem-sucedido
+      if (rememberMe) {
+        localStorage.setItem("rememberMeEmail", email);
+      } else {
+        localStorage.removeItem("rememberMeEmail");
+      }
+
+      // A role agora deve ser um valor direto (ADMIN, EMPLOYEE, etc.)
+      const userRole = userData.role;
 
       if (userRole === "SUPER_ADMIN") {
         navigate("/dashboard-admin");
-      } else if (userRole === "CompanyAdmin" || userRole === "ADMIN") {
+      } else if (
+        userRole === "ADMIN" ||
+        userRole === "EMPLOYEE" ||
+        userRole === "RH"
+      ) {
         navigate("/dashboard-empresa");
       } else {
-        setError(`Perfil desconhecido: ${userRole}. Consulte o backend.`);
+        setError(`Perfil não reconhecido: ${userRole}.`);
       }
     }
   };

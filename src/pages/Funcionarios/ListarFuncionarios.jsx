@@ -331,7 +331,7 @@ const ListarFuncionarios = () => {
       return;
     }
     try {
-      await api.delete(`/user/change-status/${funcId}`);
+      await api.delete(`/user/${funcId}`);
       setFuncionarios((prev) => prev.filter((f) => f.id !== funcId));
       alert(`Usuário "${funcName}" excluído com sucesso!`);
     } catch (err) {
@@ -349,7 +349,6 @@ const ListarFuncionarios = () => {
     const method = isEditing ? api.patch : api.post;
 
     try {
-      console.log("Salvando funcionário com payload:", payload);
       await method(endpoint, payload);
       alert(`Funcionário ${isEditing ? "atualizado" : "criado"} com sucesso!`);
       setCurrentView("list");
