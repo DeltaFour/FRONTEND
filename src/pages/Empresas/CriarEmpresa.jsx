@@ -30,7 +30,7 @@ const CriarEmpresa = () => {
     const payload = {
       name: formData.nome,
       cnpj: formData.cnpj,
-      employee: {
+      user: {
         email: formData.emailAdmin,
         name: formData.nameAdmin,
         password: formData.senhaAdmin,

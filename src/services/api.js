@@ -3,9 +3,9 @@ import axios from "axios";
 // Assumindo que você usa react-router-dom v6 (com useNavigate)
 // Você precisará de uma forma de acessar o contexto AuthContext ou a função logout.
 // Para manter a simplicidade, faremos o interceptor aqui, mas a função de logout será importada do AuthContext.
-
+const BASE_URL = import.meta.env.VITE_BASE_URL || "";
 const api = axios.create({
-  baseURL: "http://localhost:8080/api/v1",
+  baseURL: BASE_URL + '/api/v1',
   headers: {
     "Content-Type": "application/json",
   },

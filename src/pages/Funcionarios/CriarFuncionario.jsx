@@ -63,7 +63,7 @@ const CriarFuncionario = () => {
       cellPhone: formData.cellPhone,
       imageBase64: formData.imageBase64,
       isAllowedBypassCoord: formData.isAllowedBypassCoord,
-      employeeShift: [
+      userShift: [
         {
           shiftId: formData.shiftId,
           startDate: new Date().toISOString(),
