@@ -44,7 +44,7 @@ const DashboardEmpresa = () => {
       <div className="w-64 bg-brand-primary text-white flex flex-col">
         <div className="p-6">
           <h1 className="text-2xl font-extrabold truncate flex items-center mb-1">
-            <FaBuilding className="mr-2" /> {companyName}
+            <FaBuilding className="mr-2" /> Dashboard
           </h1>
           <h2 className="text-base font-semibold truncate opacity-80">
             Bem vindo(a)

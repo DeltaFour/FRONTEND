@@ -18,7 +18,6 @@ const Login = () => {
   const navigate = useNavigate();
   const { login, isAuthenticated, user } = useAuth();
 
-  // Redireciona se já estiver autenticado (ex: após F5)
   useEffect(() => {
     if (isAuthenticated && user) {
       const userRole = user.role;
@@ -51,14 +50,12 @@ const Login = () => {
     setLoading(false);
 
     if (userData) {
-      // Lógica para salvar/remover o email após login bem-sucedido
       if (rememberMe) {
         localStorage.setItem("rememberMeEmail", email);
       } else {
         localStorage.removeItem("rememberMeEmail");
       }
 
-      // A role agora deve ser um valor direto (ADMIN, EMPLOYEE, etc.)
       const userRole = userData.role;
 
       if (userRole === "SUPER_ADMIN") {
@@ -112,11 +109,6 @@ const Login = () => {
             Sistema completo de controle de ponto eletrônico. Simples, seguro e
             confiável.
           </p>
-          <img
-            src="src/assets/deltafour.png"
-            alt="DeltaFour"
-            className="rounded-lg shadow-lg w-[60px]"
-          />
         </div>
       </div>
 
@@ -248,7 +240,7 @@ const Login = () => {
               <p className="text-sm text-gray-600">
                 Não tem uma conta?{" "}
                 <button className="font-semibold text-indigo-600 hover:text-indigo-700 transition-colors">
-                  Entre em contato com o administrador
+                  Entre em contato com a Delta Four
                 </button>
               </p>
             </div>

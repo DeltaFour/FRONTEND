@@ -1,20 +1,34 @@
 import React from "react";
 import { Link, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import {
+  FaUsers,
+  FaClock,
+  FaSignOutAlt,
+  FaBuilding,
+  FaUserFriends,
+  FaCalendarCheck,
+  FaHourglassHalf,
+} from "react-icons/fa";
 
 const DashboardAdmin = () => {
   const { user, logout } = useAuth();
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      <div className="w-64 bg-gray-800 text-white p-4 flex flex-col">
-        <h1 className="text-xl font-bold mb-6 ">Painel do Admin</h1>
+    <div className="flex h-screen bg-brand-background">
+      <div className="w-64 bg-brand-primary text-white p-4 flex flex-col">
+        <h1 className="text-2xl font-extrabold truncate flex items-center mb-1 ">
+          <FaClock className="mr-2" />
+          Painel do Admin
+        </h1>
         <nav className="flex-1">
           <Link
             to="/dashboard-admin"
-            className="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700"
+            className="block py-2.5 px-4 rounded transition duration-200 hover:bg-brand-secondary"
           >
-            Empresas
+            <h1 className="text-2xl font-extrabold truncate flex items-center mb-1">
+              <FaBuilding className="mr-2" /> Empresas
+            </h1>
           </Link>
         </nav>
         <div className="mt-auto">

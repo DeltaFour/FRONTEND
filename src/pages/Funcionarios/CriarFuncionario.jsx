@@ -241,9 +241,7 @@ const CriarFuncionario = () => {
             <option value="">Selecione o Turno</option>
             {shifts.map((shift) => (
               <option key={shift.id} value={shift.id}>
-                {shift.workShiftType} ({shift.workShiftStartTime.hour}:
-                {shift.workShiftStartTime.minute} -{" "}
-                {shift.workShiftEndTime.hour}:{shift.workShiftEndTime.minute})
+                {shift.shiftType}
               </option>
             ))}
           </select>
