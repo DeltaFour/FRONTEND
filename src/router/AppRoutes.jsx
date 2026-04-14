@@ -1,6 +1,5 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, BrowserRouter, Routes, Route } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "../pages/Login";
 import DashboardAdmin from "../pages/DashboardAdmin";
 import DashboardEmpresa from "../pages/DashboardEmpresa";
@@ -18,7 +17,7 @@ const ProtectedRoute = ({ allowedRoles = [] }) => {
     return <Navigate to="/v1/login" replace />;
   }
 
-  if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+  if (allowedRoles.length > 0 && user && !allowedRoles.includes(user.role)) {
     return <Navigate to="/dashboard-empresa" replace />;
   }
 

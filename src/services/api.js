@@ -4,77 +4,196 @@ import axios from "axios";
 // Você precisará de uma forma de acessar o contexto AuthContext ou a função logout.
 // Para manter a simplicidade, faremos o interceptor aqui, mas a função de logout será importada do AuthContext.
 const BASE_URL = import.meta.env.VITE_BASE_URL || "";
-const api = axios.create({
-  baseURL: BASE_URL + '/api/v1',
-  headers: {
-    "Content-Type": "application/json",
-  },
-  withCredentials: true,
-});
+const USE_MOCK_API = import.meta.env.VITE_USE_MOCK === "true";
 
-let isRefreshing = false;
-let failedQueue = [];
+const createMockApi = () => {
+  let companies = [
+    {
+      id: "1",
+      name: "Empresa Exemplo LTDA",
+      cnpj: "12.345.678/0001-99",
+      isActive: true,
+    },
+    {
+      id: "2",
+      name: "DeltaFour Serviços",
+      cnpj: "98.765.432/0001-11",
+      isActive: true,
+    },
+    {
+      id: "3",
+      name: "Tech Solutions SA",
+      cnpj: "11.222.333/0001-44",
+      isActive: false,
+    },
+  ];
 
-// Função que processa a fila de requisições falhas após o refresh
-const processQueue = (error, token = null) => {
-  failedQueue.forEach((prom) => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token);
-    }
+  const delay = (value, ms = 400) =>
+    new Promise((resolve) => setTimeout(() => resolve(value), ms));
+
+  const buildResponse = (data, config) => ({
+    data,
+    status: 200,
+    statusText: "OK",
+    headers: {},
+    config: config || {},
   });
-  failedQueue = [];
-};
 
-// Interceptor de Resposta: Tenta renovar o token
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-    // Verifica se é erro 401 e se já não tentamos renovar
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      if (isRefreshing) {
-        // Se já estiver renovando, adiciona a requisição na fila de espera
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then((token) => {
-            originalRequest.headers["Authorization"] = "Bearer " + token;
-            return api(originalRequest);
-          })
-          .catch((err) => {
-            return Promise.reject(err);
-          });
+  const get = async (url, config) => {
+    if (url === "/super-admin/company") {
+      return delay(buildResponse(companies, config));
+    }
+
+    if (url === "/admin-control/company") {
+      return delay(buildResponse({ data: companies }, config));
+    }
+
+    const matchCompanyById = url.match(/^\/super-admin\/company\/(.+)$/);
+    if (matchCompanyById) {
+      const id = matchCompanyById[1];
+      const company = companies.find((c) => c.id === id);
+      if (!company) {
+        return Promise.reject({
+          response: { data: { message: "Empresa não encontrada no mock." } },
+        });
       }
 
-      originalRequest._retry = true;
-      isRefreshing = true;
-
-      return new Promise(async (resolve, reject) => {
-        try {
-          // 🏆 1. Chama a rota de refresh
-          const response = await api.post("/auth/refresh-token");
-
-          // Sucesso: O backend deve ter definido um novo cookie JWT e, opcionalmente,
-          // retornado o novo token de acesso no corpo/header (embora com cookies, ele está pronto)
-
-          isRefreshing = false;
-          processQueue(null); // Processa as requisições em fila
-          resolve(api(originalRequest)); // Repete a requisição original
-        } catch (err) {
-          // 2. Se o refresh falhar (Refresh Token inválido/expirado)
-          isRefreshing = false;
-          processQueue(err, null);
-
-          // 3. Força o logout
-          window.location.href = "/login"; // Redireciona para login (solução simples para apps React)
-          reject(err);
-        }
-      });
+      return delay(
+        buildResponse(
+          {
+            name: company.name,
+            cnpj: company.cnpj,
+          },
+          config,
+        ),
+      );
     }
-    return Promise.reject(error);
-  }
-);
+
+    return delay(buildResponse({}, config));
+  };
+
+  const post = async (url, data, config) => {
+    if (url === "/auth/login") {
+      const { email } = data || {};
+      const isSuperAdmin =
+        email &&
+        (email.toLowerCase().includes("super") ||
+          email.toLowerCase().includes("admin"));
+
+      const user = {
+        id: "mock-user-1",
+        name: isSuperAdmin ? "Super Admin" : "Company Admin",
+        email: email || "user@mock.com",
+        role: isSuperAdmin ? "ROLE.SUPER_ADMIN" : "ROLE.COMPANY_ADMIN",
+      };
+
+      return delay(buildResponse(user, config));
+    }
+
+    if (url === "/auth/logout") {
+      return delay(buildResponse({}, config));
+    }
+
+    if (url === "/super-admin/company") {
+      const payload = data || {};
+      const newCompany = {
+        id: String(Date.now()),
+        name: payload.name || "Nova Empresa Mock",
+        cnpj: payload.cnpj || "00.000.000/0000-00",
+        isActive: true,
+      };
+
+      companies = [...companies, newCompany];
+      return delay(buildResponse(newCompany, config));
+    }
+
+    const matchChangeStatus = url.match(
+      /^\/admin-control\/company\/(.+)\/change-status$/,
+    );
+    if (matchChangeStatus) {
+      const id = matchChangeStatus[1];
+      companies = companies.map((company) =>
+        company.id === id
+          ? { ...company, isActive: !company.isActive }
+          : company,
+      );
+
+      return delay(buildResponse({}, config));
+    }
+
+    return delay(buildResponse({}, config));
+  };
+
+  const put = async (url, data, config) => {
+    const matchUpdate = url.match(/^\/super-admin\/company\/(.+)$/);
+    if (matchUpdate) {
+      const id = matchUpdate[1];
+      const payload = data || {};
+      let updated;
+
+      companies = companies.map((company) => {
+        if (company.id === id) {
+          updated = {
+            ...company,
+            name: payload.name ?? company.name,
+            cnpj: payload.cnpj ?? company.cnpj,
+          };
+          return updated;
+        }
+        return company;
+      });
+
+      if (!updated) {
+        return Promise.reject({
+          response: {
+            data: { message: "Empresa não encontrada para atualização." },
+          },
+        });
+      }
+
+      return delay(buildResponse(updated, config));
+    }
+
+    return delay(buildResponse({}, config));
+  };
+
+  const del = async (url, config) => {
+    const matchDelete = url.match(/^\/super-admin\/company\/(.+)$/);
+    if (matchDelete) {
+      const id = matchDelete[1];
+      companies = companies.filter((company) => company.id !== id);
+      return delay(buildResponse({}, config));
+    }
+
+    return delay(buildResponse({}, config));
+  };
+
+  return { get, post, put, delete: del };
+};
+
+let api;
+
+if (USE_MOCK_API) {
+  api = createMockApi();
+} else {
+  api = axios.create({
+    baseURL: BASE_URL + "/api",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    withCredentials: true,
+  });
+
+  api.interceptors.request.use(
+    (config) => {
+      const token = localStorage.getItem("authToken");
+      if (token) {
+        config.headers["Authorization"] = `Bearer ${token}`;
+      }
+      return config;
+    },
+    (error) => Promise.reject(error),
+  );
+}
 
 export default api;
