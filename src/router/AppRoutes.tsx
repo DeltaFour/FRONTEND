@@ -1,5 +1,10 @@
-import { Navigate, Outlet, BrowserRouter, Routes, Route } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import {
+  BrowserRouter,
+  Navigate,
+  Outlet,
+  Route,
+  Routes,
+} from "react-router-dom";
 import Login from "../pages/Login";
 import DashboardAdmin from "../pages/DashboardAdmin";
 import DashboardEmpresa from "../pages/DashboardEmpresa";
@@ -9,8 +14,13 @@ import EditarEmpresa from "../pages/Empresas/EditarEmpresa";
 import ListarFuncionarios from "../pages/Funcionarios/ListarFuncionarios";
 import GerenciarTurnos from "../pages/GerenciarTurnos";
 import PontoParaFuncionario from "../pages/PontoParaFuncionario";
+import { useAuth } from "../context/AuthContext";
 
-const ProtectedRoute = ({ allowedRoles = [] }) => {
+interface ProtectedRouteProps {
+  allowedRoles?: string[];
+}
+
+const ProtectedRoute = ({ allowedRoles = [] }: ProtectedRouteProps) => {
   const { user, isAuthenticated } = useAuth();
 
   if (!isAuthenticated) {
@@ -32,11 +42,8 @@ const AppRoutes = () => (
       <Route element={<ProtectedRoute allowedRoles={["SUPER_ADMIN"]} />}>
         <Route path="/dashboard-admin" element={<DashboardAdmin />}>
           <Route index element={<ListarEmpresas />} />
-
           <Route path="empresas" element={<ListarEmpresas />} />
-
           <Route path="empresas/criar" element={<CriarEmpresa />} />
-
           <Route path="empresas/editar/:id" element={<EditarEmpresa />} />
         </Route>
       </Route>
@@ -51,7 +58,6 @@ const AppRoutes = () => (
       </Route>
 
       <Route path="/" element={<Navigate to="/dashboard-admin" />} />
-
       <Route path="*" element={<div>404 - Página Não Encontrada</div>} />
     </Routes>
   </BrowserRouter>
