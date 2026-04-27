@@ -1,13 +1,17 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
   Button,
-  Checkbox,
   Flex,
   Heading,
   Input,
-  Select,
   Spinner,
   Text,
   VStack,
@@ -20,6 +24,7 @@ import {
   FaUserShield,
 } from "react-icons/fa";
 import api from "../../services/api";
+import { toaster } from "../../components/ui/toaster";
 
 interface Shift {
   id: string;
@@ -39,6 +44,11 @@ interface CreateEmployeeFormData {
 
 const CriarFuncionario = () => {
   const navigate = useNavigate();
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [formData, setFormData] = useState<CreateEmployeeFormData>({
     name: "",
@@ -51,37 +61,248 @@ const CriarFuncionario = () => {
     imageBase64: "",
   });
   const [loading, setLoading] = useState(false);
+  const [loadingShifts, setLoadingShifts] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchShifts = async () => {
       try {
+        setLoadingShifts(true);
         const response = await api.get("/workshift/list");
         const data = (response.data?.data ?? response.data) as Shift[];
         setShifts(data);
+
+        if (data.length === 0) {
+          toaster.info({
+            title: "Nenhum turno cadastrado",
+            description: "Cadastre um turno para conseguir criar funcionários.",
+          });
+        }
       } catch (err) {
-        console.error("Erro ao carregar turnos:", err);
-        setError("Não foi possível carregar os turnos de trabalho.");
+        const description = "Não foi possível carregar os turnos de trabalho.";
+        setError(description);
+        toaster.error({
+          title: "Erro ao carregar turnos",
+          description,
+        });
+      } finally {
+        setLoadingShifts(false);
       }
     };
 
     void fetchShifts();
+
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+    };
   }, []);
+
+  useEffect(() => {
+    if (!cameraActive || !videoRef.current || !streamRef.current) {
+      return;
+    }
+
+    const video = videoRef.current;
+    video.srcObject = streamRef.current;
+
+    void video.play().catch(() => {
+      toaster.error({
+        title: "Erro ao iniciar vídeo",
+        description: "Não foi possível iniciar a prévia da webcam.",
+      });
+      stopCamera();
+    });
+
+    return () => {
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+    };
+  }, [cameraActive]);
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+
+    setCameraActive(false);
+  };
+
+  const startCamera = async () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      toaster.error({
+        title: "Webcam indisponível",
+        description: "Seu navegador não suporta acesso à câmera.",
+      });
+      return;
+    }
+
+    try {
+      stopCamera();
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user" },
+      });
+
+      streamRef.current = stream;
+      setCameraActive(true);
+    } catch {
+      toaster.error({
+        title: "Erro ao abrir webcam",
+        description: "Permita acesso à câmera e tente novamente.",
+      });
+    }
+  };
+
+  const capturePhoto = () => {
+    if (!videoRef.current || !canvasRef.current) {
+      return;
+    }
+
+    const video = videoRef.current;
+
+    if (
+      !video.srcObject ||
+      video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA
+    ) {
+      toaster.info({
+        title: "Aguarde a câmera",
+        description: "Espere a webcam carregar antes de capturar a foto.",
+      });
+      return;
+    }
+
+    const canvas = canvasRef.current;
+    const width = video.videoWidth;
+    const height = video.videoHeight;
+
+    if (!width || !height) {
+      toaster.error({
+        title: "Erro ao capturar foto",
+        description: "Não foi possível obter os dados da imagem da webcam.",
+      });
+      return;
+    }
+
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext("2d");
+    if (!context) {
+      toaster.error({
+        title: "Erro ao capturar foto",
+        description: "Não foi possível processar a imagem da webcam.",
+      });
+      return;
+    }
+
+    context.drawImage(video, 0, 0, width, height);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+    const base64 = dataUrl.split(",")[1] ?? "";
+
+    setPhotoPreview(dataUrl);
+    setFormData((prev) => ({ ...prev, imageBase64: base64 }));
+    stopCamera();
+
+    toaster.success({
+      title: "Foto capturada",
+      description: "A imagem da webcam foi adicionada com sucesso.",
+    });
+  };
+
+  const handleFileUpload = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      toaster.error({
+        title: "Arquivo inválido",
+        description: "Selecione um arquivo de imagem válido.",
+      });
+      event.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const dataUrl = String(reader.result ?? "");
+      const base64 = dataUrl.split(",")[1] ?? "";
+
+      setPhotoPreview(dataUrl);
+      setFormData((prev) => ({ ...prev, imageBase64: base64 }));
+      stopCamera();
+
+      toaster.success({
+        title: "Imagem adicionada",
+        description: "Upload da imagem concluído com sucesso.",
+      });
+    };
+
+    reader.onerror = () => {
+      toaster.error({
+        title: "Erro no upload",
+        description: "Não foi possível ler o arquivo selecionado.",
+      });
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  const clearPhoto = () => {
+    setPhotoPreview(null);
+    setFormData((prev) => ({ ...prev, imageBase64: "" }));
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+
+    stopCamera();
+  };
 
   const handleChange = (
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
-    const { name, value, type, checked } = event.target as HTMLInputElement &
-      HTMLSelectElement;
+    const target = event.target;
+    const fieldValue =
+      target instanceof HTMLInputElement && target.type === "checkbox"
+        ? target.checked
+        : target.value;
+
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [target.name]: fieldValue,
     }));
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLDivElement>) => {
     event.preventDefault();
+
+    if (!formData.imageBase64) {
+      const description =
+        "Adicione uma foto por upload ou webcam antes de salvar.";
+      setError(description);
+      toaster.error({
+        title: "Foto obrigatória",
+        description,
+      });
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setSuccess(null);
@@ -106,12 +327,15 @@ const CriarFuncionario = () => {
     try {
       await api.post("/user", payload);
       setSuccess(`Funcionário "${formData.name}" cadastrado com sucesso!`);
+      toaster.success({
+        title: "Funcionário cadastrado",
+        description: `Funcionário "${formData.name}" cadastrado com sucesso!`,
+      });
 
       setTimeout(() => {
         navigate("/dashboard-empresa/funcionarios");
       }, 1500);
     } catch (err: unknown) {
-      console.error("Erro no cadastro do funcionário:", err);
       const responseData = (
         err as {
           response?: {
@@ -128,17 +352,40 @@ const CriarFuncionario = () => {
       }
 
       setError(message);
+      toaster.error({
+        title: "Erro ao cadastrar funcionário",
+        description: message,
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  if (shifts.length === 0 && !error) {
+  if (loadingShifts) {
     return (
       <Flex justify="center" align="center" py={10}>
         <Spinner mr={3} />
         <Text>Carregando dados necessários...</Text>
       </Flex>
+    );
+  }
+
+  if (!error && shifts.length === 0) {
+    return (
+      <Box
+        bg="yellow.50"
+        borderWidth="1px"
+        borderColor="yellow.300"
+        color="yellow.800"
+        p={4}
+        borderRadius="md"
+      >
+        <Text fontWeight="bold">Nenhum turno disponível</Text>
+        <Text mt={1}>
+          Cadastre pelo menos um turno em "Turnos" para liberar a criação de
+          funcionários.
+        </Text>
+      </Box>
     );
   }
 
@@ -271,17 +518,23 @@ const CriarFuncionario = () => {
             >
               <FaUserShield /> Perfil de Acesso
             </Text>
-            <Select
+            <select
               name="roleName"
               id="roleName"
               value={formData.roleName}
               onChange={handleChange}
               required
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                borderRadius: "0.375rem",
+                border: "1px solid #E2E8F0",
+              }}
             >
               <option value="">Selecione o Perfil</option>
               <option value="COMPANY_ADMIN">Administrador da Empresa</option>
               <option value="EMPLOYEE">Funcionário Padrão</option>
-            </Select>
+            </select>
           </Box>
 
           <Box>
@@ -295,12 +548,18 @@ const CriarFuncionario = () => {
             >
               <FaClock /> Turno de Trabalho
             </Text>
-            <Select
+            <select
               name="shiftId"
               id="shiftId"
               value={formData.shiftId}
               onChange={handleChange}
               required
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                borderRadius: "0.375rem",
+                border: "1px solid #E2E8F0",
+              }}
             >
               <option value="">Selecione o Turno</option>
               {shifts.map((shift) => (
@@ -308,14 +567,15 @@ const CriarFuncionario = () => {
                   {shift.shiftType}
                 </option>
               ))}
-            </Select>
+            </select>
           </Box>
 
           <Flex align="center" gap={2}>
-            <Checkbox
+            <input
+              type="checkbox"
               name="isAllowedBypassCoord"
               id="isAllowedBypassCoord"
-              isChecked={formData.isAllowedBypassCoord}
+              checked={formData.isAllowedBypassCoord}
               onChange={handleChange}
             />
             <Text fontSize="sm" color="gray.700">
@@ -324,24 +584,111 @@ const CriarFuncionario = () => {
           </Flex>
 
           <Heading size="md" color="gray.700" pt={4} borderTopWidth="1px">
-            Foto (Opcional)
+            Foto (Obrigatório)
           </Heading>
 
           <Box>
-            <Text mb={1} fontWeight="medium" color="gray.700">
-              Foto Base64 (Opcional)
+            <Text mb={2} fontSize="sm" color="gray.600">
+              Você pode enviar uma imagem do dispositivo ou tirar a foto na hora
+              com a webcam.
             </Text>
-            <Input type="file" disabled />
-            <Text mt={1} fontSize="xs" color="gray.500">
-              A implementação de Base64 será feita após o CRUD básico.
-            </Text>
+
+            <Flex gap={3} flexWrap="wrap">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={startCamera}
+                disabled={loading}
+              >
+                Usar Webcam
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={loading}
+              >
+                Fazer Upload
+              </Button>
+
+              {formData.imageBase64 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  colorPalette="red"
+                  onClick={clearPhoto}
+                  disabled={loading}
+                >
+                  Remover Foto
+                </Button>
+              )}
+            </Flex>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileUpload}
+              style={{ display: "none" }}
+            />
           </Box>
+
+          {cameraActive && (
+            <Box borderWidth="1px" borderRadius="md" p={3}>
+              <Text mb={2} fontWeight="medium" color="gray.700">
+                Prévia da Webcam
+              </Text>
+
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                style={{
+                  width: "100%",
+                  maxWidth: "420px",
+                  borderRadius: "8px",
+                }}
+              />
+
+              <Flex gap={3} mt={3}>
+                <Button
+                  type="button"
+                  colorPalette="green"
+                  onClick={capturePhoto}
+                >
+                  Capturar Foto
+                </Button>
+                <Button type="button" variant="outline" onClick={stopCamera}>
+                  Cancelar Webcam
+                </Button>
+              </Flex>
+            </Box>
+          )}
+
+          {photoPreview && (
+            <Box>
+              <Text mb={2} fontWeight="medium" color="gray.700">
+                Foto Selecionada
+              </Text>
+              <Box maxW="260px" borderWidth="1px" borderRadius="md" p={2}>
+                <img
+                  src={photoPreview}
+                  alt="Pré-visualização da foto"
+                  style={{ width: "100%", borderRadius: "4px" }}
+                />
+              </Box>
+            </Box>
+          )}
+
+          <canvas ref={canvasRef} style={{ display: "none" }} />
 
           <Flex justify="flex-end" pt={4}>
             <Button
               type="submit"
               colorPalette="green"
-              isDisabled={loading}
+              disabled={loading}
               minW="240px"
             >
               {loading ? (

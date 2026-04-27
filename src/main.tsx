@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { ChakraProvider } from "@chakra-ui/react";
 import AppRoutes from "./router/AppRoutes";
 import { AuthProvider } from "./context/AuthContext";
+import { AppToaster } from "./components/ui/toaster";
 import "./index.css";
 import { theme } from "./theme/theme";
 
@@ -17,6 +18,7 @@ if (rootElement) {
         <AuthProvider>
           <AppRoutes />
         </AuthProvider>
+        <AppToaster />
       </ChakraProvider>
     </React.StrictMode>,
   );

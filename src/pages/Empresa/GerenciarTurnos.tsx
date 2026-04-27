@@ -23,7 +23,8 @@ import {
   FaTimes,
   FaTrash,
 } from "react-icons/fa";
-import api from "../services/api";
+import api from "../../services/api";
+import { toaster } from "../../components/ui/toaster";
 
 interface ShiftListItem {
   id: number;
@@ -48,7 +49,7 @@ const initialShiftForm: ShiftFormData = {
   workShiftToleranceMinutes: 15,
 };
 
-const GerenciarTurnos = () => {
+export const GerenciarTurnos = () => {
   const [shifts, setShifts] = useState<ShiftListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,7 +76,12 @@ const GerenciarTurnos = () => {
 
       setShifts(formatted);
     } catch {
-      setError("Não foi possível carregar a lista de turnos.");
+      const description = "Não foi possível carregar a lista de turnos.";
+      setError(description);
+      toaster.error({
+        title: "Erro ao carregar turnos",
+        description,
+      });
     } finally {
       setLoading(false);
     }
@@ -145,38 +151,41 @@ const GerenciarTurnos = () => {
 
     try {
       await method(endpoint, payload);
-      // eslint-disable-next-line no-alert
-      alert(`Turno ${isEditing ? "atualizado" : "criado"} com sucesso!`);
+      toaster.success({
+        title: "Turno salvo",
+        description: `Turno ${isEditing ? "atualizado" : "criado"} com sucesso!`,
+      });
       closeModal();
       void fetchShifts();
     } catch (err: unknown) {
       const errorData = (err as { response?: { data?: { message?: string } } })
         .response?.data;
-      setError(
-        `Erro ao salvar: ${
-          errorData?.message ?? "Verifique os dados informados."
-        }`,
-      );
+      const description = `Erro ao salvar: ${
+        errorData?.message ?? "Verifique os dados informados."
+      }`;
+      setError(description);
+      toaster.error({
+        title: "Erro ao salvar turno",
+        description,
+      });
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (shiftId: number, shiftType: string) => {
-    // eslint-disable-next-line no-alert
-    const confirmed = window.confirm(
-      `Tem certeza que deseja EXCLUIR o turno "${shiftType}"?`,
-    );
-    if (!confirmed) return;
-
     try {
       await api.delete(`/workshift/change-status/${shiftId}`);
-      // eslint-disable-next-line no-alert
-      alert(`Turno "${shiftType}" excluído com sucesso!`);
+      toaster.success({
+        title: "Turno excluído",
+        description: `Turno "${shiftType}" excluído com sucesso!`,
+      });
       void fetchShifts();
     } catch {
-      // eslint-disable-next-line no-alert
-      alert("Erro ao excluir turno.");
+      toaster.error({
+        title: "Erro ao excluir turno",
+        description: "Não foi possível excluir o turno selecionado.",
+      });
     }
   };
 

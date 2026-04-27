@@ -3,11 +3,9 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   Box,
   Button,
-  Checkbox,
   Flex,
   Heading,
   Input,
-  Select,
   Spinner,
   Text,
   VStack,
@@ -20,6 +18,7 @@ import {
   FaUserShield,
 } from "react-icons/fa";
 import api from "../../services/api";
+import { toaster } from "../../components/ui/toaster";
 
 interface Shift {
   id: string;
@@ -101,10 +100,13 @@ const EditarFuncionario = () => {
           userShiftId: currentShift?.id ?? "",
         });
       } catch (err) {
-        console.error("Erro ao buscar dados:", err);
-        setError(
-          "Não foi possível carregar os dados do funcionário ou os turnos.",
-        );
+        const description =
+          "Não foi possível carregar os dados do funcionário ou os turnos.";
+        setError(description);
+        toaster.error({
+          title: "Erro ao carregar dados",
+          description,
+        });
       } finally {
         setLoading(false);
       }
@@ -151,12 +153,15 @@ const EditarFuncionario = () => {
     try {
       await api.patch("/user", payload);
       setSuccess(`Funcionário "${formData.name}" atualizado com sucesso!`);
+      toaster.success({
+        title: "Funcionário atualizado",
+        description: `Funcionário "${formData.name}" atualizado com sucesso!`,
+      });
 
       setTimeout(() => {
         navigate("/dashboard-empresa/funcionarios");
       }, 1500);
     } catch (err: unknown) {
-      console.error("Erro na atualização:", err);
       const responseData = (
         err as {
           response?: {
@@ -173,6 +178,10 @@ const EditarFuncionario = () => {
       }
 
       setError(message);
+      toaster.error({
+        title: "Erro ao atualizar funcionário",
+        description: message,
+      });
     } finally {
       setSubmitting(false);
     }
@@ -327,12 +336,18 @@ const EditarFuncionario = () => {
             >
               <FaClock /> Turno de Trabalho
             </Text>
-            <Select
+            <select
               name="shiftId"
               id="shiftId"
               value={formData.shiftId}
               onChange={handleChange}
               required
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                borderRadius: "0.375rem",
+                border: "1px solid #E2E8F0",
+              }}
             >
               <option value="">Selecione o Turno</option>
               {shifts.map((shift) => (
@@ -342,14 +357,15 @@ const EditarFuncionario = () => {
                   {shift.workShiftEndTime.hour}:{shift.workShiftEndTime.minute})
                 </option>
               ))}
-            </Select>
+            </select>
           </Box>
 
           <Flex align="center" gap={2} pt={2}>
-            <Checkbox
+            <input
+              type="checkbox"
               name="isAllowedBypassCoord"
               id="isAllowedBypassCoord"
-              isChecked={formData.isAllowedBypassCoord}
+              checked={formData.isAllowedBypassCoord}
               onChange={handleChange}
             />
             <Text fontSize="sm" color="gray.700">
@@ -361,7 +377,7 @@ const EditarFuncionario = () => {
             <Button
               type="submit"
               colorPalette="indigo"
-              isDisabled={submitting}
+              disabled={submitting}
               minW="240px"
             >
               {submitting ? (

@@ -1,57 +1,67 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { Box, Button, Flex, Heading, Spinner, Text } from "@chakra-ui/react";
-import { FaBuilding, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
+import { FaEdit, FaPlus, FaTrash, FaUsers } from "react-icons/fa";
 import api from "../../services/api";
+import { toaster } from "../../components/ui/toaster";
 
-interface Empresa {
-  id: number | string;
+interface Funcionario {
+  id: string;
   name: string;
-  cnpj: string;
+  email: string;
+  roleName: string;
+  cellphone?: string;
 }
 
 const ListarFuncionarios = () => {
-  const [empresas, setEmpresas] = useState<Empresa[]>([]);
+  const navigate = useNavigate();
+  const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchCompanies = useCallback(async () => {
+  const fetchEmployees = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.get<Empresa[]>("/super-admin/company");
-      setEmpresas(response.data);
+
+      const response = await api.get("/user/list");
+      const data = (response.data?.data ?? response.data) as Funcionario[];
+
+      setFuncionarios(data);
     } catch (err) {
-      console.error("Erro ao buscar empresas:", err);
-      setError("Não foi possível carregar a lista de empresas.");
+      const description = "Não foi possível carregar a lista de funcionários.";
+      setError(description);
+      toaster.error({
+        title: "Erro ao carregar funcionários",
+        description,
+      });
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchCompanies();
-  }, [fetchCompanies]);
+    void fetchEmployees();
+  }, [fetchEmployees]);
 
-  const handleDelete = async (
-    companyId: Empresa["id"],
-    companyName: string,
-  ) => {
-    const confirmed = window.confirm(
-      `Tem certeza que deseja EXCLUIR a empresa "${companyName}"? Esta ação é irreversível.`,
-    );
-
-    if (!confirmed) return;
-
+  const handleDelete = async (employeeId: string, employeeName: string) => {
     try {
-      await api.delete(`/super-admin/company/${companyId}`);
-      setEmpresas((prev) => prev.filter((empresa) => empresa.id !== companyId));
-      window.alert(`Empresa "${companyName}" excluída com sucesso!`);
+      await api.delete(`/user/${employeeId}`);
+      setFuncionarios((prev) =>
+        prev.filter((employee) => employee.id !== employeeId),
+      );
+      toaster.success({
+        title: "Funcionário excluído",
+        description: `Funcionário \"${employeeName}\" excluído com sucesso!`,
+      });
     } catch (err: unknown) {
-      const message =
+      const description =
         (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || "Erro ao excluir a empresa. Tente novamente.";
-      window.alert(message);
+          ?.message || "Erro ao excluir funcionário. Tente novamente.";
+      toaster.error({
+        title: "Erro ao excluir funcionário",
+        description,
+      });
     }
   };
 
@@ -59,7 +69,7 @@ const ListarFuncionarios = () => {
     return (
       <Flex align="center" justify="center" py={10} gap={3}>
         <Spinner />
-        <Text>Carregando lista de empresas...</Text>
+        <Text>Carregando lista de funcionários...</Text>
       </Flex>
     );
   }
@@ -89,17 +99,17 @@ const ListarFuncionarios = () => {
           alignItems="center"
           gap={2}
         >
-          <FaBuilding /> Gerenciamento de Empresas
+          <FaUsers /> Gerenciamento de Funcionários
         </Heading>
 
         <Button
-          as={RouterLink}
-          to="/dashboard-admin/empresas/criar"
+          type="button"
           colorPalette="green"
           display="flex"
           alignItems="center"
+          onClick={() => navigate("/dashboard-empresa/funcionarios/criar")}
         >
-          <FaPlus style={{ marginRight: 8 }} /> Nova Empresa
+          <FaPlus style={{ marginRight: 8 }} /> Novo Funcionário
         </Button>
       </Flex>
 
@@ -127,7 +137,7 @@ const ListarFuncionarios = () => {
                 color="gray.500"
                 textTransform="uppercase"
               >
-                CNPJ
+                E-mail
               </Box>
               <Box
                 as="th"
@@ -138,7 +148,7 @@ const ListarFuncionarios = () => {
                 color="gray.500"
                 textTransform="uppercase"
               >
-                ID
+                Perfil
               </Box>
               <Box
                 as="th"
@@ -155,9 +165,9 @@ const ListarFuncionarios = () => {
           </Box>
 
           <Box as="tbody">
-            {empresas.length > 0 ? (
-              empresas.map((empresa) => (
-                <Box as="tr" key={empresa.id} borderTopWidth="1px">
+            {funcionarios.length > 0 ? (
+              funcionarios.map((funcionario) => (
+                <Box as="tr" key={funcionario.id} borderTopWidth="1px">
                   <Box
                     as="td"
                     px={6}
@@ -167,7 +177,7 @@ const ListarFuncionarios = () => {
                     fontWeight="semibold"
                     color="gray.800"
                   >
-                    {empresa.name}
+                    {funcionario.name}
                   </Box>
                   <Box
                     as="td"
@@ -177,7 +187,7 @@ const ListarFuncionarios = () => {
                     fontSize="sm"
                     color="gray.600"
                   >
-                    {empresa.cnpj}
+                    {funcionario.email}
                   </Box>
                   <Box
                     as="td"
@@ -186,11 +196,8 @@ const ListarFuncionarios = () => {
                     whiteSpace="nowrap"
                     fontSize="sm"
                     color="gray.600"
-                    maxW="260px"
-                    overflow="hidden"
-                    textOverflow="ellipsis"
                   >
-                    {empresa.id}
+                    {funcionario.roleName}
                   </Box>
                   <Box
                     as="td"
@@ -202,7 +209,7 @@ const ListarFuncionarios = () => {
                   >
                     <Button
                       as={RouterLink}
-                      to={`/dashboard-admin/empresas/editar/${empresa.id}`}
+                      to={`/dashboard-empresa/funcionarios/editar/${funcionario.id}`}
                       variant="ghost"
                       colorPalette="blue"
                       size="sm"
@@ -219,7 +226,9 @@ const ListarFuncionarios = () => {
                       size="sm"
                       display="inline-flex"
                       alignItems="center"
-                      onClick={() => handleDelete(empresa.id, empresa.name)}
+                      onClick={() =>
+                        handleDelete(funcionario.id, funcionario.name)
+                      }
                     >
                       <FaTrash style={{ marginRight: 4 }} /> Excluir
                     </Button>
@@ -236,7 +245,7 @@ const ListarFuncionarios = () => {
                   textAlign="center"
                   color="gray.500"
                 >
-                  Nenhuma empresa encontrada.
+                  Nenhum funcionário encontrado.
                 </Box>
               </Box>
             )}

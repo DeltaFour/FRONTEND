@@ -11,9 +11,9 @@ import {
   Spinner,
   Text,
 } from "@chakra-ui/react";
-import { useAuth } from "../context/AuthContext";
-import LogoHorizontal from "../assets/LogoHorizontal.png";
-import DarkVeil from "../components/background/background";
+import { useAuth } from "../../context/AuthContext";
+import LogoHorizontal from "../../assets/LogoHorizontal.png";
+import DarkVeil from "../../components/background/background";
 
 const Login = () => {
   const [email, setEmail] = useState("");

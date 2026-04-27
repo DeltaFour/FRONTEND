@@ -12,7 +12,6 @@ import {
   Flex,
   Heading,
   Input,
-  Select,
   Spinner,
   Text,
   VStack,
@@ -23,7 +22,8 @@ import {
   FaExclamationTriangle,
   FaUserFriends,
 } from "react-icons/fa";
-import api from "../services/api";
+import api from "../../services/api";
+import { toaster } from "../../components/ui/toaster";
 
 interface Funcionario {
   id: string;
@@ -60,8 +60,12 @@ const PontoParaFuncionario = () => {
       setFuncionarios(filtered);
       setError(null);
     } catch (err) {
-      console.error("Erro ao buscar funcionários:", err);
-      setError("Não foi possível carregar a lista de funcionários.");
+      const description = "Não foi possível carregar a lista de funcionários.";
+      setError(description);
+      toaster.error({
+        title: "Erro ao carregar funcionários",
+        description,
+      });
     } finally {
       setLoading(false);
     }
@@ -78,7 +82,7 @@ const PontoParaFuncionario = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLDivElement>) => {
     event.preventDefault();
     setSubmitting(true);
     setError(null);
@@ -92,18 +96,22 @@ const PontoParaFuncionario = () => {
 
     try {
       await api.post("user/punch-for-user", payload);
-      // eslint-disable-next-line no-alert
-      alert(`Ponto de ${formData.type} registrado com sucesso para o usuário!`);
+      toaster.success({
+        title: "Ponto registrado",
+        description: `Ponto de ${formData.type} registrado com sucesso para o usuário!`,
+      });
       navigate("/dashboard-empresa/funcionarios");
     } catch (err: unknown) {
-      console.error("Erro ao marcar ponto para funcionário:", err);
       const message = (err as { response?: { data?: { message?: string } } })
         .response?.data?.message;
-      setError(
-        `Erro: ${
-          message ?? "Verifique se o usuário e o turno estão corretos."
-        }`,
-      );
+      const description = `Erro: ${
+        message ?? "Verifique se o usuário e o turno estão corretos."
+      }`;
+      setError(description);
+      toaster.error({
+        title: "Erro ao registrar ponto",
+        description,
+      });
     } finally {
       setSubmitting(false);
     }
@@ -179,12 +187,18 @@ const PontoParaFuncionario = () => {
             >
               <FaUserFriends /> Funcionário a Marcar
             </Text>
-            <Select
+            <select
               name="employeeId"
               id="employeeId"
               value={formData.employeeId}
               onChange={handleChange}
               required
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                borderRadius: "0.375rem",
+                border: "1px solid #E2E8F0",
+              }}
             >
               <option value="">Selecione o Funcionário</option>
               {funcionarios.map((func) => (
@@ -192,7 +206,7 @@ const PontoParaFuncionario = () => {
                   {func.name} ({func.email}) - {func.roleName}
                 </option>
               ))}
-            </Select>
+            </select>
           </Box>
 
           <Box>
@@ -206,18 +220,24 @@ const PontoParaFuncionario = () => {
             >
               <FaClock /> Tipo de Ponto
             </Text>
-            <Select
+            <select
               name="type"
               id="type"
               value={formData.type}
               onChange={handleChange}
               required
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                borderRadius: "0.375rem",
+                border: "1px solid #E2E8F0",
+              }}
             >
               <option value="IN">Entrada (IN)</option>
               <option value="OUT">Saída (OUT)</option>
               <option value="INTERVAL_IN">Início Intervalo</option>
               <option value="INTERVAL_OUT">Fim Intervalo</option>
-            </Select>
+            </select>
           </Box>
 
           <Box>
@@ -246,7 +266,7 @@ const PontoParaFuncionario = () => {
             <Button
               type="submit"
               colorPalette="indigo"
-              isDisabled={submitting || !formData.employeeId}
+              disabled={submitting || !formData.employeeId}
               minW="220px"
             >
               {submitting ? (

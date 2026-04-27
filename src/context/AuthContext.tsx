@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 import api from "../services/api";
+import { toaster } from "../components/ui/toaster";
 
 export interface AuthUser {
   id?: string;
@@ -59,7 +60,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setUser(normalizedUser);
       return normalizedUser;
     } catch (error) {
-      console.error("Falha no login:", error);
+      toaster.error({
+        title: "Falha no login",
+        description:
+          "Não foi possível autenticar com as credenciais informadas.",
+      });
       return false;
     }
   };
@@ -68,7 +73,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       await api.post("/auth/logout", {}, { withCredentials: true });
     } catch (error) {
-      console.error("Erro ao deslogar:", error);
+      toaster.error({
+        title: "Falha ao sair",
+        description: "Não foi possível finalizar a sessão corretamente.",
+      });
     } finally {
       setUser(null);
     }

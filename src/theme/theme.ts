@@ -21,6 +21,7 @@ const config = defineConfig({
               "linear-gradient(360deg, #f8c623 0%, #fca015 40%, #ff8c00 70%, #ff4d00 100%)",
           },
         },
+        primary: { 500: { value: "#4C1D95" } },
       },
     },
   },

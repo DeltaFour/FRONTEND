@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { Box, Button, Flex, Heading, Spinner, Text } from "@chakra-ui/react";
-import { FaClock, FaSignInAlt, FaSignOutAlt, FaTimes } from "react-icons/fa";
-import { useAuth } from "../context/AuthContext";
-import api from "../services/api";
+import { FaClock, FaTimes } from "react-icons/fa";
+import { useAuth } from "../../context/AuthContext";
+import api from "../../services/api";
+import { toaster } from "../../components/ui/toaster";
 
 interface AllowedPunch {
   punchType: string;
@@ -15,6 +16,18 @@ const PontoEletronico = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const horarioAtual = new Date().toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+
+  const dataAtual = new Date().toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+
   const fetchAllowedPunch = useCallback(async () => {
     try {
       setLoading(true);
@@ -23,8 +36,12 @@ const PontoEletronico = () => {
       const response = await api.get("/user/allowed-punch");
       setAllowedPunch(response.data as AllowedPunch);
     } catch (err) {
-      console.error("Erro ao buscar status do ponto:", err);
-      setError("Não foi possível carregar o status de marcação.");
+      const description = "Não foi possível carregar o status de marcação.";
+      setError(description);
+      toaster.error({
+        title: "Erro ao carregar ponto",
+        description,
+      });
     } finally {
       setLoading(false);
     }
@@ -38,10 +55,6 @@ const PontoEletronico = () => {
     if (!allowedPunch || submitting) return;
 
     const punchType = allowedPunch.punchType;
-    const confirmMsg = `Confirmar marcação de ponto: ${punchType}?`;
-
-    // eslint-disable-next-line no-alert
-    if (!window.confirm(confirmMsg)) return;
 
     setSubmitting(true);
     setError(null);
@@ -57,18 +70,22 @@ const PontoEletronico = () => {
 
     try {
       await api.post("v1/user/punch-in", payload);
-      // eslint-disable-next-line no-alert
-      alert(`Ponto de ${punchType} registrado com sucesso!`);
+      toaster.success({
+        title: "Ponto registrado",
+        description: `Ponto de ${punchType} registrado com sucesso!`,
+      });
       void fetchAllowedPunch();
     } catch (err: unknown) {
-      console.error("Erro ao marcar ponto:", err);
       const message = (err as { response?: { data?: { message?: string } } })
         .response?.data?.message;
-      setError(
-        `Erro ao marcar ponto: ${
-          message ?? "Verifique a jornada de trabalho."
-        }`,
-      );
+      const description = `Erro ao marcar ponto: ${
+        message ?? "Verifique a jornada de trabalho."
+      }`;
+      setError(description);
+      toaster.error({
+        title: "Erro ao registrar ponto",
+        description,
+      });
     } finally {
       setSubmitting(false);
     }
@@ -101,46 +118,39 @@ const PontoEletronico = () => {
     );
   }
 
-  if (!allowedPunch) {
-    return (
-      <Flex justify="center" py={8}>
-        <Text>Dados de ponto não disponíveis.</Text>
-      </Flex>
-    );
-  }
-
-  const isPunchIn = allowedPunch.punchType === "IN";
-
   return (
-    <Box
+    <Flex
       p={8}
       bg="white"
       borderRadius="lg"
       boxShadow="2xl"
-      maxW="lg"
       mx="auto"
+      w="800px"
+      h="420px"
       textAlign="center"
+      justifyContent="flex-start"
+      flexDirection="column"
     >
-      <Heading mb={6} size="lg" color="gray.800">
-        <Flex align="center" justify="center" gap={3}>
-          <FaClock color="#4F46E5" /> Marcação de Ponto
+      <Heading mb={6} size="lg" color="gray.800" w="full">
+        <Flex w="full" justifyContent="space-between" p="20px">
+          <Flex align="center" justify="center" gap={3} flexDir="column">
+            <Text color="primary.500">Horário:</Text>
+            <Text fontWeight="bold" fontSize="25px">
+              {horarioAtual}
+            </Text>
+          </Flex>
+          <Flex align="center" justify="center" gap={3} flexDir="column">
+            <Text color="primary.500">Data:</Text>
+            <Text fontWeight="bold" fontSize="25px">
+              {dataAtual}
+            </Text>
+          </Flex>
         </Flex>
       </Heading>
 
-      <Text fontSize="lg" color="gray.600" mb={2}>
-        Próxima Ação Necessária:
-      </Text>
-      <Text
-        fontSize="3xl"
-        fontWeight="bold"
-        mb={8}
-        color={isPunchIn ? "green.500" : "red.500"}
-      >
-        {isPunchIn ? "ENTRADA (IN)" : "SAÍDA (OUT)"}
-      </Text>
-
       <Button
         w="full"
+        h="50px"
         py={4}
         fontSize="xl"
         fontWeight="semibold"
@@ -151,9 +161,11 @@ const PontoEletronico = () => {
         alignItems="center"
         justifyContent="center"
         gap={3}
-        colorPalette={isPunchIn ? "green" : "red"}
+        bg="primary.500"
         onClick={handlePunch}
-        isDisabled={submitting}
+        _disabled={
+          submitting ? { bg: "primary.300", cursor: "not-allowed" } : {}
+        }
       >
         {submitting ? (
           <>
@@ -162,16 +174,11 @@ const PontoEletronico = () => {
           </>
         ) : (
           <>
-            {isPunchIn ? <FaSignInAlt /> : <FaSignOutAlt />}
-            <Text>Marcar Ponto de {allowedPunch.punchType}</Text>
+            <Text>Registrar</Text>
           </>
         )}
       </Button>
-
-      <Text mt={6} fontSize="sm" color="gray.500">
-        Turno Atual: {user?.shiftType ?? "N/A"}
-      </Text>
-    </Box>
+    </Flex>
   );
 };
 
