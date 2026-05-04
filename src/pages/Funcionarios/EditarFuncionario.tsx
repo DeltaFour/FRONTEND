@@ -3,33 +3,26 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   Box,
   Button,
-  Checkbox,
   Flex,
+  Grid,
+  GridItem,
   Heading,
   Input,
-  Select,
   Spinner,
   Text,
-  VStack,
 } from "@chakra-ui/react";
-import {
-  FaArrowLeft,
-  FaClock,
-  FaEdit,
-  FaSave,
-  FaUserShield,
-} from "react-icons/fa";
+import { FaClock, FaEdit, FaSave, FaTimes, FaUserShield } from "react-icons/fa";
 import api from "../../services/api";
+import { toaster } from "../../components/ui/toaster";
 
 interface Shift {
   id: string;
-  workShiftType: string;
-  workShiftStartTime: { hour: number; minute: number };
-  workShiftEndTime: { hour: number; minute: number };
+  label: string;
 }
 
 interface EmployeeShiftDto {
-  id: string;
+  id?: string;
+  shiftId?: string;
 }
 
 interface EmployeeResponse {
@@ -41,6 +34,16 @@ interface EmployeeResponse {
   shiftDto?: EmployeeShiftDto[];
 }
 
+interface ShiftApiResponse {
+  id: string | number;
+  shiftType?: string;
+  startTime?: string;
+  endTime?: string;
+  workShiftType?: string;
+  workShiftStartTime?: { hour: number; minute: number };
+  workShiftEndTime?: { hour: number; minute: number };
+}
+
 interface EditEmployeeFormData {
   id?: string;
   name: string;
@@ -50,6 +53,32 @@ interface EditEmployeeFormData {
   userShiftId: string;
   isAllowedBypassCoord: boolean;
 }
+
+const formatTime = (time?: string | { hour: number; minute: number }) => {
+  if (!time) {
+    return "";
+  }
+
+  if (typeof time === "string") {
+    return time.slice(0, 5);
+  }
+
+  const hour = String(time.hour ?? 0).padStart(2, "0");
+  const minute = String(time.minute ?? 0).padStart(2, "0");
+  return `${hour}:${minute}`;
+};
+
+const normalizeShift = (shift: ShiftApiResponse): Shift => {
+  const type = shift.workShiftType ?? shift.shiftType ?? "Turno";
+  const start = formatTime(shift.workShiftStartTime ?? shift.startTime);
+  const end = formatTime(shift.workShiftEndTime ?? shift.endTime);
+  const label = start && end ? `${type} (${start} - ${end})` : type;
+
+  return {
+    id: String(shift.id),
+    label,
+  };
+};
 
 const EditarFuncionario = () => {
   const { id } = useParams<{ id: string }>();
@@ -74,22 +103,30 @@ const EditarFuncionario = () => {
         setLoading(true);
         setError(null);
 
-        const shiftsResponse = await api.get("/workshift");
+        const shiftsResponse = await api.get("/workshift/list");
         const shiftsData = (shiftsResponse.data?.data ??
-          shiftsResponse.data) as Shift[];
-        setShifts(shiftsData);
+          shiftsResponse.data) as ShiftApiResponse[];
+        setShifts(shiftsData.map(normalizeShift));
 
         if (!id) {
           throw new Error("ID do funcionário não informado.");
         }
 
-        const employeeResponse = await api.get(`/user/${id}`);
-        const employee = employeeResponse.data as EmployeeResponse;
+        const employeeResponse = await api.get("/user/list");
+        const employees = (employeeResponse.data?.data ??
+          employeeResponse.data) as EmployeeResponse[];
+        const employee = employees.find((item) => item.id === id);
+
+        if (!employee) {
+          throw new Error("Funcionário não encontrado.");
+        }
 
         const currentShift =
           employee.shiftDto && employee.shiftDto.length > 0
             ? employee.shiftDto[0]
             : undefined;
+
+        const currentShiftId = currentShift?.shiftId ?? currentShift?.id ?? "";
 
         setFormData({
           id: employee.id,
@@ -97,14 +134,17 @@ const EditarFuncionario = () => {
           cellPhone: employee.cellphone ?? "",
           roleName: employee.roleName ?? "",
           isAllowedBypassCoord: employee.isAllowedBypassCoord ?? false,
-          shiftId: currentShift?.id ?? "",
-          userShiftId: currentShift?.id ?? "",
+          shiftId: currentShiftId,
+          userShiftId: currentShiftId,
         });
       } catch (err) {
-        console.error("Erro ao buscar dados:", err);
-        setError(
-          "Não foi possível carregar os dados do funcionário ou os turnos.",
-        );
+        const description =
+          "Não foi possível carregar os dados do funcionário ou os turnos.";
+        setError(description);
+        toaster.error({
+          title: "Erro ao carregar dados",
+          description,
+        });
       } finally {
         setLoading(false);
       }
@@ -116,15 +156,19 @@ const EditarFuncionario = () => {
   const handleChange = (
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
-    const { name, value, type, checked } = event.target as HTMLInputElement &
-      HTMLSelectElement;
+    const target = event.target;
+    const fieldValue =
+      target instanceof HTMLInputElement && target.type === "checkbox"
+        ? target.checked
+        : target.value;
+
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [target.name]: fieldValue,
     }));
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLDivElement>) => {
     event.preventDefault();
     setSubmitting(true);
     setError(null);
@@ -149,14 +193,17 @@ const EditarFuncionario = () => {
     };
 
     try {
-      await api.patch("/user", payload);
+      await api.patch("/user/update", payload);
       setSuccess(`Funcionário "${formData.name}" atualizado com sucesso!`);
+      toaster.success({
+        title: "Funcionário atualizado",
+        description: `Funcionário "${formData.name}" atualizado com sucesso!`,
+      });
 
       setTimeout(() => {
         navigate("/dashboard-empresa/funcionarios");
       }, 1500);
     } catch (err: unknown) {
-      console.error("Erro na atualização:", err);
       const responseData = (
         err as {
           response?: {
@@ -173,6 +220,10 @@ const EditarFuncionario = () => {
       }
 
       setError(message);
+      toaster.error({
+        title: "Erro ao atualizar funcionário",
+        description: message,
+      });
     } finally {
       setSubmitting(false);
     }
@@ -206,33 +257,17 @@ const EditarFuncionario = () => {
   }
 
   return (
-    <Box p={6} bg="white" borderRadius="lg" boxShadow="xl" maxW="2xl" mx="auto">
-      <Flex justify="space-between" align="center" mb={6}>
-        <Heading
-          size="lg"
-          color="gray.800"
-          display="flex"
-          alignItems="center"
-          gap={3}
-        >
-          <FaEdit color="#4F46E5" /> Editar Funcionário
-        </Heading>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate(-1)}
-          display="flex"
-          alignItems="center"
-          gap={2}
-        >
-          <FaArrowLeft /> Voltar
-        </Button>
-      </Flex>
-
+    <Box
+      p={6}
+      bg="white"
+      borderRadius="lg"
+      boxShadow="xl"
+      w="full"
+      h="fit-content"
+    >
       {success && (
         <Box
           bg="green.50"
-          borderWidth="1px"
           borderColor="green.300"
           color="green.700"
           p={3}
@@ -245,7 +280,6 @@ const EditarFuncionario = () => {
       {error && submitting && (
         <Box
           bg="red.50"
-          borderWidth="1px"
           borderColor="red.300"
           color="red.700"
           p={3}
@@ -258,17 +292,19 @@ const EditarFuncionario = () => {
       )}
 
       <Box as="form" onSubmit={handleSubmit}>
-        <VStack align="stretch" gap={6}>
-          <Heading size="md" color="gray.700" pt={4} borderTopWidth="1px">
-            Dados Pessoais
-          </Heading>
-
+        <Grid
+          templateColumns={{ base: "1fr", md: "repeat(2, minmax(0, 1fr))" }}
+          gap={6}
+        >
           <Box>
             <Text mb={1} fontWeight="medium" color="gray.700">
               Nome Completo
             </Text>
             <Input
               type="text"
+              color="gray.700"
+              p="10px"
+              placeholder="Insira o nome completo do funcionário"
               name="name"
               id="name"
               value={formData.name}
@@ -283,6 +319,9 @@ const EditarFuncionario = () => {
             </Text>
             <Input
               type="text"
+              color="gray.700"
+              p="10px"
+              placeholder="Insira o telefone do funcionário"
               name="cellPhone"
               id="cellPhone"
               value={formData.cellPhone}
@@ -290,10 +329,6 @@ const EditarFuncionario = () => {
               required
             />
           </Box>
-
-          <Heading size="md" color="gray.700" pt={4} borderTopWidth="1px">
-            Perfil e Jornada
-          </Heading>
 
           <Box>
             <Text
@@ -308,10 +343,12 @@ const EditarFuncionario = () => {
             </Text>
             <Input
               type="text"
+              color="gray.700"
+              p="10px"
               name="roleName"
               id="roleName"
               value={formData.roleName}
-              isDisabled
+              disabled
               bg="gray.100"
             />
           </Box>
@@ -327,55 +364,81 @@ const EditarFuncionario = () => {
             >
               <FaClock /> Turno de Trabalho
             </Text>
-            <Select
+            <select
               name="shiftId"
               id="shiftId"
               value={formData.shiftId}
               onChange={handleChange}
               required
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                borderRadius: "0.375rem",
+                border: "1px solid #E2E8F0",
+                backgroundColor: "#FFFFFF",
+                color: "#1A202C",
+                colorScheme: "light",
+              }}
             >
               <option value="">Selecione o Turno</option>
               {shifts.map((shift) => (
                 <option key={shift.id} value={shift.id}>
-                  {shift.workShiftType} ({shift.workShiftStartTime.hour}:
-                  {shift.workShiftStartTime.minute} -{" "}
-                  {shift.workShiftEndTime.hour}:{shift.workShiftEndTime.minute})
+                  {shift.label}
                 </option>
               ))}
-            </Select>
+            </select>
           </Box>
 
-          <Flex align="center" gap={2} pt={2}>
-            <Checkbox
-              name="isAllowedBypassCoord"
-              id="isAllowedBypassCoord"
-              isChecked={formData.isAllowedBypassCoord}
-              onChange={handleChange}
-            />
-            <Text fontSize="sm" color="gray.700">
-              Permitir marcação de ponto fora da coordenação (Bypass)
-            </Text>
-          </Flex>
+          <GridItem colSpan={{ base: 1, md: 2 }}>
+            <Flex align="center" gap={2} pt={2}>
+              <input
+                type="checkbox"
+                name="isAllowedBypassCoord"
+                id="isAllowedBypassCoord"
+                checked={formData.isAllowedBypassCoord}
+                onChange={handleChange}
+              />
+              <Text fontSize="sm" color="gray.700">
+                Permitir marcação de ponto fora da coordenação (Bypass)
+              </Text>
+            </Flex>
+          </GridItem>
 
-          <Flex justify="flex-end" pt={4}>
-            <Button
-              type="submit"
-              colorPalette="indigo"
-              isDisabled={submitting}
-              minW="240px"
-            >
-              {submitting ? (
-                <>
-                  <Spinner size="sm" mr={2} /> Atualizando...
-                </>
-              ) : (
-                <>
-                  <FaSave style={{ marginRight: 8 }} /> Salvar Alterações
-                </>
-              )}
-            </Button>
-          </Flex>
-        </VStack>
+          <GridItem colSpan={{ base: 1, md: 2 }}>
+            <Flex justify="center" pt={4} gap="14px" w="100%">
+              <Button
+                type="button"
+                onClick={() => navigate(-1)}
+                bg="red.500"
+                color="white"
+                _hover={{ bg: "red.600" }}
+                w="210px"
+                h="34px"
+                borderRadius="full"
+              >
+                <FaTimes /> Cancelar
+              </Button>
+              <Button
+                type="submit"
+                colorPalette="green"
+                disabled={submitting}
+                w="210px"
+                h="34px"
+                borderRadius="full"
+              >
+                {submitting ? (
+                  <>
+                    <Spinner size="sm" mr={2} /> Atualizando...
+                  </>
+                ) : (
+                  <>
+                    <FaSave style={{ marginRight: 8 }} /> Salvar
+                  </>
+                )}
+              </Button>
+            </Flex>
+          </GridItem>
+        </Grid>
       </Box>
     </Box>
   );

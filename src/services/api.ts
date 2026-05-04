@@ -8,43 +8,104 @@ import axios, {
 const BASE_URL = import.meta.env.VITE_BASE_URL || "";
 const USE_MOCK_API = import.meta.env.VITE_USE_MOCK === "true";
 
-interface MockCompany {
-  id: string;
-  name: string;
-  cnpj: string;
-  isActive: boolean;
-}
+type UserRole = "ROLE.SUPER_ADMIN" | "ROLE.ADMIN" | "ROLE.RH" | "ROLE.EMPLOYEE";
 
 interface MockUser {
   id: string;
   name: string;
   email: string;
-  role: string;
+  role: UserRole;
+  roleName: "SUPER_ADMIN" | "ADMIN" | "RH" | "EMPLOYEE";
+  cellphone?: string;
+  shiftType?: string;
+  isAllowedBypassCoord?: boolean;
+  shiftId?: string;
+}
+
+interface MockShift {
+  id: number;
+  shiftType: string;
+  startTime: string;
+  endTime: string;
+  toleranceMinutes: number;
+}
+
+interface MockPunch {
+  id: string;
+  userId: string;
+  type: string;
+  timePunched: string;
+  shiftType?: string;
 }
 
 const createMockApi = () => {
-  let companies: MockCompany[] = [
+  let currentUserId = "admin-1";
+
+  let users: MockUser[] = [
     {
-      id: "1",
-      name: "Empresa Exemplo LTDA",
-      cnpj: "12.345.678/0001-99",
-      isActive: true,
+      id: "admin-1",
+      name: "Admin",
+      email: "empresa@deltafour.com",
+      role: "ROLE.ADMIN",
+      roleName: "ADMIN",
+      cellphone: "11999990000",
+      shiftType: "Comercial",
+      shiftId: "1",
+      isAllowedBypassCoord: true,
     },
     {
-      id: "2",
-      name: "DeltaFour Serviços",
-      cnpj: "98.765.432/0001-11",
-      isActive: true,
-    },
-    {
-      id: "3",
-      name: "Tech Solutions SA",
-      cnpj: "11.222.333/0001-44",
-      isActive: false,
+      id: "employee-1",
+      name: "João Funcionário",
+      email: "joao@deltafour.com",
+      role: "ROLE.EMPLOYEE",
+      roleName: "EMPLOYEE",
+      cellphone: "11988887777",
+      shiftType: "Comercial",
+      shiftId: "1",
+      isAllowedBypassCoord: false,
     },
   ];
 
-  const delay = async <T>(value: T, ms = 400): Promise<T> => {
+  let shifts: MockShift[] = [
+    {
+      id: 1,
+      shiftType: "Comercial",
+      startTime: "08:00:00",
+      endTime: "17:00:00",
+      toleranceMinutes: 10,
+    },
+    {
+      id: 2,
+      shiftType: "Noturno",
+      startTime: "22:00:00",
+      endTime: "06:00:00",
+      toleranceMinutes: 15,
+    },
+  ];
+
+  let nextPunchTypeByUser: Record<string, "IN" | "OUT"> = {
+    "company-admin-1": "IN",
+    "employee-1": "IN",
+  };
+
+  let punches: MockPunch[] = [
+    {
+      id: "p1",
+      userId: "employee-1",
+      type: "IN",
+      timePunched: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
+      shiftType: "Comercial",
+    },
+    {
+      id: "p2",
+      userId: "employee-1",
+      type: "OUT",
+      timePunched: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+      shiftType: "Comercial",
+    },
+  ];
+
+  const delay = async <T>(value: T, ms = 250): Promise<T> => {
     return new Promise((resolve) => setTimeout(() => resolve(value), ms));
   };
 
@@ -61,40 +122,76 @@ const createMockApi = () => {
     };
   };
 
+  const normalizeUrl = (url: string) => (url.startsWith("/") ? url : `/${url}`);
+
+  const getCurrentUser = () => users.find((user) => user.id === currentUserId);
+
   const get = async <T = unknown>(
     url: string,
     config?: AxiosRequestConfig,
   ): Promise<AxiosResponse<T>> => {
-    // Lista de empresas para super-admin
-    if (url === "/super-admin/company") {
-      return delay(buildResponse(companies as unknown as T, config));
+    const normalizedUrl = normalizeUrl(url);
+
+    if (normalizedUrl === "/user/list") {
+      return delay(buildResponse({ data: users } as T, config));
     }
 
-    // Lista de empresas para admin-control
-    if (url === "/admin-control/company") {
-      const payload = { data: companies } as unknown as T;
-      return delay(buildResponse(payload, config));
+    if (normalizedUrl === "/workshift/list" || normalizedUrl === "/workshift") {
+      return delay(buildResponse({ data: shifts } as T, config));
     }
 
-    // Detalhes de empresa
-    const matchCompanyById = url.match(/^\/super-admin\/company\/(.+)$/);
-    if (matchCompanyById) {
-      const id = matchCompanyById[1];
-      const company = companies.find((c) => c.id === id);
-      if (!company) {
+    if (normalizedUrl === "/user/refresh-information") {
+      const currentUser = getCurrentUser();
+      const lastPunch = punches
+        .filter((punch) => punch.userId === currentUser?.id)
+        .sort(
+          (a, b) =>
+            new Date(b.timePunched).getTime() -
+            new Date(a.timePunched).getTime(),
+        )[0];
+
+      const lastUserAttendances = punches
+        .filter((punch) => punch.userId === currentUser?.id)
+        .slice(0, 10)
+        .map((punch) => ({
+          punchType: punch.type,
+          shiftType: punch.shiftType,
+          punchTime: punch.timePunched,
+          punchDate: punch.timePunched,
+        }));
+
+      const payload = {
+        name: currentUser?.name,
+        role: currentUser?.roleName,
+        shiftType: currentUser?.shiftType,
+        lastPunchType: lastPunch?.type,
+        lastUserAttendances,
+      };
+
+      return delay(buildResponse(payload as T, config));
+    }
+
+    const userByIdMatch = normalizedUrl.match(/^\/user\/(.+)$/);
+    if (userByIdMatch) {
+      const id = userByIdMatch[1];
+      const employee = users.find((user) => user.id === id);
+
+      if (!employee) {
         return Promise.reject({
-          response: {
-            data: { message: "Empresa não encontrada no mock." },
-          },
+          response: { data: { message: "Funcionário não encontrado." } },
         });
       }
 
       const payload = {
-        name: company.name,
-        cnpj: company.cnpj,
-      } as unknown as T;
+        id: employee.id,
+        name: employee.name,
+        cellphone: employee.cellphone,
+        roleName: employee.roleName,
+        isAllowedBypassCoord: employee.isAllowedBypassCoord,
+        shiftDto: employee.shiftId ? [{ id: employee.shiftId }] : [],
+      };
 
-      return delay(buildResponse(payload, config));
+      return delay(buildResponse(payload as T, config));
     }
 
     return delay(buildResponse({} as T, config));
@@ -105,99 +202,262 @@ const createMockApi = () => {
     data?: unknown,
     config?: AxiosRequestConfig,
   ): Promise<AxiosResponse<T>> => {
-    // Login fake
-    if (url === "/auth/login") {
-      const { email } = (data || {}) as { email?: string; password?: string };
+    const normalizedUrl = normalizeUrl(url);
 
-      const isSuperAdmin =
+    if (normalizedUrl === "/auth/login") {
+      const { email } = (data || {}) as { email?: string };
+
+      const isEmployee =
         !!email &&
-        (email.toLowerCase().includes("super") ||
-          email.toLowerCase().includes("admin"));
+        (email.toLowerCase().includes("func") ||
+          email.toLowerCase().includes("employee"));
 
-      const user: MockUser = {
-        id: "mock-user-1",
-        name: isSuperAdmin ? "Super Admin" : "Company Admin",
-        email: email || "user@mock.com",
-        role: isSuperAdmin ? "ROLE.SUPER_ADMIN" : "ROLE.COMPANY_ADMIN",
+      const matchedUser = users.find((user) => user.email === email);
+
+      const user: MockUser = matchedUser || {
+        id: isEmployee ? "employee-1" : "admin-1",
+        name: isEmployee ? "Funcionário Web" : "Admin",
+        email:
+          email || (isEmployee ? "funcionario@mock.com" : "empresa@mock.com"),
+        role: isEmployee ? "ROLE.EMPLOYEE" : "ROLE.ADMIN",
+        roleName: isEmployee ? "EMPLOYEE" : "ADMIN",
+        shiftType: "Comercial",
+        shiftId: "1",
+        isAllowedBypassCoord: !isEmployee,
       };
+
+      currentUserId = user.id;
 
       return delay(buildResponse(user as unknown as T, config));
     }
 
-    // Logout fake
-    if (url === "/auth/logout") {
+    if (normalizedUrl === "/auth/logout") {
+      currentUserId = "company-admin-1";
       return delay(buildResponse({} as T, config));
     }
 
-    // Criação de empresa
-    if (url === "/super-admin/company") {
+    if (normalizedUrl === "/user") {
       const payload = (data || {}) as {
         name?: string;
-        cnpj?: string;
+        email?: string;
+        roleName?: string;
+        cellPhone?: string;
+        isAllowedBypassCoord?: boolean;
+        userShift?: Array<{ shiftId?: string }>;
       };
 
-      const newCompany: MockCompany = {
-        id: String(Date.now()),
-        name: payload.name || "Nova Empresa Mock",
-        cnpj: payload.cnpj || "00.000.000/0000-00",
-        isActive: true,
+      const roleName = (payload.roleName || "EMPLOYEE").toUpperCase() as
+        | "SUPER_ADMIN"
+        | "ADMIN"
+        | "RH"
+        | "EMPLOYEE";
+
+      const newUser: MockUser = {
+        id: `employee-${Date.now()}`,
+        name: payload.name || "Novo Funcionário",
+        email: payload.email || `novo.${Date.now()}@mock.com`,
+        role: `ROLE.${roleName}` as UserRole,
+        roleName,
+        cellphone: payload.cellPhone,
+        shiftId: payload.userShift?.[0]?.shiftId,
+        shiftType: shifts.find(
+          (shift) => String(shift.id) === payload.userShift?.[0]?.shiftId,
+        )?.shiftType,
+        isAllowedBypassCoord: payload.isAllowedBypassCoord,
       };
 
-      companies = [...companies, newCompany];
+      users = [...users, newUser];
+      nextPunchTypeByUser[newUser.id] = "IN";
 
-      return delay(buildResponse(newCompany as unknown as T, config));
+      return delay(buildResponse(newUser as unknown as T, config));
     }
 
-    // Alterar status da empresa
-    const matchChangeStatus = url.match(
-      /^\/admin-control\/company\/(.+)\/change-status$/,
-    );
-    if (matchChangeStatus) {
-      const id = matchChangeStatus[1];
-      companies = companies.map((company) =>
-        company.id === id
-          ? { ...company, isActive: !company.isActive }
-          : company,
-      );
+    if (normalizedUrl === "/v1/user/punch-in") {
+      const payload = (data || {}) as {
+        type?: string;
+        timePunched?: string;
+        shiftType?: string;
+      };
+      const currentUser = getCurrentUser();
+
+      if (!currentUser) {
+        return Promise.reject({
+          response: { data: { message: "Usuário não autenticado." } },
+        });
+      }
+
+      const newPunch: MockPunch = {
+        id: `p-${Date.now()}`,
+        userId: currentUser.id,
+        type: payload.type || "IN",
+        timePunched: payload.timePunched || new Date().toISOString(),
+        shiftType: payload.shiftType || currentUser.shiftType,
+      };
+
+      punches = [newPunch, ...punches];
+      nextPunchTypeByUser[currentUser.id] =
+        newPunch.type === "IN" ? "OUT" : "IN";
+
+      return delay(buildResponse(newPunch as unknown as T, config));
+    }
+
+    if (normalizedUrl === "/user/allowed-punch") {
+      return delay(buildResponse(true as unknown as T, config));
+    }
+
+    if (normalizedUrl === "/user/register-point") {
+      const payload = (data || {}) as {
+        type?: string;
+        timePunched?: string;
+        shiftType?: string;
+      };
+      const currentUser = getCurrentUser();
+
+      if (!currentUser) {
+        return Promise.reject({
+          response: { data: { message: "Usuário não autenticado." } },
+        });
+      }
+
+      const newPunch: MockPunch = {
+        id: `p-${Date.now()}`,
+        userId: currentUser.id,
+        type: payload.type || "IN",
+        timePunched: payload.timePunched || new Date().toISOString(),
+        shiftType: payload.shiftType || currentUser.shiftType,
+      };
+
+      punches = [newPunch, ...punches];
+      nextPunchTypeByUser[currentUser.id] =
+        newPunch.type === "IN" ? "OUT" : "IN";
 
       return delay(buildResponse({} as T, config));
+    }
+
+    if (normalizedUrl === "/user/punch-for-user") {
+      const payload = (data || {}) as {
+        userId?: string;
+        type?: string;
+        timePunched?: string;
+        shiftType?: string;
+      };
+      const userId = payload.userId;
+
+      if (!userId) {
+        return Promise.reject({
+          response: { data: { message: "employeeId é obrigatório." } },
+        });
+      }
+
+      const newPunch: MockPunch = {
+        id: `p-${Date.now()}`,
+        userId,
+        type: payload.type || "IN",
+        timePunched: payload.timePunched || new Date().toISOString(),
+        shiftType: payload.shiftType,
+      };
+
+      punches = [newPunch, ...punches];
+      nextPunchTypeByUser[userId] = newPunch.type === "IN" ? "OUT" : "IN";
+
+      return delay(buildResponse(newPunch as unknown as T, config));
+    }
+
+    if (normalizedUrl === "/workshift/create") {
+      const payload = (data || {}) as {
+        shiftType?: string;
+        startTime?: string;
+        endTime?: string;
+        toleranceMinutes?: number;
+      };
+
+      const newShift: MockShift = {
+        id: Date.now(),
+        shiftType: payload.shiftType || "Novo Turno",
+        startTime: payload.startTime || "08:00:00",
+        endTime: payload.endTime || "17:00:00",
+        toleranceMinutes: Number(payload.toleranceMinutes ?? 0),
+      };
+
+      shifts = [...shifts, newShift];
+
+      return delay(buildResponse(newShift as unknown as T, config));
     }
 
     return delay(buildResponse({} as T, config));
   };
 
-  const put = async <T = unknown>(
+  const patch = async <T = unknown>(
     url: string,
     data?: unknown,
     config?: AxiosRequestConfig,
   ): Promise<AxiosResponse<T>> => {
-    const matchUpdate = url.match(/^\/super-admin\/company\/(.+)$/);
-    if (matchUpdate) {
-      const id = matchUpdate[1];
-      const payload = (data || {}) as { name?: string; cnpj?: string };
+    const normalizedUrl = normalizeUrl(url);
 
-      let updated: MockCompany | undefined;
-      companies = companies.map((company) => {
-        if (company.id === id) {
-          updated = {
-            ...company,
-            name: payload.name ?? company.name,
-            cnpj: payload.cnpj ?? company.cnpj,
-          };
-          return updated;
-        }
-        return company;
-      });
+    if (normalizedUrl === "/user") {
+      const payload = (data || {}) as {
+        id?: string;
+        name?: string;
+        cellPhone?: string;
+        isAllowedBypassCoord?: boolean;
+        userShift?: Array<{ shiftId?: string }>;
+      };
 
-      if (!updated) {
+      const userId = payload.id;
+      if (!userId) {
         return Promise.reject({
-          response: {
-            data: { message: "Empresa não encontrada para atualização." },
-          },
+          response: { data: { message: "ID do usuário é obrigatório." } },
         });
       }
 
-      return delay(buildResponse(updated as unknown as T, config));
+      users = users.map((user) => {
+        if (user.id !== userId) {
+          return user;
+        }
+
+        const nextShiftId = payload.userShift?.[0]?.shiftId || user.shiftId;
+        const shiftType = shifts.find(
+          (shift) => String(shift.id) === nextShiftId,
+        )?.shiftType;
+
+        return {
+          ...user,
+          name: payload.name ?? user.name,
+          cellphone: payload.cellPhone ?? user.cellphone,
+          shiftId: nextShiftId,
+          shiftType: shiftType ?? user.shiftType,
+          isAllowedBypassCoord:
+            payload.isAllowedBypassCoord ?? user.isAllowedBypassCoord,
+        };
+      });
+
+      return delay(buildResponse({} as T, config));
+    }
+
+    if (normalizedUrl === "/workshift/update") {
+      const payload = (data || {}) as {
+        id?: number;
+        shiftType?: string;
+        startTime?: string;
+        endTime?: string;
+        toleranceMinutes?: number;
+      };
+
+      shifts = shifts.map((shift) =>
+        shift.id === payload.id
+          ? {
+              ...shift,
+              shiftType: payload.shiftType ?? shift.shiftType,
+              startTime: payload.startTime ?? shift.startTime,
+              endTime: payload.endTime ?? shift.endTime,
+              toleranceMinutes: Number(
+                payload.toleranceMinutes ?? shift.toleranceMinutes,
+              ),
+            }
+          : shift,
+      );
+
+      return delay(buildResponse({} as T, config));
     }
 
     return delay(buildResponse({} as T, config));
@@ -207,10 +467,23 @@ const createMockApi = () => {
     url: string,
     config?: AxiosRequestConfig,
   ): Promise<AxiosResponse<T>> => {
-    const matchDelete = url.match(/^\/super-admin\/company\/(.+)$/);
-    if (matchDelete) {
-      const id = matchDelete[1];
-      companies = companies.filter((company) => company.id !== id);
+    const normalizedUrl = normalizeUrl(url);
+
+    const userDeleteMatch = normalizedUrl.match(/^\/user\/(.+)$/);
+    if (userDeleteMatch) {
+      const userId = userDeleteMatch[1];
+      users = users.filter((user) => user.id !== userId);
+      punches = punches.filter((punch) => punch.userId !== userId);
+      delete nextPunchTypeByUser[userId];
+      return delay(buildResponse({} as T, config));
+    }
+
+    const shiftDeleteMatch = normalizedUrl.match(
+      /^\/workshift\/change-status\/(.+)$/,
+    );
+    if (shiftDeleteMatch) {
+      const shiftId = Number(shiftDeleteMatch[1]);
+      shifts = shifts.filter((shift) => shift.id !== shiftId);
       return delay(buildResponse({} as T, config));
     }
 
@@ -220,7 +493,8 @@ const createMockApi = () => {
   return {
     get,
     post,
-    put,
+    patch,
+    put: post,
     delete: del,
   } as unknown as AxiosInstance;
 };
@@ -231,7 +505,7 @@ if (USE_MOCK_API) {
   api = createMockApi();
 } else {
   api = axios.create({
-    baseURL: `${BASE_URL}/api`,
+    baseURL: `${BASE_URL}/api/v1`,
     headers: {
       "Content-Type": "application/json",
     },

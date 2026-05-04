@@ -10,7 +10,14 @@ import {
   Button,
   Flex,
   Heading,
+  IconButton,
   Input,
+  MenuContent,
+  MenuItem,
+  MenuPositioner,
+  MenuRoot,
+  MenuTrigger,
+  Portal,
   Spinner,
   Text,
   VStack,
@@ -18,12 +25,15 @@ import {
 import {
   FaClock,
   FaEdit,
+  FaEllipsisV,
   FaPlus,
   FaSave,
   FaTimes,
   FaTrash,
 } from "react-icons/fa";
-import api from "../services/api";
+import api from "../../services/api";
+import { ConfirmDeleteModal } from "../../components/Modal/ConfirmDeleteModal";
+import { toaster } from "../../components/ui/toaster";
 
 interface ShiftListItem {
   id: number;
@@ -48,7 +58,7 @@ const initialShiftForm: ShiftFormData = {
   workShiftToleranceMinutes: 15,
 };
 
-const GerenciarTurnos = () => {
+export const GerenciarTurnos = () => {
   const [shifts, setShifts] = useState<ShiftListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,13 +66,17 @@ const GerenciarTurnos = () => {
   const [formData, setFormData] = useState<ShiftFormData>(initialShiftForm);
   const [isEditing, setIsEditing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [shiftToDelete, setShiftToDelete] = useState<ShiftListItem | null>(
+    null,
+  );
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchShifts = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await api.get("workshift/list");
+      const response = await api.get("/workshift/list");
       const raw = (response.data?.data ?? response.data) as any[];
 
       const formatted: ShiftListItem[] = raw.map((shift) => ({
@@ -75,7 +89,12 @@ const GerenciarTurnos = () => {
 
       setShifts(formatted);
     } catch {
-      setError("Não foi possível carregar a lista de turnos.");
+      const description = "Não foi possível carregar a lista de turnos.";
+      setError(description);
+      toaster.error({
+        title: "Erro ao carregar turnos",
+        description,
+      });
     } finally {
       setLoading(false);
     }
@@ -145,38 +164,60 @@ const GerenciarTurnos = () => {
 
     try {
       await method(endpoint, payload);
-      // eslint-disable-next-line no-alert
-      alert(`Turno ${isEditing ? "atualizado" : "criado"} com sucesso!`);
+      toaster.success({
+        title: "Turno salvo",
+        description: `Turno ${isEditing ? "atualizado" : "criado"} com sucesso!`,
+      });
       closeModal();
       void fetchShifts();
     } catch (err: unknown) {
       const errorData = (err as { response?: { data?: { message?: string } } })
         .response?.data;
-      setError(
-        `Erro ao salvar: ${
-          errorData?.message ?? "Verifique os dados informados."
-        }`,
-      );
+      const description = `Erro ao salvar: ${
+        errorData?.message ?? "Verifique os dados informados."
+      }`;
+      setError(description);
+      toaster.error({
+        title: "Erro ao salvar turno",
+        description,
+      });
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleDelete = async (shiftId: number, shiftType: string) => {
-    // eslint-disable-next-line no-alert
-    const confirmed = window.confirm(
-      `Tem certeza que deseja EXCLUIR o turno "${shiftType}"?`,
-    );
-    if (!confirmed) return;
+  const openDeleteModal = (shift: ShiftListItem) => {
+    setShiftToDelete(shift);
+  };
+
+  const closeDeleteModal = () => {
+    if (isDeleting) {
+      return;
+    }
+    setShiftToDelete(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!shiftToDelete) {
+      return;
+    }
 
     try {
-      await api.delete(`/workshift/change-status/${shiftId}`);
-      // eslint-disable-next-line no-alert
-      alert(`Turno "${shiftType}" excluído com sucesso!`);
+      setIsDeleting(true);
+      await api.delete(`/workshift/change-status/${shiftToDelete.id}`);
+      toaster.success({
+        title: "Turno excluído",
+        description: `Turno "${shiftToDelete.workShiftType}" excluído com sucesso!`,
+      });
+      setShiftToDelete(null);
       void fetchShifts();
     } catch {
-      // eslint-disable-next-line no-alert
-      alert("Erro ao excluir turno.");
+      toaster.error({
+        title: "Erro ao excluir turno",
+        description: "Não foi possível excluir o turno selecionado.",
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -213,19 +254,14 @@ const GerenciarTurnos = () => {
         pb={3}
         borderBottomWidth="1px"
       >
-        <Heading
-          size="lg"
-          color="gray.800"
-          display="flex"
-          alignItems="center"
-          gap={3}
-        >
-          <FaClock color="#4F46E5" /> Gerenciar Jornadas de Trabalho
-        </Heading>
+        <Text fontSize="lg" fontWeight="semibold" color="gray.700">
+          Lista de turnos
+        </Text>
         <Button
           colorPalette="green"
           onClick={() => openModal()}
           display="flex"
+          p="10px"
           alignItems="center"
           gap={2}
         >
@@ -356,25 +392,44 @@ const GerenciarTurnos = () => {
                     {shift.workShiftToleranceMinutes}
                   </Box>
                   <Box as="td" px={6} py={4} textAlign="right">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      colorPalette="blue"
-                      mr={2}
-                      onClick={() => openModal(shift)}
-                    >
-                      <FaEdit style={{ marginRight: 4 }} /> Editar
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      colorPalette="red"
-                      onClick={() =>
-                        handleDelete(shift.id, shift.workShiftType)
-                      }
-                    >
-                      <FaTrash style={{ marginRight: 4 }} /> Excluir
-                    </Button>
+                    <Flex justify="flex-end">
+                      <MenuRoot
+                        positioning={{
+                          placement: "top-end",
+                          strategy: "fixed",
+                        }}
+                      >
+                        <MenuTrigger asChild>
+                          <IconButton
+                            aria-label={`Ações para ${shift.workShiftType}`}
+                            variant="ghost"
+                            size="sm"
+                          >
+                            <FaEllipsisV />
+                          </IconButton>
+                        </MenuTrigger>
+                        <Portal>
+                          <MenuPositioner>
+                            <MenuContent>
+                              <MenuItem
+                                p="10px"
+                                value={`editar-${shift.id}`}
+                                onSelect={() => openModal(shift)}
+                              >
+                                <FaEdit style={{ marginRight: 8 }} /> Editar
+                              </MenuItem>
+                              <MenuItem
+                                p="10px"
+                                value={`excluir-${shift.id}`}
+                                onSelect={() => openDeleteModal(shift)}
+                              >
+                                <FaTrash style={{ marginRight: 8 }} /> Excluir
+                              </MenuItem>
+                            </MenuContent>
+                          </MenuPositioner>
+                        </Portal>
+                      </MenuRoot>
+                    </Flex>
                   </Box>
                 </Box>
               ))}
@@ -451,6 +506,9 @@ const GerenciarTurnos = () => {
                       padding: "8px 12px",
                       borderRadius: "0.375rem",
                       border: "1px solid #E2E8F0",
+                      backgroundColor: "#FFFFFF",
+                      color: "#1A202C",
+                      colorScheme: "light",
                     }}
                   >
                     <option value="">Selecione</option>
@@ -533,6 +591,14 @@ const GerenciarTurnos = () => {
           </Box>
         </Flex>
       )}
+
+      <ConfirmDeleteModal
+        isOpen={Boolean(shiftToDelete)}
+        onClose={closeDeleteModal}
+        onConfirm={handleConfirmDelete}
+        itemName={shiftToDelete?.workShiftType}
+        isLoading={isDeleting}
+      />
     </Box>
   );
 };
