@@ -10,16 +10,18 @@ import {
   Box,
   Button,
   Flex,
+  Grid,
+  GridItem,
   Heading,
   Input,
   Spinner,
   Text,
-  VStack,
 } from "@chakra-ui/react";
 import {
   FaArrowLeft,
   FaClock,
   FaSave,
+  FaTimes,
   FaUserPlus,
   FaUserShield,
 } from "react-icons/fa";
@@ -325,7 +327,7 @@ const CriarFuncionario = () => {
     };
 
     try {
-      await api.post("/user", payload);
+      await api.post("/user/create", payload);
       setSuccess(`Funcionário "${formData.name}" cadastrado com sucesso!`);
       toaster.success({
         title: "Funcionário cadastrado",
@@ -390,29 +392,14 @@ const CriarFuncionario = () => {
   }
 
   return (
-    <Box p={6} bg="white" borderRadius="lg" boxShadow="xl" maxW="2xl" mx="auto">
-      <Flex justify="space-between" align="center" mb={6}>
-        <Heading
-          size="lg"
-          color="gray.800"
-          display="flex"
-          alignItems="center"
-          gap={3}
-        >
-          <FaUserPlus color="#16A34A" /> Cadastro de Funcionário
-        </Heading>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate(-1)}
-          display="flex"
-          alignItems="center"
-          gap={2}
-        >
-          <FaArrowLeft /> Voltar
-        </Button>
-      </Flex>
-
+    <Box
+      p={6}
+      bg="white"
+      borderRadius="lg"
+      boxShadow="xl"
+      w="full"
+      h="fit-content"
+    >
       {success && (
         <Box
           bg="green.50"
@@ -442,17 +429,18 @@ const CriarFuncionario = () => {
       )}
 
       <Box as="form" onSubmit={handleSubmit}>
-        <VStack align="stretch" gap={6}>
-          <Heading size="md" color="gray.700" pt={4} borderTopWidth="1px">
-            Dados Pessoais e Acesso
-          </Heading>
-
+        <Grid
+          templateColumns={{ base: "1fr", md: "repeat(2, minmax(0, 1fr))" }}
+          gap={6}
+        >
           <Box>
             <Text mb={1} fontWeight="medium" color="gray.700">
               Nome Completo
             </Text>
             <Input
               type="text"
+              p="10px"
+              placeholder="Insira o nome completo do funcionário"
               name="name"
               id="name"
               value={formData.name}
@@ -467,6 +455,8 @@ const CriarFuncionario = () => {
             </Text>
             <Input
               type="email"
+              p="10px"
+              placeholder="Insira o e-mail do funcionário"
               name="email"
               id="email"
               value={formData.email}
@@ -481,6 +471,8 @@ const CriarFuncionario = () => {
             </Text>
             <Input
               type="password"
+              placeholder="Defina uma senha inicial para o funcionário"
+              p="10px"
               name="password"
               id="password"
               value={formData.password}
@@ -495,6 +487,8 @@ const CriarFuncionario = () => {
             </Text>
             <Input
               type="text"
+              p="10px"
+              placeholder="Insira o telefone do funcionário"
               name="cellPhone"
               id="cellPhone"
               value={formData.cellPhone}
@@ -502,10 +496,6 @@ const CriarFuncionario = () => {
               required
             />
           </Box>
-
-          <Heading size="md" color="gray.700" pt={4} borderTopWidth="1px">
-            Perfil e Jornada
-          </Heading>
 
           <Box>
             <Text
@@ -516,7 +506,7 @@ const CriarFuncionario = () => {
               alignItems="center"
               gap={2}
             >
-              <FaUserShield /> Perfil de Acesso
+              Perfil de Acesso
             </Text>
             <select
               name="roleName"
@@ -529,11 +519,16 @@ const CriarFuncionario = () => {
                 padding: "8px 12px",
                 borderRadius: "0.375rem",
                 border: "1px solid #E2E8F0",
+                backgroundColor: "#FFFFFF",
+                color: "#1A202C",
+                colorScheme: "light",
               }}
             >
               <option value="">Selecione o Perfil</option>
-              <option value="COMPANY_ADMIN">Administrador da Empresa</option>
-              <option value="EMPLOYEE">Funcionário Padrão</option>
+              <option value="SUPER_ADMIN">Super Admin</option>
+              <option value="ADMIN">Administrador</option>
+              <option value="RH">Recursos Humanos</option>
+              <option value="EMPLOYEE">Funcionário</option>
             </select>
           </Box>
 
@@ -546,7 +541,7 @@ const CriarFuncionario = () => {
               alignItems="center"
               gap={2}
             >
-              <FaClock /> Turno de Trabalho
+              Turno de Trabalho
             </Text>
             <select
               name="shiftId"
@@ -559,6 +554,9 @@ const CriarFuncionario = () => {
                 padding: "8px 12px",
                 borderRadius: "0.375rem",
                 border: "1px solid #E2E8F0",
+                backgroundColor: "#FFFFFF",
+                color: "#1A202C",
+                colorScheme: "light",
               }}
             >
               <option value="">Selecione o Turno</option>
@@ -570,139 +568,173 @@ const CriarFuncionario = () => {
             </select>
           </Box>
 
-          <Flex align="center" gap={2}>
-            <input
-              type="checkbox"
-              name="isAllowedBypassCoord"
-              id="isAllowedBypassCoord"
-              checked={formData.isAllowedBypassCoord}
-              onChange={handleChange}
-            />
-            <Text fontSize="sm" color="gray.700">
-              Permitir marcação de ponto fora da coordenação (Bypass)
-            </Text>
-          </Flex>
-
-          <Heading size="md" color="gray.700" pt={4} borderTopWidth="1px">
-            Foto (Obrigatório)
-          </Heading>
-
-          <Box>
-            <Text mb={2} fontSize="sm" color="gray.600">
-              Você pode enviar uma imagem do dispositivo ou tirar a foto na hora
-              com a webcam.
-            </Text>
-
-            <Flex gap={3} flexWrap="wrap">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={startCamera}
-                disabled={loading}
-              >
-                Usar Webcam
-              </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={loading}
-              >
-                Fazer Upload
-              </Button>
-
-              {formData.imageBase64 && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  colorPalette="red"
-                  onClick={clearPhoto}
-                  disabled={loading}
-                >
-                  Remover Foto
-                </Button>
-              )}
+          <GridItem colSpan={{ base: 1, md: 2 }}>
+            <Flex align="center" gap={2}>
+              <input
+                type="checkbox"
+                name="isAllowedBypassCoord"
+                id="isAllowedBypassCoord"
+                checked={formData.isAllowedBypassCoord}
+                onChange={handleChange}
+              />
+              <Text fontSize="sm" color="gray.700">
+                Permitir marcação de ponto fora da coordenação (Bypass)
+              </Text>
             </Flex>
+          </GridItem>
 
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleFileUpload}
-              style={{ display: "none" }}
-            />
-          </Box>
+          <GridItem colSpan={{ base: 1, md: 2 }}>
+            <Heading size="md" color="gray.700" pt={4} borderTopWidth="1px">
+              Adicione uma foto *
+            </Heading>
+          </GridItem>
 
-          {cameraActive && (
-            <Box borderWidth="1px" borderRadius="md" p={3}>
-              <Text mb={2} fontWeight="medium" color="gray.700">
-                Prévia da Webcam
+          <GridItem colSpan={{ base: 1, md: 2 }}>
+            <Box>
+              <Text mb={2} fontSize="sm" color="gray.600">
+                Você pode enviar uma imagem do dispositivo ou tirar a foto na
+                hora com a webcam.
               </Text>
 
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                style={{
-                  width: "100%",
-                  maxWidth: "420px",
-                  borderRadius: "8px",
-                }}
-              />
-
-              <Flex gap={3} mt={3}>
+              <Flex gap={3} flexWrap="wrap">
                 <Button
                   type="button"
-                  colorPalette="green"
-                  onClick={capturePhoto}
+                  variant="outline"
+                  p="10px"
+                  onClick={startCamera}
+                  disabled={loading}
                 >
-                  Capturar Foto
+                  Tirar foto
                 </Button>
-                <Button type="button" variant="outline" onClick={stopCamera}>
-                  Cancelar Webcam
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  p="10px"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={loading}
+                >
+                  Selecionar Foto
                 </Button>
+
+                {formData.imageBase64 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    p="10px"
+                    colorPalette="red"
+                    onClick={clearPhoto}
+                    disabled={loading}
+                  >
+                    Remover Foto
+                  </Button>
+                )}
               </Flex>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileUpload}
+                style={{ display: "none" }}
+              />
             </Box>
+          </GridItem>
+
+          {cameraActive && (
+            <GridItem colSpan={{ base: 1, md: 2 }}>
+              <Box borderWidth="1px" borderRadius="md" p={3}>
+                <Text mb={2} fontWeight="medium" color="gray.700">
+                  Prévia da Webcam
+                </Text>
+
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  style={{
+                    width: "100%",
+                    maxWidth: "420px",
+                    borderRadius: "8px",
+                  }}
+                />
+
+                <Flex gap={3} mt={3}>
+                  <Button
+                    type="button"
+                    colorPalette="green"
+                    p="10px"
+                    onClick={capturePhoto}
+                  >
+                    Capturar Foto
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={stopCamera}
+                    p="10px"
+                  >
+                    Fechar Webcam
+                  </Button>
+                </Flex>
+              </Box>
+            </GridItem>
           )}
 
           {photoPreview && (
-            <Box>
-              <Text mb={2} fontWeight="medium" color="gray.700">
-                Foto Selecionada
-              </Text>
-              <Box maxW="260px" borderWidth="1px" borderRadius="md" p={2}>
-                <img
-                  src={photoPreview}
-                  alt="Pré-visualização da foto"
-                  style={{ width: "100%", borderRadius: "4px" }}
-                />
+            <GridItem colSpan={{ base: 1, md: 2 }}>
+              <Box>
+                <Text mb={2} fontWeight="medium" color="gray.700">
+                  Foto Selecionada
+                </Text>
+                <Box maxW="260px" borderWidth="1px" borderRadius="md" p={2}>
+                  <img
+                    src={photoPreview}
+                    alt="Pré-visualização da foto"
+                    style={{ width: "100%", borderRadius: "4px" }}
+                  />
+                </Box>
               </Box>
-            </Box>
+            </GridItem>
           )}
 
-          <canvas ref={canvasRef} style={{ display: "none" }} />
+          <GridItem colSpan={{ base: 1, md: 2 }}>
+            <canvas ref={canvasRef} style={{ display: "none" }} />
+          </GridItem>
 
-          <Flex justify="flex-end" pt={4}>
-            <Button
-              type="submit"
-              colorPalette="green"
-              disabled={loading}
-              minW="240px"
-            >
-              {loading ? (
-                <>
-                  <Spinner size="sm" mr={2} /> Cadastrando...
-                </>
-              ) : (
-                <>
-                  <FaSave style={{ marginRight: 8 }} /> Cadastrar Funcionário
-                </>
-              )}
-            </Button>
-          </Flex>
-        </VStack>
+          <GridItem colSpan={{ base: 1, md: 2 }}>
+            <Flex justify="center" pt={4} gap="14px" w="100%">
+              <Button
+                onClick={() => navigate(-1)}
+                bg="red.500"
+                w="210px"
+                h="34px"
+                borderRadius="full"
+              >
+                <FaTimes /> Cancelar
+              </Button>
+              <Button
+                type="submit"
+                colorPalette="green"
+                disabled={loading}
+                w="210px"
+                h="34px"
+                borderRadius="full"
+              >
+                {loading ? (
+                  <>
+                    <Spinner size="sm" mr={2} /> Cadastrando...
+                  </>
+                ) : (
+                  <>
+                    <FaSave style={{ marginRight: 8 }} /> Salvar
+                  </>
+                )}
+              </Button>
+            </Flex>
+          </GridItem>
+        </Grid>
       </Box>
     </Box>
   );

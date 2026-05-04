@@ -22,7 +22,9 @@ const normalizeHistory = (rawData: unknown): PunchHistoryItem[] => {
     return {
       id: String(rawItem.id ?? index),
       type: String(rawItem.type ?? rawItem.punchType ?? "N/A"),
-      timePunched: String(rawItem.timePunched ?? rawItem.createdAt ?? ""),
+      timePunched: String(
+        rawItem.timePunched ?? rawItem.punchTime ?? rawItem.punchDate ?? "",
+      ),
       shiftType: rawItem.shiftType ? String(rawItem.shiftType) : undefined,
     };
   });
@@ -48,8 +50,11 @@ const HistoricoPontos = () => {
       setLoading(true);
       setError(null);
 
-      const response = await api.get("/user/punch-history");
-      const payload = (response.data?.data ?? response.data) as unknown;
+      const response = await api.get("/user/refresh-information");
+      const payload =
+        response.data?.lastUserAttendances ??
+        response.data?.lastsUserAttendances ??
+        [];
       setHistory(normalizeHistory(payload));
     } catch (err) {
       const description = "Não foi possível carregar seu histórico de pontos.";

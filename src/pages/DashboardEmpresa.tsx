@@ -27,10 +27,10 @@ const DashboardEmpresa = () => {
   ];
 
   return (
-    <Flex minH="100vh" bg="gray.100">
+    <Flex h="100vh" bg="gray.100" overflow="hidden">
       <Sidebar items={menuItems} userName={user?.name} onLogout={logout} />
 
-      <Box flex={1} p={8} overflowY="auto">
+      <Box flex={1} p={8} overflowY="auto" minH={0}>
         <GlobalHeader />
         <Outlet />
       </Box>

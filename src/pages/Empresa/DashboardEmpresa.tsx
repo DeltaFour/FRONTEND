@@ -17,7 +17,7 @@ const DashboardEmpresa = () => {
   const menuItems: SidebarItem[] = [
     {
       label: "Início",
-      to: "/dashboard-empresa",
+      to: "/dashboard-empresa/ponto",
       icon: FaHome,
       exact: true,
     },
@@ -25,11 +25,6 @@ const DashboardEmpresa = () => {
       label: "Funcionários",
       to: "/dashboard-empresa/funcionarios",
       icon: FaUsers,
-    },
-    {
-      label: "Novo Funcionário",
-      to: "/dashboard-empresa/funcionarios/criar",
-      icon: FaUserPlus,
     },
     {
       label: "Meu Ponto",
@@ -49,10 +44,10 @@ const DashboardEmpresa = () => {
   ];
 
   return (
-    <Flex minH="100vh" bg="gray.100">
+    <Flex h="100vh" bg="gray.100" overflow="hidden">
       <Sidebar items={menuItems} userName={user?.name} onLogout={logout} />
 
-      <Box flex={1} p={8} overflowY="auto">
+      <Box flex={1} p={8} overflowY="auto" minH={0}>
         <GlobalHeader />
         <Outlet />
       </Box>

@@ -8,14 +8,14 @@ import axios, {
 const BASE_URL = import.meta.env.VITE_BASE_URL || "";
 const USE_MOCK_API = import.meta.env.VITE_USE_MOCK === "true";
 
-type UserRole = "ROLE.COMPANY_ADMIN" | "ROLE.EMPLOYEE";
+type UserRole = "ROLE.SUPER_ADMIN" | "ROLE.ADMIN" | "ROLE.RH" | "ROLE.EMPLOYEE";
 
 interface MockUser {
   id: string;
   name: string;
   email: string;
   role: UserRole;
-  roleName: "COMPANY_ADMIN" | "EMPLOYEE";
+  roleName: "SUPER_ADMIN" | "ADMIN" | "RH" | "EMPLOYEE";
   cellphone?: string;
   shiftType?: string;
   isAllowedBypassCoord?: boolean;
@@ -39,15 +39,15 @@ interface MockPunch {
 }
 
 const createMockApi = () => {
-  let currentUserId = "company-admin-1";
+  let currentUserId = "admin-1";
 
   let users: MockUser[] = [
     {
-      id: "company-admin-1",
-      name: "Admin da Empresa",
+      id: "admin-1",
+      name: "Admin",
       email: "empresa@deltafour.com",
-      role: "ROLE.COMPANY_ADMIN",
-      roleName: "COMPANY_ADMIN",
+      role: "ROLE.ADMIN",
+      roleName: "ADMIN",
       cellphone: "11999990000",
       shiftType: "Comercial",
       shiftId: "1",
@@ -140,22 +140,35 @@ const createMockApi = () => {
       return delay(buildResponse({ data: shifts } as T, config));
     }
 
-    if (normalizedUrl === "/user/allowed-punch") {
+    if (normalizedUrl === "/user/refresh-information") {
       const currentUser = getCurrentUser();
-      const punchType = nextPunchTypeByUser[currentUser?.id || ""] || "IN";
-      return delay(buildResponse({ punchType } as T, config));
-    }
-
-    if (normalizedUrl === "/user/punch-history") {
-      const currentUser = getCurrentUser();
-      const data = punches
+      const lastPunch = punches
         .filter((punch) => punch.userId === currentUser?.id)
         .sort(
           (a, b) =>
             new Date(b.timePunched).getTime() -
             new Date(a.timePunched).getTime(),
-        );
-      return delay(buildResponse({ data } as T, config));
+        )[0];
+
+      const lastUserAttendances = punches
+        .filter((punch) => punch.userId === currentUser?.id)
+        .slice(0, 10)
+        .map((punch) => ({
+          punchType: punch.type,
+          shiftType: punch.shiftType,
+          punchTime: punch.timePunched,
+          punchDate: punch.timePunched,
+        }));
+
+      const payload = {
+        name: currentUser?.name,
+        role: currentUser?.roleName,
+        shiftType: currentUser?.shiftType,
+        lastPunchType: lastPunch?.type,
+        lastUserAttendances,
+      };
+
+      return delay(buildResponse(payload as T, config));
     }
 
     const userByIdMatch = normalizedUrl.match(/^\/user\/(.+)$/);
@@ -202,12 +215,12 @@ const createMockApi = () => {
       const matchedUser = users.find((user) => user.email === email);
 
       const user: MockUser = matchedUser || {
-        id: isEmployee ? "employee-1" : "company-admin-1",
-        name: isEmployee ? "Funcionário Web" : "Admin da Empresa",
+        id: isEmployee ? "employee-1" : "admin-1",
+        name: isEmployee ? "Funcionário Web" : "Admin",
         email:
           email || (isEmployee ? "funcionario@mock.com" : "empresa@mock.com"),
-        role: isEmployee ? "ROLE.EMPLOYEE" : "ROLE.COMPANY_ADMIN",
-        roleName: isEmployee ? "EMPLOYEE" : "COMPANY_ADMIN",
+        role: isEmployee ? "ROLE.EMPLOYEE" : "ROLE.ADMIN",
+        roleName: isEmployee ? "EMPLOYEE" : "ADMIN",
         shiftType: "Comercial",
         shiftId: "1",
         isAllowedBypassCoord: !isEmployee,
@@ -233,16 +246,18 @@ const createMockApi = () => {
         userShift?: Array<{ shiftId?: string }>;
       };
 
+      const roleName = (payload.roleName || "EMPLOYEE").toUpperCase() as
+        | "SUPER_ADMIN"
+        | "ADMIN"
+        | "RH"
+        | "EMPLOYEE";
+
       const newUser: MockUser = {
         id: `employee-${Date.now()}`,
         name: payload.name || "Novo Funcionário",
         email: payload.email || `novo.${Date.now()}@mock.com`,
-        role:
-          payload.roleName === "COMPANY_ADMIN"
-            ? "ROLE.COMPANY_ADMIN"
-            : "ROLE.EMPLOYEE",
-        roleName:
-          payload.roleName === "COMPANY_ADMIN" ? "COMPANY_ADMIN" : "EMPLOYEE",
+        role: `ROLE.${roleName}` as UserRole,
+        roleName,
         cellphone: payload.cellPhone,
         shiftId: payload.userShift?.[0]?.shiftId,
         shiftType: shifts.find(
@@ -286,14 +301,47 @@ const createMockApi = () => {
       return delay(buildResponse(newPunch as unknown as T, config));
     }
 
-    if (normalizedUrl === "/user/punch-for-user") {
+    if (normalizedUrl === "/user/allowed-punch") {
+      return delay(buildResponse(true as unknown as T, config));
+    }
+
+    if (normalizedUrl === "/user/register-point") {
       const payload = (data || {}) as {
-        employeeId?: string;
         type?: string;
         timePunched?: string;
         shiftType?: string;
       };
-      const userId = payload.employeeId;
+      const currentUser = getCurrentUser();
+
+      if (!currentUser) {
+        return Promise.reject({
+          response: { data: { message: "Usuário não autenticado." } },
+        });
+      }
+
+      const newPunch: MockPunch = {
+        id: `p-${Date.now()}`,
+        userId: currentUser.id,
+        type: payload.type || "IN",
+        timePunched: payload.timePunched || new Date().toISOString(),
+        shiftType: payload.shiftType || currentUser.shiftType,
+      };
+
+      punches = [newPunch, ...punches];
+      nextPunchTypeByUser[currentUser.id] =
+        newPunch.type === "IN" ? "OUT" : "IN";
+
+      return delay(buildResponse({} as T, config));
+    }
+
+    if (normalizedUrl === "/user/punch-for-user") {
+      const payload = (data || {}) as {
+        userId?: string;
+        type?: string;
+        timePunched?: string;
+        shiftType?: string;
+      };
+      const userId = payload.userId;
 
       if (!userId) {
         return Promise.reject({
@@ -457,7 +505,7 @@ if (USE_MOCK_API) {
   api = createMockApi();
 } else {
   api = axios.create({
-    baseURL: `${BASE_URL}/api`,
+    baseURL: `${BASE_URL}/api/v1`,
     headers: {
       "Content-Type": "application/json",
     },

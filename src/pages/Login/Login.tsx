@@ -41,9 +41,9 @@ const Login = () => {
       return;
     }
 
-    const roleSuffix = (userData.role.split(".").pop() || "").toUpperCase();
+    const roleSuffix = (userData.role || "").toUpperCase();
 
-    if (roleSuffix === "COMPANY_ADMIN" || roleSuffix === "COMPANYADMIN") {
+    if (["SUPER_ADMIN", "ADMIN", "RH"].includes(roleSuffix)) {
       navigate("/dashboard-empresa");
       return;
     }

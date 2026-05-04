@@ -29,12 +29,17 @@ const Sidebar = ({ items, userName, onLogout }: SidebarProps) => {
       color="white"
       display="flex"
       flexDirection="column"
+      h="100vh"
+      position="sticky"
+      top="0"
+      flexShrink={0}
+      overflow="hidden"
     >
       <Flex p={3} justifyContent="center">
         <Image src={LogoHorizontal} alt="Logo" maxW="45%" />
       </Flex>
 
-      <VStack align="stretch" flex={1} mt={2} gap="0">
+      <VStack align="stretch" flex={1} mt={2} gap="0" overflowY="auto">
         <Box
           px={4}
           py={3}
@@ -71,22 +76,6 @@ const Sidebar = ({ items, userName, onLogout }: SidebarProps) => {
           );
         })}
       </VStack>
-
-      <Box mt="auto" p={4} borderTopWidth="1px" borderColor="blackAlpha.500">
-        {userName && (
-          <Text fontSize="sm" mb={2}>
-            Logado como: {userName}
-          </Text>
-        )}
-        {onLogout && (
-          <Button variant="ghost" size="sm" onClick={onLogout}>
-            <Flex align="center" gap={2}>
-              <FaSignOutAlt />
-              <Text as="span">Sair</Text>
-            </Flex>
-          </Button>
-        )}
-      </Box>
     </Box>
   );
 };

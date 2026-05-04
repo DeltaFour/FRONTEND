@@ -1,8 +1,22 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
-import { Box, Button, Flex, Heading, Spinner, Text } from "@chakra-ui/react";
-import { FaEdit, FaPlus, FaTrash, FaUsers } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import {
+  Box,
+  Button,
+  Flex,
+  IconButton,
+  MenuContent,
+  MenuItem,
+  MenuPositioner,
+  MenuRoot,
+  MenuTrigger,
+  Portal,
+  Spinner,
+  Text,
+} from "@chakra-ui/react";
+import { FaEdit, FaEllipsisV, FaPlus, FaTrash } from "react-icons/fa";
 import api from "../../services/api";
+import { ConfirmDeleteModal } from "../../components/Modal/ConfirmDeleteModal";
 import { toaster } from "../../components/ui/toaster";
 
 interface Funcionario {
@@ -18,6 +32,11 @@ const ListarFuncionarios = () => {
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [employeeToDelete, setEmployeeToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchEmployees = useCallback(async () => {
     try {
@@ -44,16 +63,33 @@ const ListarFuncionarios = () => {
     void fetchEmployees();
   }, [fetchEmployees]);
 
-  const handleDelete = async (employeeId: string, employeeName: string) => {
+  const openDeleteModal = (employeeId: string, employeeName: string) => {
+    setEmployeeToDelete({ id: employeeId, name: employeeName });
+  };
+
+  const closeDeleteModal = () => {
+    if (isDeleting) {
+      return;
+    }
+    setEmployeeToDelete(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!employeeToDelete) {
+      return;
+    }
+
+    const { id, name } = employeeToDelete;
+
     try {
-      await api.delete(`/user/${employeeId}`);
-      setFuncionarios((prev) =>
-        prev.filter((employee) => employee.id !== employeeId),
-      );
+      setIsDeleting(true);
+      await api.delete(`/user/change-status/${id}`);
+      setFuncionarios((prev) => prev.filter((employee) => employee.id !== id));
       toaster.success({
         title: "Funcionário excluído",
-        description: `Funcionário \"${employeeName}\" excluído com sucesso!`,
+        description: `Funcionário \"${name}\" excluído com sucesso!`,
       });
+      setEmployeeToDelete(null);
     } catch (err: unknown) {
       const description =
         (err as { response?: { data?: { message?: string } } })?.response?.data
@@ -62,6 +98,8 @@ const ListarFuncionarios = () => {
         title: "Erro ao excluir funcionário",
         description,
       });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -92,19 +130,13 @@ const ListarFuncionarios = () => {
   return (
     <Box bg="white" p={6} borderRadius="lg" boxShadow="xl">
       <Flex justify="space-between" align="center" mb={6}>
-        <Heading
-          size="lg"
-          color="gray.700"
-          display="flex"
-          alignItems="center"
-          gap={2}
-        >
-          <FaUsers /> Gerenciamento de Funcionários
-        </Heading>
-
+        <Text fontSize="lg" fontWeight="semibold" color="gray.700">
+          Lista de funcionários
+        </Text>
         <Button
           type="button"
           colorPalette="green"
+          p="10px"
           display="flex"
           alignItems="center"
           onClick={() => navigate("/dashboard-empresa/funcionarios/criar")}
@@ -112,7 +144,6 @@ const ListarFuncionarios = () => {
           <FaPlus style={{ marginRight: 8 }} /> Novo Funcionário
         </Button>
       </Flex>
-
       <Box overflowX="auto" borderWidth="1px" borderRadius="md">
         <Box as="table" width="100%" borderCollapse="collapse">
           <Box as="thead" bg="gray.50">
@@ -207,31 +238,53 @@ const ListarFuncionarios = () => {
                     fontSize="sm"
                     textAlign="right"
                   >
-                    <Button
-                      as={RouterLink}
-                      to={`/dashboard-empresa/funcionarios/editar/${funcionario.id}`}
-                      variant="ghost"
-                      colorPalette="blue"
-                      size="sm"
-                      mr={3}
-                      display="inline-flex"
-                      alignItems="center"
-                    >
-                      <FaEdit style={{ marginRight: 4 }} /> Editar
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      colorPalette="red"
-                      size="sm"
-                      display="inline-flex"
-                      alignItems="center"
-                      onClick={() =>
-                        handleDelete(funcionario.id, funcionario.name)
-                      }
-                    >
-                      <FaTrash style={{ marginRight: 4 }} /> Excluir
-                    </Button>
+                    <Flex justify="flex-end">
+                      <MenuRoot
+                        positioning={{
+                          placement: "top-end",
+                          strategy: "fixed",
+                        }}
+                      >
+                        <MenuTrigger asChild>
+                          <IconButton
+                            aria-label={`Ações para ${funcionario.name}`}
+                            variant="ghost"
+                            size="sm"
+                          >
+                            <FaEllipsisV />
+                          </IconButton>
+                        </MenuTrigger>
+                        <Portal>
+                          <MenuPositioner>
+                            <MenuContent>
+                              <MenuItem
+                                p="10px"
+                                value={`editar-${funcionario.id}`}
+                                onSelect={() =>
+                                  navigate(
+                                    `/dashboard-empresa/funcionarios/editar/${funcionario.id}`,
+                                  )
+                                }
+                              >
+                                <FaEdit style={{ marginRight: 8 }} /> Editar
+                              </MenuItem>
+                              <MenuItem
+                                p="10px"
+                                value={`excluir-${funcionario.id}`}
+                                onSelect={() =>
+                                  openDeleteModal(
+                                    funcionario.id,
+                                    funcionario.name,
+                                  )
+                                }
+                              >
+                                <FaTrash style={{ marginRight: 8 }} /> Excluir
+                              </MenuItem>
+                            </MenuContent>
+                          </MenuPositioner>
+                        </Portal>
+                      </MenuRoot>
+                    </Flex>
                   </Box>
                 </Box>
               ))
@@ -252,6 +305,14 @@ const ListarFuncionarios = () => {
           </Box>
         </Box>
       </Box>
+
+      <ConfirmDeleteModal
+        isOpen={Boolean(employeeToDelete)}
+        onClose={closeDeleteModal}
+        onConfirm={handleConfirmDelete}
+        itemName={employeeToDelete?.name}
+        isLoading={isDeleting}
+      />
     </Box>
   );
 };

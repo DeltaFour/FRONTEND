@@ -1,40 +1,83 @@
 import { useCallback, useEffect, useState } from "react";
-import { Box, Button, Flex, Heading, Spinner, Text } from "@chakra-ui/react";
-import { FaClock, FaTimes } from "react-icons/fa";
+import {
+  Box,
+  Button,
+  Flex,
+  Heading,
+  Input,
+  Spinner,
+  Text,
+} from "@chakra-ui/react";
+import { FaTimes } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
 import { toaster } from "../../components/ui/toaster";
 
-interface AllowedPunch {
-  punchType: string;
+type PunchType = "IN" | "OUT";
+
+interface RefreshInfoResponse {
+  shiftType?: string;
+  lastPunchType?: PunchType;
 }
 
 const PontoEletronico = () => {
   const { user } = useAuth();
-  const [allowedPunch, setAllowedPunch] = useState<AllowedPunch | null>(null);
+  const [punchType, setPunchType] = useState<PunchType | null>(null);
+  const [canPunch, setCanPunch] = useState(false);
+  const [shiftType, setShiftType] = useState<string | undefined>(
+    user?.shiftType as string | undefined,
+  );
+  const [imageBase64, setImageBase64] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [now, setNow] = useState(() => new Date());
 
-  const horarioAtual = new Date().toLocaleTimeString("pt-BR", {
+  const horarioAtual = now.toLocaleTimeString("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
   });
 
-  const dataAtual = new Date().toLocaleDateString("pt-BR", {
+  const dataAtual = now.toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
   });
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  const formatTimeOnly = (date: Date) => date.toISOString().slice(11, 19);
+
+  const resolveNextPunchType = (lastPunchType?: PunchType) =>
+    lastPunchType === "IN" ? "OUT" : "IN";
 
   const fetchAllowedPunch = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await api.get("/user/allowed-punch");
-      setAllowedPunch(response.data as AllowedPunch);
+      const infoResponse = await api.get<RefreshInfoResponse>(
+        "/user/refresh-information",
+      );
+      const info = infoResponse.data || {};
+      const nextPunchType = resolveNextPunchType(info.lastPunchType);
+
+      setShiftType(info.shiftType ?? (user?.shiftType as string | undefined));
+      setPunchType(nextPunchType);
+
+      const canPunchResponse = await api.post<boolean>("/user/allowed-punch", {
+        timePunched: formatTimeOnly(new Date()),
+        punchType: nextPunchType,
+      });
+
+      setCanPunch(Boolean(canPunchResponse.data));
     } catch (err) {
       const description = "Não foi possível carregar o status de marcação.";
       setError(description);
@@ -51,25 +94,80 @@ const PontoEletronico = () => {
     void fetchAllowedPunch();
   }, [fetchAllowedPunch]);
 
-  const handlePunch = async () => {
-    if (!allowedPunch || submitting) return;
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
 
-    const punchType = allowedPunch.punchType;
+    if (!file.type.startsWith("image/")) {
+      toaster.error({
+        title: "Arquivo inválido",
+        description: "Selecione uma imagem válida.",
+      });
+      event.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result ?? "");
+      const base64 = dataUrl.split(",")[1] ?? "";
+      setImageBase64(base64);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const getCoordinates = (): Promise<{
+    latitude: number;
+    longitude: number;
+  } | null> =>
+    new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        resolve(null);
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) =>
+          resolve({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          }),
+        () => resolve(null),
+        { enableHighAccuracy: true, timeout: 8000 },
+      );
+    });
+
+  const handlePunch = async () => {
+    if (!punchType || submitting) return;
+
+    if (!imageBase64) {
+      const description = "Adicione uma foto antes de registrar o ponto.";
+      setError(description);
+      toaster.error({
+        title: "Foto obrigatória",
+        description,
+      });
+      return;
+    }
 
     setSubmitting(true);
     setError(null);
 
+    const coords = await getCoordinates();
+
     const payload = {
       type: punchType,
       timePunched: new Date().toISOString(),
-      shiftType: user?.shiftType,
-      imageBase64: null,
-      latitude: 0,
-      longitude: 0,
+      shiftType: shiftType ?? "Matutino",
+      imageBase64,
+      latitude: coords?.latitude ?? 0,
+      longitude: coords?.longitude ?? 0,
     };
 
     try {
-      await api.post("v1/user/punch-in", payload);
+      await api.post("/user/register-point", payload);
       toaster.success({
         title: "Ponto registrado",
         description: `Ponto de ${punchType} registrado com sucesso!`,
@@ -147,6 +245,34 @@ const PontoEletronico = () => {
           </Flex>
         </Flex>
       </Heading>
+      <Box mb={6} w="full" display="flex" flexDirection="row" gap={4}>
+        <Flex
+          w="50%"
+          justifyContent="start"
+          flexDirection="column"
+          alignItems="flex-start"
+        >
+          <Text color="gray.700">Foto para reconhecimento</Text>
+          <Input type="file" accept="image/*" onChange={handleImageChange} />
+        </Flex>
+        <Flex
+          w="50%"
+          justifyContent="start"
+          flexDirection="column"
+          alignItems="flex-start"
+        >
+          <Text color="gray.700">Status</Text>
+          <Input
+            p="10px"
+            isReadOnly
+            value={
+              punchType
+                ? `Proximo ponto: ${punchType} (${canPunch ? "permitido" : "bloqueado"})`
+                : "Carregando..."
+            }
+          />
+        </Flex>
+      </Box>
 
       <Button
         w="full"
@@ -163,6 +289,7 @@ const PontoEletronico = () => {
         gap={3}
         bg="primary.500"
         onClick={handlePunch}
+        isDisabled={!canPunch || submitting}
         _disabled={
           submitting ? { bg: "primary.300", cursor: "not-allowed" } : {}
         }
