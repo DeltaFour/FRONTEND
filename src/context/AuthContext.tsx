@@ -12,7 +12,11 @@ export interface AuthUser {
 
 interface AuthContextValue {
   user: AuthUser | null;
-  login: (email: string, password: string) => Promise<AuthUser | false>;
+  login: (
+    email: string,
+    password: string,
+    rememberMe?: boolean,
+  ) => Promise<AuthUser | false>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
@@ -31,12 +35,45 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+const AUTH_STORAGE_KEY = "deltafour.auth.user";
+const AUTH_STORAGE_MODE_KEY = "deltafour.auth.mode";
+
+const readStoredUser = (): AuthUser | null => {
+  const mode = localStorage.getItem(AUTH_STORAGE_MODE_KEY);
+  const storage = mode === "local" ? localStorage : sessionStorage;
+  const storedUser = storage.getItem(AUTH_STORAGE_KEY);
+  if (!storedUser) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(storedUser) as AuthUser;
+  } catch {
+    storage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.removeItem(AUTH_STORAGE_MODE_KEY);
+    return null;
+  }
+};
+
+const persistUser = (user: AuthUser, rememberMe?: boolean) => {
+  const storage = rememberMe ? localStorage : sessionStorage;
+  storage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
+  localStorage.setItem(AUTH_STORAGE_MODE_KEY, rememberMe ? "local" : "session");
+};
+
+const clearStoredUser = () => {
+  localStorage.removeItem(AUTH_STORAGE_KEY);
+  sessionStorage.removeItem(AUTH_STORAGE_KEY);
+  localStorage.removeItem(AUTH_STORAGE_MODE_KEY);
+};
+
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(() => readStoredUser());
 
   const login = async (
     email: string,
     password: string,
+    rememberMe?: boolean,
   ): Promise<AuthUser | false> => {
     try {
       const response = await api.post<AuthUser>(
@@ -58,6 +95,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       };
 
       setUser(normalizedUser);
+      persistUser(normalizedUser, rememberMe);
       return normalizedUser;
     } catch (error) {
       toaster.error({
@@ -79,6 +117,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       });
     } finally {
       setUser(null);
+      clearStoredUser();
     }
   };
 

@@ -31,7 +31,6 @@ const ListarFuncionarios = () => {
   const navigate = useNavigate();
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [employeeToDelete, setEmployeeToDelete] = useState<{
     id: string;
     name: string;
@@ -41,7 +40,6 @@ const ListarFuncionarios = () => {
   const fetchEmployees = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
 
       const response = await api.get("/user/list");
       const data = (response.data?.data ?? response.data) as Funcionario[];
@@ -49,7 +47,7 @@ const ListarFuncionarios = () => {
       setFuncionarios(data);
     } catch (err) {
       const description = "Não foi possível carregar a lista de funcionários.";
-      setError(description);
+
       toaster.error({
         title: "Erro ao carregar funcionários",
         description,
@@ -109,21 +107,6 @@ const ListarFuncionarios = () => {
         <Spinner />
         <Text>Carregando lista de funcionários...</Text>
       </Flex>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box
-        bg="red.50"
-        color="red.700"
-        p={4}
-        borderRadius="md"
-        borderWidth="1px"
-        borderColor="red.300"
-      >
-        <Text>{error}</Text>
-      </Box>
     );
   }
 

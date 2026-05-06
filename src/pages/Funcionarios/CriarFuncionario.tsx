@@ -13,7 +13,6 @@ import {
   Grid,
   GridItem,
   Heading,
-  Input,
   Spinner,
   Text,
 } from "@chakra-ui/react";
@@ -26,6 +25,7 @@ import {
   FaUserShield,
 } from "react-icons/fa";
 import api from "../../services/api";
+import { Input } from "../../components/ui/Input";
 import { toaster } from "../../components/ui/toaster";
 
 interface Shift {
@@ -40,8 +40,9 @@ interface CreateEmployeeFormData {
   password: string;
   cellPhone: string;
   shiftId: string;
-  isAllowedBypassCoord: boolean;
+  isAllowedBypassCoord?: boolean;
   imageBase64: string;
+  isFacialRecognitionEnabled?: boolean;
 }
 
 const CriarFuncionario = () => {
@@ -60,11 +61,11 @@ const CriarFuncionario = () => {
     cellPhone: "",
     shiftId: "",
     isAllowedBypassCoord: false,
+    isFacialRecognitionEnabled: false,
     imageBase64: "",
   });
   const [loading, setLoading] = useState(false);
   const [loadingShifts, setLoadingShifts] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -85,7 +86,7 @@ const CriarFuncionario = () => {
         }
       } catch (err) {
         const description = "Não foi possível carregar os turnos de trabalho.";
-        setError(description);
+
         toaster.error({
           title: "Erro ao carregar turnos",
           description,
@@ -297,7 +298,7 @@ const CriarFuncionario = () => {
     if (!formData.imageBase64) {
       const description =
         "Adicione uma foto por upload ou webcam antes de salvar.";
-      setError(description);
+
       toaster.error({
         title: "Foto obrigatória",
         description,
@@ -306,7 +307,6 @@ const CriarFuncionario = () => {
     }
 
     setLoading(true);
-    setError(null);
     setSuccess(null);
 
     const payload = {
@@ -353,7 +353,6 @@ const CriarFuncionario = () => {
         message = responseData.message;
       }
 
-      setError(message);
       toaster.error({
         title: "Erro ao cadastrar funcionário",
         description: message,
@@ -372,7 +371,7 @@ const CriarFuncionario = () => {
     );
   }
 
-  if (!error && shifts.length === 0) {
+  if (shifts.length === 0) {
     return (
       <Box
         bg="yellow.50"
@@ -413,21 +412,6 @@ const CriarFuncionario = () => {
           {success}
         </Box>
       )}
-      {error && (
-        <Box
-          bg="red.50"
-          borderWidth="1px"
-          borderColor="red.300"
-          color="red.700"
-          p={3}
-          borderRadius="md"
-          mb={4}
-        >
-          <Text fontWeight="bold">Erro:</Text>
-          <Text>{error}</Text>
-        </Box>
-      )}
-
       <Box as="form" onSubmit={handleSubmit}>
         <Grid
           templateColumns={{ base: "1fr", md: "repeat(2, minmax(0, 1fr))" }}
@@ -439,7 +423,6 @@ const CriarFuncionario = () => {
             </Text>
             <Input
               type="text"
-              p="10px"
               placeholder="Insira o nome completo do funcionário"
               name="name"
               id="name"
@@ -455,7 +438,6 @@ const CriarFuncionario = () => {
             </Text>
             <Input
               type="email"
-              p="10px"
               placeholder="Insira o e-mail do funcionário"
               name="email"
               id="email"
@@ -472,7 +454,6 @@ const CriarFuncionario = () => {
             <Input
               type="password"
               placeholder="Defina uma senha inicial para o funcionário"
-              p="10px"
               name="password"
               id="password"
               value={formData.password}
@@ -487,7 +468,6 @@ const CriarFuncionario = () => {
             </Text>
             <Input
               type="text"
-              p="10px"
               placeholder="Insira o telefone do funcionário"
               name="cellPhone"
               id="cellPhone"
@@ -570,16 +550,30 @@ const CriarFuncionario = () => {
 
           <GridItem colSpan={{ base: 1, md: 2 }}>
             <Flex align="center" gap={2}>
-              <input
-                type="checkbox"
-                name="isAllowedBypassCoord"
-                id="isAllowedBypassCoord"
-                checked={formData.isAllowedBypassCoord}
-                onChange={handleChange}
-              />
-              <Text fontSize="sm" color="gray.700">
-                Permitir marcação de ponto fora da coordenação (Bypass)
-              </Text>
+              <Flex>
+                <input
+                  type="checkbox"
+                  name="isAllowedBypassCoord"
+                  id="isAllowedBypassCoord"
+                  checked={formData.isAllowedBypassCoord}
+                  onChange={handleChange}
+                />
+                <Text fontSize="sm" color="gray.700">
+                  Permitir marcação de ponto fora da coordenação (Bypass)
+                </Text>
+              </Flex>
+              <Flex>
+                <input
+                  type="checkbox"
+                  name="isFacialRecognitionEnabled"
+                  id="isFacialRecognitionEnabled"
+                  checked={formData.isFacialRecognitionEnabled}
+                  onChange={handleChange}
+                />
+                <Text fontSize="sm" color="gray.700">
+                  Permitir marcação sem reconhecimento facial (Bypass)
+                </Text>
+              </Flex>
             </Flex>
           </GridItem>
 

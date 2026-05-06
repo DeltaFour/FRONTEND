@@ -1,6 +1,11 @@
 import { Outlet } from "react-router-dom";
 import { Box, Flex } from "@chakra-ui/react";
-import { FaClock, FaHistory, FaHome } from "react-icons/fa";
+import {
+  FaClock,
+  FaHistory,
+  FaHome,
+  FaExclamationTriangle,
+} from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
 import Sidebar, { type SidebarItem } from "../../components/SideBar/Sidebar";
 import GlobalHeader from "../../components/GlobalHeader/GlobalHeader";
@@ -19,6 +24,11 @@ const DashboardFuncionario = () => {
       label: "Bater Ponto",
       to: "/dashboard-funcionario/ponto",
       icon: FaClock,
+    },
+    {
+      label: "Ponto em atraso",
+      to: "/dashboard-funcionario/ponto-atraso",
+      icon: FaExclamationTriangle,
     },
     {
       label: "Histórico",

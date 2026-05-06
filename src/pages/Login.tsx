@@ -7,18 +7,18 @@ import {
   Flex,
   Heading,
   Image,
-  Input,
   Spinner,
   Text,
 } from "@chakra-ui/react";
 import { useAuth } from "../context/AuthContext";
 import LogoHorizontal from "../assets/LogoHorizontal.png";
 import DarkVeil from "../components/background/background";
+import { Input } from "../components/ui/Input";
+import { toaster } from "../components/ui/toaster";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -28,16 +28,17 @@ const Login = () => {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setError("");
     setLoading(true);
 
-    const userData = await login(email, password);
+    const userData = await login(email, password, rememberMe);
     setLoading(false);
 
     if (!userData) {
-      setError(
-        "Não foi possível realizar o login. Verifique seu e-mail e senha.",
-      );
+      toaster.error({
+        title: "Falha no login",
+        description:
+          "Não foi possível realizar o login. Verifique seu e-mail e senha.",
+      });
       return;
     }
 
@@ -53,7 +54,10 @@ const Login = () => {
       return;
     }
 
-    setError(`Perfil desconhecido: ${roleSuffix}. Consulte o backend.`);
+    toaster.error({
+      title: "Perfil desconhecido",
+      description: `Perfil desconhecido: ${roleSuffix}. Consulte o backend.`,
+    });
   };
 
   return (
@@ -104,36 +108,6 @@ const Login = () => {
 
             <form onSubmit={handleSubmit} style={{ width: "100%" }}>
               <Flex direction="column" gap={6}>
-                {error && (
-                  <Flex
-                    p={4}
-                    bg="red.50"
-                    borderWidth="1px"
-                    borderColor="red.200"
-                    borderRadius="lg"
-                    align="flex-start"
-                    gap={3}
-                  >
-                    <Flex
-                      w={5}
-                      h={5}
-                      bg="red.500"
-                      borderRadius="full"
-                      align="center"
-                      justify="center"
-                      flexShrink={0}
-                      mt={0.5}
-                    >
-                      <Text fontSize="xs" fontWeight="bold" color="white">
-                        !
-                      </Text>
-                    </Flex>
-                    <Text fontSize="sm" color="red.700" flex="1">
-                      {error}
-                    </Text>
-                  </Flex>
-                )}
-
                 <Box>
                   <Text fontSize="sm" fontWeight="semibold" color="white">
                     E-mail

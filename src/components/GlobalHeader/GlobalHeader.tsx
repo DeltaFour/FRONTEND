@@ -39,6 +39,13 @@ const getPageInfo = (pathname: string) => {
     };
   }
 
+  if (pathname.startsWith("/dashboard-empresa/ponto/rh")) {
+    return {
+      title: "Pontos por colaborador",
+      subtitle: "Acompanhe marcações individuais e atrasos.",
+    };
+  }
+
   if (pathname.startsWith("/dashboard-empresa/ponto")) {
     return {
       title: "Meu Ponto",

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Box, Flex, Heading, Spinner, Text } from "@chakra-ui/react";
 import { FaHistory } from "react-icons/fa";
 import api from "../../services/api";
@@ -9,6 +9,13 @@ interface PunchHistoryItem {
   type: string;
   timePunched: string;
   shiftType?: string;
+}
+
+interface WorkShift {
+  id: number;
+  shiftType: string;
+  startTime: string;
+  endTime: string;
 }
 
 const normalizeHistory = (rawData: unknown): PunchHistoryItem[] => {
@@ -30,6 +37,21 @@ const normalizeHistory = (rawData: unknown): PunchHistoryItem[] => {
   });
 };
 
+const normalizeWorkShifts = (rawData: unknown): WorkShift[] => {
+  if (Array.isArray(rawData)) {
+    return rawData as WorkShift[];
+  }
+
+  if (rawData && typeof rawData === "object") {
+    const data = (rawData as { data?: unknown }).data;
+    if (Array.isArray(data)) {
+      return data as WorkShift[];
+    }
+  }
+
+  return [];
+};
+
 const formatDateTime = (value: string) => {
   const date = new Date(value);
 
@@ -40,25 +62,87 @@ const formatDateTime = (value: string) => {
   return date.toLocaleString("pt-BR");
 };
 
+const formatTimeOnly = (value: string) => {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "--:--";
+  }
+
+  return date.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const formatDateOnly = (value: string) => {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Data inválida";
+  }
+
+  return date.toLocaleDateString("pt-BR");
+};
+
+const parseTimeToMinutes = (value: string) => {
+  const [hour, minute] = value.split(":");
+  const hoursNumber = Number(hour);
+  const minutesNumber = Number(minute ?? 0);
+
+  if (Number.isNaN(hoursNumber) || Number.isNaN(minutesNumber)) {
+    return null;
+  }
+
+  return hoursNumber * 60 + minutesNumber;
+};
+
+const formatDuration = (minutes: number | null) => {
+  if (minutes === null) {
+    return "--:--";
+  }
+
+  const sign = minutes < 0 ? "-" : "";
+  const absMinutes = Math.abs(minutes);
+  const hours = Math.floor(absMinutes / 60)
+    .toString()
+    .padStart(2, "0");
+  const mins = (absMinutes % 60).toString().padStart(2, "0");
+  return `${sign}${hours}:${mins}`;
+};
+
+const punchLabels = [
+  "Início do trabalho",
+  "Início do intervalo",
+  "Fim do intervalo",
+  "Saída",
+];
+
 const HistoricoPontos = () => {
   const [history, setHistory] = useState<PunchHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [shiftType, setShiftType] = useState<string | undefined>(undefined);
+  const [workShifts, setWorkShifts] = useState<WorkShift[]>([]);
 
   const fetchHistory = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
 
       const response = await api.get("/user/refresh-information");
       const payload =
         response.data?.lastUserAttendances ??
         response.data?.lastsUserAttendances ??
         [];
-      setHistory(normalizeHistory(payload));
+      const normalizedHistory = normalizeHistory(payload);
+      const resolvedShiftType =
+        response.data?.shiftType ?? normalizedHistory[0]?.shiftType;
+      setShiftType(resolvedShiftType);
+      setHistory(normalizedHistory);
+
+      const workShiftResponse = await api.get("/workshift/list");
+      setWorkShifts(normalizeWorkShifts(workShiftResponse.data));
     } catch (err) {
       const description = "Não foi possível carregar seu histórico de pontos.";
-      setError(description);
       toaster.error({
         title: "Erro ao carregar histórico",
         description,
@@ -72,27 +156,77 @@ const HistoricoPontos = () => {
     void fetchHistory();
   }, [fetchHistory]);
 
+  const groupedHistory = useMemo(() => {
+    const map = new Map<
+      string,
+      { dateKey: string; dateMs: number; items: PunchHistoryItem[] }
+    >();
+
+    history.forEach((item) => {
+      const date = new Date(item.timePunched);
+      if (Number.isNaN(date.getTime())) {
+        return;
+      }
+
+      const dateKey = date.toISOString().slice(0, 10);
+      const startOfDay = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate(),
+      );
+      const existing = map.get(dateKey);
+
+      if (existing) {
+        existing.items.push(item);
+      } else {
+        map.set(dateKey, {
+          dateKey,
+          dateMs: startOfDay.getTime(),
+          items: [item],
+        });
+      }
+    });
+
+    return Array.from(map.values())
+      .map((group) => {
+        group.items.sort(
+          (a, b) =>
+            new Date(a.timePunched).getTime() -
+            new Date(b.timePunched).getTime(),
+        );
+        return group;
+      })
+      .sort((a, b) => b.dateMs - a.dateMs);
+  }, [history]);
+
+  const expectedMinutes = useMemo(() => {
+    if (!shiftType) {
+      return null;
+    }
+
+    const shift = workShifts.find((item) => item.shiftType === shiftType);
+    if (!shift) {
+      return null;
+    }
+
+    const startMinutes = parseTimeToMinutes(shift.startTime);
+    const endMinutes = parseTimeToMinutes(shift.endTime);
+
+    if (startMinutes === null || endMinutes === null) {
+      return null;
+    }
+
+    const normalizedEnd =
+      endMinutes < startMinutes ? endMinutes + 24 * 60 : endMinutes;
+    return normalizedEnd - startMinutes;
+  }, [shiftType, workShifts]);
+
   if (loading) {
     return (
       <Flex justify="center" align="center" py={10}>
         <Spinner mr={3} />
         <Text>Carregando histórico...</Text>
       </Flex>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box
-        bg="red.50"
-        borderWidth="1px"
-        borderColor="red.300"
-        color="red.700"
-        p={4}
-        borderRadius="md"
-      >
-        <Text>{error}</Text>
-      </Box>
     );
   }
 
@@ -114,68 +248,151 @@ const HistoricoPontos = () => {
           Nenhuma marcação encontrada.
         </Box>
       ) : (
-        <Box overflowX="auto" borderWidth="1px" borderRadius="md">
-          <Box as="table" w="full" borderCollapse="collapse">
-            <Box as="thead" bg="gray.50">
-              <Box as="tr">
-                <Box
-                  as="th"
-                  px={4}
-                  py={3}
-                  textAlign="left"
-                  fontSize="xs"
-                  color="gray.500"
-                  textTransform="uppercase"
+        <Flex direction="column" gap={6}>
+          {groupedHistory.map((group) => {
+            const workedMinutes = group.items.reduce((total, item, index) => {
+              if (index % 2 !== 0) {
+                return total;
+              }
+
+              const nextItem = group.items[index + 1];
+              if (!nextItem) {
+                return total;
+              }
+
+              const start = new Date(item.timePunched).getTime();
+              const end = new Date(nextItem.timePunched).getTime();
+              if (Number.isNaN(start) || Number.isNaN(end)) {
+                return total;
+              }
+
+              return total + Math.max(0, Math.floor((end - start) / 60000));
+            }, 0);
+
+            const balanceMinutes =
+              expectedMinutes === null ? null : workedMinutes - expectedMinutes;
+
+            return (
+              <Box
+                key={group.dateKey}
+                borderWidth="1px"
+                borderRadius="lg"
+                p={4}
+              >
+                <Flex
+                  justify="space-between"
+                  align="center"
+                  flexWrap="wrap"
+                  gap={4}
+                  mb={4}
                 >
-                  Tipo
-                </Box>
-                <Box
-                  as="th"
-                  px={4}
-                  py={3}
-                  textAlign="left"
-                  fontSize="xs"
-                  color="gray.500"
-                  textTransform="uppercase"
-                >
-                  Data/Hora
-                </Box>
-                <Box
-                  as="th"
-                  px={4}
-                  py={3}
-                  textAlign="left"
-                  fontSize="xs"
-                  color="gray.500"
-                  textTransform="uppercase"
-                >
-                  Turno
+                  <Box>
+                    <Text fontSize="sm" color="gray.500">
+                      Dia
+                    </Text>
+                    <Text fontSize="lg" fontWeight="semibold" color="gray.800">
+                      {formatDateOnly(
+                        group.items[0]?.timePunched ?? group.dateKey,
+                      )}
+                    </Text>
+                  </Box>
+                  <Flex gap={6} flexWrap="wrap">
+                    <Box>
+                      <Text fontSize="sm" color="gray.500">
+                        Horas trabalhadas
+                      </Text>
+                      <Text fontWeight="semibold" color="gray.800">
+                        {formatDuration(workedMinutes)}
+                      </Text>
+                    </Box>
+                    <Box>
+                      <Text fontSize="sm" color="gray.500">
+                        Turno
+                      </Text>
+                      <Text fontWeight="semibold" color="gray.800">
+                        {shiftType ?? "N/A"}
+                      </Text>
+                    </Box>
+                    <Box>
+                      <Text fontSize="sm" color="gray.500">
+                        Previsto
+                      </Text>
+                      <Text fontWeight="semibold" color="gray.800">
+                        {formatDuration(expectedMinutes)}
+                      </Text>
+                    </Box>
+                    <Box>
+                      <Text fontSize="sm" color="gray.500">
+                        Saldo
+                      </Text>
+                      <Text
+                        fontWeight="semibold"
+                        color={
+                          balanceMinutes === null
+                            ? "gray.500"
+                            : balanceMinutes < 0
+                              ? "red.500"
+                              : "green.600"
+                        }
+                      >
+                        {formatDuration(balanceMinutes)}
+                      </Text>
+                    </Box>
+                  </Flex>
+                </Flex>
+
+                <Box overflowX="auto" borderWidth="1px" borderRadius="md">
+                  <Box as="table" w="full" borderCollapse="collapse">
+                    <Box as="thead" bg="gray.50">
+                      <Box as="tr">
+                        <Box
+                          as="th"
+                          px={4}
+                          py={3}
+                          textAlign="left"
+                          fontSize="xs"
+                          color="gray.500"
+                          textTransform="uppercase"
+                        >
+                          Marca
+                        </Box>
+                        <Box
+                          as="th"
+                          px={4}
+                          py={3}
+                          textAlign="left"
+                          fontSize="xs"
+                          color="gray.500"
+                          textTransform="uppercase"
+                        >
+                          Registro
+                        </Box>
+                      </Box>
+                    </Box>
+                    <Box as="tbody">
+                      {group.items.map((punch, index) => (
+                        <Box as="tr" key={punch.id} borderTopWidth="1px">
+                          <Box
+                            as="td"
+                            px={4}
+                            py={3}
+                            fontWeight="semibold"
+                            color="gray.700"
+                          >
+                            {punchLabels[index % punchLabels.length]}
+                          </Box>
+                          <Box as="td" px={4} py={3} color="gray.600">
+                            {formatDateTime(punch.timePunched)}
+                          </Box>
+                        </Box>
+                      ))}
+                    </Box>
+                  </Box>
                 </Box>
               </Box>
-            </Box>
-            <Box as="tbody">
-              {history.map((punch) => (
-                <Box as="tr" key={punch.id} borderTopWidth="1px">
-                  <Box
-                    as="td"
-                    px={4}
-                    py={3}
-                    fontWeight="semibold"
-                    color="gray.700"
-                  >
-                    {punch.type}
-                  </Box>
-                  <Box as="td" px={4} py={3} color="gray.600">
-                    {formatDateTime(punch.timePunched)}
-                  </Box>
-                  <Box as="td" px={4} py={3} color="gray.600">
-                    {punch.shiftType ?? "N/A"}
-                  </Box>
-                </Box>
-              ))}
-            </Box>
-          </Box>
-        </Box>
+            );
+          })}
+        </Flex>
       )}
     </Box>
   );

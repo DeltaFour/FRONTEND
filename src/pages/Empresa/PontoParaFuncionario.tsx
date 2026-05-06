@@ -13,7 +13,6 @@ import {
   Grid,
   GridItem,
   Heading,
-  Input,
   Spinner,
   Text,
   VStack,
@@ -22,10 +21,10 @@ import {
   FaArrowLeft,
   FaCalendarCheck,
   FaClock,
-  FaExclamationTriangle,
   FaUserFriends,
 } from "react-icons/fa";
 import api from "../../services/api";
+import { Input } from "../../components/ui/Input";
 import { toaster } from "../../components/ui/toaster";
 
 interface Funcionario {
@@ -53,7 +52,6 @@ const PontoParaFuncionario = () => {
   });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const handleSetNow = () => {
     setFormData((prev) => ({
@@ -68,10 +66,9 @@ const PontoParaFuncionario = () => {
       const data = (response.data?.data ?? response.data) as Funcionario[];
       const filtered = data.filter((f) => f.roleName === "EMPLOYEE");
       setFuncionarios(filtered);
-      setError(null);
     } catch (err) {
       const description = "Não foi possível carregar a lista de funcionários.";
-      setError(description);
+
       toaster.error({
         title: "Erro ao carregar funcionários",
         description,
@@ -95,7 +92,6 @@ const PontoParaFuncionario = () => {
   const handleSubmit = async (event: FormEvent<HTMLDivElement>) => {
     event.preventDefault();
     setSubmitting(true);
-    setError(null);
 
     const payload = {
       userId: formData.employeeId,
@@ -117,7 +113,7 @@ const PontoParaFuncionario = () => {
       const description = `Erro: ${
         message ?? "Verifique se o usuário e o turno estão corretos."
       }`;
-      setError(description);
+
       toaster.error({
         title: "Erro ao registrar ponto",
         description,
@@ -136,24 +132,6 @@ const PontoParaFuncionario = () => {
     );
   }
 
-  if (error && !funcionarios.length) {
-    return (
-      <Flex
-        bg="red.50"
-        borderWidth="1px"
-        borderColor="red.300"
-        color="red.700"
-        p={4}
-        borderRadius="md"
-        align="center"
-        gap={2}
-      >
-        <FaExclamationTriangle />
-        <Text>{error}</Text>
-      </Flex>
-    );
-  }
-
   return (
     <Box p={6} bg="white" borderRadius="lg" boxShadow="xl" maxW="3xl" mx="auto">
       <Flex justify="space-between" align="center" mb={6} wrap="wrap" gap={3}>
@@ -164,11 +142,14 @@ const PontoParaFuncionario = () => {
           alignItems="center"
           gap={3}
         >
-          <FaCalendarCheck color="#4F46E5" /> Marcar Ponto (Terceiros)
+          Registro de Ponto — Terceiros
         </Heading>
         <Button
           variant="outline"
           p="15px"
+          w="96px"
+          h="34px"
+          borderRadius="full"
           onClick={() => navigate(-1)}
           leftIcon={<FaArrowLeft />}
         >
@@ -185,28 +166,13 @@ const PontoParaFuncionario = () => {
         mb={6}
       >
         <Text fontWeight="semibold" color="gray.700" mb={1}>
-          Dica rapida
+          Como usar
         </Text>
         <Text fontSize="sm" color="gray.600">
-          Use este formulario para registrar pontos manuais, retroativos ou
-          ajustes de turno. Se precisar registrar agora, clique em "Agora".
+          Registre pontos manuais, ajustes de turno ou marcações retroativas.
+          Para registrar o ponto atual, clique em “Agora”.
         </Text>
       </Box>
-
-      {error && (
-        <Box
-          bg="red.50"
-          borderWidth="1px"
-          borderColor="red.300"
-          color="red.700"
-          p={3}
-          borderRadius="md"
-          mb={4}
-        >
-          <Text fontWeight="bold">Erro:</Text>
-          <Text>{error}</Text>
-        </Box>
-      )}
 
       <Box as="form" onSubmit={handleSubmit}>
         <VStack align="stretch" gap={6}>
@@ -220,7 +186,7 @@ const PontoParaFuncionario = () => {
                 alignItems="center"
                 gap={2}
               >
-                <FaUserFriends /> Funcionário a Marcar
+                Funcionário
               </Text>
               <select
                 name="employeeId"
@@ -256,7 +222,7 @@ const PontoParaFuncionario = () => {
                 alignItems="center"
                 gap={2}
               >
-                <FaClock /> Tipo de Ponto
+                Tipo de Registro
               </Text>
               <select
                 name="type"
@@ -274,14 +240,14 @@ const PontoParaFuncionario = () => {
                   colorScheme: "light",
                 }}
               >
-                <option value="IN">Entrada (IN)</option>
-                <option value="OUT">Saída (OUT)</option>
+                <option value="IN">Entrada</option>
+                <option value="OUT">Saída</option>
               </select>
             </GridItem>
 
             <GridItem>
               <Text mb={1} fontWeight="medium" color="gray.700">
-                Turno do Funcionário
+                Turno
               </Text>
               <select
                 name="shiftType"
@@ -308,7 +274,7 @@ const PontoParaFuncionario = () => {
             <GridItem colSpan={{ base: 1, md: 2 }}>
               <Flex justify="space-between" align="center" mb={1} wrap="wrap">
                 <Text fontWeight="medium" color="gray.700">
-                  Data e Hora do Ponto
+                  Data e Hora
                 </Text>
                 <Button
                   size="xs"
@@ -317,12 +283,11 @@ const PontoParaFuncionario = () => {
                   p="15px"
                   onClick={handleSetNow}
                 >
-                  Agora
+                  Usar horário atual
                 </Button>
               </Flex>
               <Input
                 type="datetime-local"
-                color="gray.700"
                 name="timePunched"
                 id="timePunched"
                 value={formData.timePunched.substring(0, 16)}
@@ -363,7 +328,7 @@ const PontoParaFuncionario = () => {
                   <Spinner size="sm" mr={2} /> Registrando...
                 </>
               ) : (
-                <>Registrar Ponto</>
+                <>Confirmar registro</>
               )}
             </Button>
           </Flex>

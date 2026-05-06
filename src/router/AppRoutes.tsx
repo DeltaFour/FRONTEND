@@ -12,7 +12,9 @@ import CriarFuncionario from "../pages/Funcionarios/CriarFuncionario";
 import EditarFuncionario from "../pages/Funcionarios/EditarFuncionario";
 import { GerenciarTurnos } from "../pages/Empresa/GerenciarTurnos";
 import PontoEletronico from "../pages/Empresa/PontoEletronico";
+import PontoEmAtraso from "../pages/Empresa/PontoEmAtraso";
 import PontoParaFuncionario from "../pages/Empresa/PontoParaFuncionario";
+import FiltrarPontoRH from "../pages/Empresa/FiltrarPontoRH";
 import DashboardFuncionario from "../pages/Empresa/DashboardFuncionario";
 import HistoricoPontos from "../pages/Empresa/HistoricoPontos";
 import { useAuth } from "../context/AuthContext";
@@ -58,6 +60,7 @@ const AppRoutes = () => (
             element={<EditarFuncionario />}
           />
           <Route path="ponto" element={<PontoEletronico />} />
+          <Route path="ponto/rh" element={<FiltrarPontoRH />} />
           <Route path="ponto/terceiros" element={<PontoParaFuncionario />} />
           <Route path="turnos" element={<GerenciarTurnos />} />
         </Route>
@@ -67,6 +70,7 @@ const AppRoutes = () => (
         <Route path="/dashboard-funcionario" element={<DashboardFuncionario />}>
           <Route index element={<PontoEletronico />} />
           <Route path="ponto" element={<PontoEletronico />} />
+          <Route path="ponto-atraso" element={<PontoEmAtraso />} />
           <Route path="historico" element={<HistoricoPontos />} />
         </Route>
       </Route>

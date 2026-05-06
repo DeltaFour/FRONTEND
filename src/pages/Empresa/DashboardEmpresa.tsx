@@ -37,6 +37,11 @@ const DashboardEmpresa = () => {
       icon: FaUsers,
     },
     {
+      label: "Ponto RH",
+      to: "/dashboard-empresa/ponto/rh",
+      icon: FaUserPlus,
+    },
+    {
       label: "Turnos",
       to: "/dashboard-empresa/turnos",
       icon: FaBusinessTime,

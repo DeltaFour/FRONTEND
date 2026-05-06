@@ -7,12 +7,12 @@ import {
   Grid,
   GridItem,
   Heading,
-  Input,
   Spinner,
   Text,
 } from "@chakra-ui/react";
 import { FaClock, FaEdit, FaSave, FaTimes, FaUserShield } from "react-icons/fa";
 import api from "../../services/api";
+import { Input } from "../../components/ui/Input";
 import { toaster } from "../../components/ui/toaster";
 
 interface Shift {
@@ -94,14 +94,12 @@ const EditarFuncionario = () => {
   });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchRequiredData = async () => {
       try {
         setLoading(true);
-        setError(null);
 
         const shiftsResponse = await api.get("/workshift/list");
         const shiftsData = (shiftsResponse.data?.data ??
@@ -140,7 +138,7 @@ const EditarFuncionario = () => {
       } catch (err) {
         const description =
           "Não foi possível carregar os dados do funcionário ou os turnos.";
-        setError(description);
+
         toaster.error({
           title: "Erro ao carregar dados",
           description,
@@ -171,7 +169,6 @@ const EditarFuncionario = () => {
   const handleSubmit = async (event: FormEvent<HTMLDivElement>) => {
     event.preventDefault();
     setSubmitting(true);
-    setError(null);
     setSuccess(null);
 
     const userShiftArray = [
@@ -219,7 +216,6 @@ const EditarFuncionario = () => {
         message = responseData.message;
       }
 
-      setError(message);
       toaster.error({
         title: "Erro ao atualizar funcionário",
         description: message,
@@ -235,24 +231,6 @@ const EditarFuncionario = () => {
         <Spinner mr={3} />
         <Text>Carregando dados...</Text>
       </Flex>
-    );
-  }
-
-  if (error && !submitting) {
-    return (
-      <Box
-        className="text-red-600 p-4 bg-red-100 rounded max-w-2xl mx-auto"
-        bg="red.50"
-        borderWidth="1px"
-        borderColor="red.300"
-        color="red.700"
-        p={4}
-        borderRadius="md"
-        maxW="2xl"
-        mx="auto"
-      >
-        {error}
-      </Box>
     );
   }
 
@@ -277,20 +255,6 @@ const EditarFuncionario = () => {
           {success}
         </Box>
       )}
-      {error && submitting && (
-        <Box
-          bg="red.50"
-          borderColor="red.300"
-          color="red.700"
-          p={3}
-          borderRadius="md"
-          mb={4}
-        >
-          <Text fontWeight="bold">Erro:</Text>
-          <Text>{error}</Text>
-        </Box>
-      )}
-
       <Box as="form" onSubmit={handleSubmit}>
         <Grid
           templateColumns={{ base: "1fr", md: "repeat(2, minmax(0, 1fr))" }}
@@ -302,8 +266,6 @@ const EditarFuncionario = () => {
             </Text>
             <Input
               type="text"
-              color="gray.700"
-              p="10px"
               placeholder="Insira o nome completo do funcionário"
               name="name"
               id="name"
@@ -319,8 +281,6 @@ const EditarFuncionario = () => {
             </Text>
             <Input
               type="text"
-              color="gray.700"
-              p="10px"
               placeholder="Insira o telefone do funcionário"
               name="cellPhone"
               id="cellPhone"
@@ -343,8 +303,6 @@ const EditarFuncionario = () => {
             </Text>
             <Input
               type="text"
-              color="gray.700"
-              p="10px"
               name="roleName"
               id="roleName"
               value={formData.roleName}

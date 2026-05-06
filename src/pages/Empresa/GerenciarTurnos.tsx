@@ -11,7 +11,6 @@ import {
   Flex,
   Heading,
   IconButton,
-  Input,
   MenuContent,
   MenuItem,
   MenuPositioner,
@@ -32,6 +31,7 @@ import {
   FaTrash,
 } from "react-icons/fa";
 import api from "../../services/api";
+import { Input } from "../../components/ui/Input";
 import { ConfirmDeleteModal } from "../../components/Modal/ConfirmDeleteModal";
 import { toaster } from "../../components/ui/toaster";
 
@@ -61,7 +61,6 @@ const initialShiftForm: ShiftFormData = {
 export const GerenciarTurnos = () => {
   const [shifts, setShifts] = useState<ShiftListItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<ShiftFormData>(initialShiftForm);
   const [isEditing, setIsEditing] = useState(false);
@@ -74,7 +73,6 @@ export const GerenciarTurnos = () => {
   const fetchShifts = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
 
       const response = await api.get("/workshift/list");
       const raw = (response.data?.data ?? response.data) as any[];
@@ -90,7 +88,7 @@ export const GerenciarTurnos = () => {
       setShifts(formatted);
     } catch {
       const description = "Não foi possível carregar a lista de turnos.";
-      setError(description);
+
       toaster.error({
         title: "Erro ao carregar turnos",
         description,
@@ -129,20 +127,17 @@ export const GerenciarTurnos = () => {
       setFormData(initialShiftForm);
     }
     setIsModalOpen(true);
-    setError(null);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
     setFormData(initialShiftForm);
     setIsEditing(false);
-    setError(null);
   };
 
   const handleSave = async (event: FormEvent<HTMLDivElement>) => {
     event.preventDefault();
     setSubmitting(true);
-    setError(null);
 
     const payload: Record<string, unknown> = {
       shiftType: formData.workShiftType,
@@ -176,7 +171,7 @@ export const GerenciarTurnos = () => {
       const description = `Erro ao salvar: ${
         errorData?.message ?? "Verifique os dados informados."
       }`;
-      setError(description);
+
       toaster.error({
         title: "Erro ao salvar turno",
         description,
@@ -227,21 +222,6 @@ export const GerenciarTurnos = () => {
         <Spinner mr={3} />
         <Text>Carregando jornadas de trabalho...</Text>
       </Flex>
-    );
-  }
-
-  if (error && !isModalOpen) {
-    return (
-      <Box
-        bg="red.50"
-        borderWidth="1px"
-        borderColor="red.300"
-        color="red.700"
-        p={4}
-        borderRadius="md"
-      >
-        {error}
-      </Box>
     );
   }
 
@@ -475,20 +455,6 @@ export const GerenciarTurnos = () => {
                 <FaTimes />
               </Button>
             </Flex>
-
-            {error && submitting && (
-              <Box
-                bg="red.50"
-                borderWidth="1px"
-                borderColor="red.300"
-                color="red.700"
-                p={3}
-                borderRadius="md"
-                mb={4}
-              >
-                {error}
-              </Box>
-            )}
 
             <Box as="form" onSubmit={handleSave}>
               <VStack align="stretch" gap={4}>
