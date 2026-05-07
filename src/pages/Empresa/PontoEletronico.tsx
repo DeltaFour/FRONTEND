@@ -5,6 +5,7 @@ import {
   Flex,
   Heading,
   Icon,
+  Input,
   Spinner,
   Text,
 } from "@chakra-ui/react";
@@ -44,6 +45,8 @@ const PontoEletronico = () => {
   const [shiftType, setShiftType] = useState<string | undefined>(
     user?.shiftType as string | undefined,
   );
+  const [email, setEmail] = useState(user?.email ?? "");
+  const [password, setPassword] = useState("");
   const [imageBase64, setImageBase64] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -273,6 +276,13 @@ const PontoEletronico = () => {
 
   const handlePunch = async () => {
     if (!punchType || submitting || !canPunch) return;
+    if (!email.trim() || !password) {
+      toaster.error({
+        title: "Credenciais obrigatórias",
+        description: "Informe email e senha para registrar o ponto.",
+      });
+      return;
+    }
     if (!imageBase64) {
       toaster.error({
         title: "Foto obrigatória",
@@ -289,9 +299,11 @@ const PontoEletronico = () => {
       imageBase64,
       latitude: coords?.latitude ?? 0,
       longitude: coords?.longitude ?? 0,
+      email: email.trim(),
+      password,
     };
     try {
-      await api.post("/user/register-point", payload);
+      await api.post("/user/punch-by-email", payload);
       toaster.success({
         title: "Ponto registrado",
         description: `Ponto de ${NomePonto[punchType]} registrado com sucesso!`,
@@ -690,6 +702,52 @@ const PontoEletronico = () => {
           </Box>
         </Box>
       </Flex>
+
+      {/* Credentials */}
+      <Box mb={6}>
+        <Text
+          fontSize="11px"
+          fontWeight="600"
+          color="gray.400"
+          textTransform="uppercase"
+          letterSpacing="0.6px"
+          mb={3}
+        >
+          Credenciais
+        </Text>
+        <Flex gap={4} direction={{ base: "column", md: "row" }}>
+          <Box flex={1}>
+            <Text fontSize="12px" color="gray.600" mb={1}>
+              Email
+            </Text>
+            <Input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="seu@email.com"
+              autoComplete="email"
+              bg="white"
+              borderColor="gray.200"
+              size="sm"
+            />
+          </Box>
+          <Box flex={1}>
+            <Text fontSize="12px" color="gray.600" mb={1}>
+              Senha
+            </Text>
+            <Input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Digite sua senha"
+              autoComplete="current-password"
+              bg="white"
+              borderColor="gray.200"
+              size="sm"
+            />
+          </Box>
+        </Flex>
+      </Box>
 
       <canvas ref={canvasRef} style={{ display: "none" }} />
 

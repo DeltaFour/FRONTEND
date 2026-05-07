@@ -10,16 +10,16 @@ import { theme } from "./theme/theme";
 const rootElement = document.getElementById("root");
 
 if (rootElement) {
-  const root = ReactDOM.createRoot(rootElement as HTMLElement);
+	const root = ReactDOM.createRoot(rootElement as HTMLElement);
 
-  root.render(
-    <React.StrictMode>
-      <ChakraProvider value={theme}>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-        <AppToaster />
-      </ChakraProvider>
-    </React.StrictMode>,
-  );
+	root.render(
+		<React.StrictMode>
+			<ChakraProvider value={theme}>
+				<AuthProvider>
+					<AppRoutes />
+				</AuthProvider>
+				<AppToaster />
+			</ChakraProvider>
+		</React.StrictMode>,
+	);
 }

@@ -1,6 +1,15 @@
-import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
-import { Mail, Lock, Eye, EyeOff, Clock, ArrowRight } from "lucide-react";
+import { useEffect, useState, type FormEvent } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  Building2,
+  Hash,
+  User,
+} from "lucide-react";
 import {
   Box,
   Button,
@@ -16,17 +25,44 @@ import DarkVeil from "../../components/background/background";
 import { Input } from "../../components/ui/Input";
 import { toaster } from "../../components/ui/toaster";
 
+type Mode = "login" | "register";
+
 const Login = () => {
+  const [mode, setMode] = useState<Mode>("login");
+
+  // Login state
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
+  // Register state
+  const [companyName, setCompanyName] = useState("");
+  const [cnpj, setCnpj] = useState("");
+  const [registerEmail, setRegisterEmail] = useState("");
+  const [userName, setUserName] = useState("");
+  const [registerPassword, setRegisterPassword] = useState("");
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [registerLoading, setRegisterLoading] = useState(false);
+
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+
+    if (params.get("payment") === "true") {
+      toaster.success({
+        title: "Cadastro concluido!",
+        description: "Pagamento confirmado. Voce ja pode fazer login.",
+      });
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.pathname, location.search, navigate]);
+
+  const handleLoginSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
 
@@ -60,6 +96,75 @@ const Login = () => {
     });
   };
 
+  const handleRegisterSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setRegisterLoading(true);
+
+    try {
+      const response = await fetch(
+        "http://localhost:8080/api/v1/subscription/register",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: companyName,
+            cnpj,
+            user: {
+              email: registerEmail,
+              name: userName,
+              password: registerPassword,
+            },
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Erro ao registrar");
+      }
+
+      const data = await response.json();
+
+      if (data.checkoutUrl) {
+        window.location.replace(data.checkoutUrl.toString());
+        return;
+      }
+
+      toaster.success({
+        title: "Cadastro realizado!",
+        description: "Sua empresa foi registrada com sucesso. Faça o login.",
+      });
+      setCompanyName("");
+      setCnpj("");
+      setRegisterEmail("");
+      setUserName("");
+      setRegisterPassword("");
+      setMode("login");
+    } catch {
+      toaster.error({
+        title: "Falha no cadastro",
+        description:
+          "Não foi possível realizar o cadastro. Verifique os dados e tente novamente.",
+      });
+    } finally {
+      setRegisterLoading(false);
+    }
+  };
+
+  const fieldLabelStyle = {
+    fontSize: "sm" as const,
+    fontWeight: "semibold" as const,
+    color: "white",
+  };
+
+  const inputStyle = {
+    border: "none",
+    borderBottom: "1px solid white",
+    bg: "transparent",
+    pl: "3rem",
+    pr: 4,
+    py: 3,
+  };
+
   return (
     <Flex minH="100vh" overflow="hidden" position="relative">
       <Box position="absolute" inset={0} zIndex={0}>
@@ -73,6 +178,7 @@ const Login = () => {
           resolutionScale={1}
         />
       </Box>
+
       <Flex
         flex="1"
         align="center"
@@ -90,6 +196,7 @@ const Login = () => {
             bg="transparent"
             p={{ base: 6, md: 8 }}
           >
+            {/* Logo & subtitle */}
             <Box mb={8} textAlign="center">
               <Heading
                 as="h2"
@@ -102,156 +209,369 @@ const Login = () => {
                 <Image src={LogoHorizontal} alt="Logo" maxW="65%" />
               </Heading>
               <Text color="#ffff" mt={2}>
-                Entre com suas credenciais para acessar o sistema
+                {mode === "login"
+                  ? "Entre com suas credenciais para acessar o sistema"
+                  : "Preencha os dados para criar sua conta"}
               </Text>
             </Box>
 
-            <form onSubmit={handleSubmit} style={{ width: "100%" }}>
-              <Flex direction="column" gap={6}>
-                <Box>
-                  <Text fontSize="sm" fontWeight="semibold" color="white">
-                    E-mail
-                  </Text>
-                  <Box position="relative">
-                    <Box
-                      position="absolute"
-                      insetY={0}
-                      left={0}
-                      pl={4}
-                      display="flex"
-                      alignItems="center"
-                      pointerEvents="none"
-                      zIndex={1}
-                    >
-                      <Mail size={20} color="#9CA3AF" />
+            {/* ── LOGIN FORM ── */}
+            {mode === "login" && (
+              <form onSubmit={handleLoginSubmit} style={{ width: "100%" }}>
+                <Flex direction="column" gap={6}>
+                  {/* Email */}
+                  <Box>
+                    <Text {...fieldLabelStyle}>E-mail</Text>
+                    <Box position="relative">
+                      <Box
+                        position="absolute"
+                        insetY={0}
+                        left={0}
+                        pl={4}
+                        display="flex"
+                        alignItems="center"
+                        pointerEvents="none"
+                        zIndex={1}
+                      >
+                        <Mail size={20} color="#9CA3AF" />
+                      </Box>
+                      <Input
+                        type="email"
+                        id="email"
+                        {...inputStyle}
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Insira seu e-mail"
+                        required
+                      />
                     </Box>
-                    <Input
-                      type="email"
-                      id="email"
-                      border="none"
-                      borderBottom="1px solid white"
-                      value={email}
-                      onChange={(event) => setEmail(event.target.value)}
-                      pl="3rem"
-                      pr={4}
-                      py={3}
-                      bg="transparent"
-                      placeholder="Insira seu e-mail"
-                      required
-                    />
                   </Box>
-                </Box>
 
-                <Box>
-                  <Text fontSize="sm" fontWeight="semibold" color="white">
-                    Senha
-                  </Text>
-                  <Box position="relative">
-                    <Box
-                      position="absolute"
-                      insetY={0}
-                      left={0}
-                      pl={4}
-                      display="flex"
-                      alignItems="center"
-                      pointerEvents="none"
-                      zIndex={1}
-                    >
-                      <Lock size={20} color="#9CA3AF" />
+                  {/* Senha */}
+                  <Box>
+                    <Text {...fieldLabelStyle}>Senha</Text>
+                    <Box position="relative">
+                      <Box
+                        position="absolute"
+                        insetY={0}
+                        left={0}
+                        pl={4}
+                        display="flex"
+                        alignItems="center"
+                        pointerEvents="none"
+                        zIndex={1}
+                      >
+                        <Lock size={20} color="#9CA3AF" />
+                      </Box>
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        id="password"
+                        border="none"
+                        borderBottom="1px solid white"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        pl="3rem"
+                        pr="3rem"
+                        py={3}
+                        bg="transparent"
+                        placeholder="Insira sua senha"
+                        color="white"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowPassword((v) => !v)}
+                        color="gray.500"
+                        _hover={{ color: "white", bg: "transparent" }}
+                        position="absolute"
+                        insetY={0}
+                        right={0}
+                        minW="36px"
+                      >
+                        {showPassword ? (
+                          <EyeOff size={20} />
+                        ) : (
+                          <Eye size={20} />
+                        )}
+                      </Button>
                     </Box>
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      id="password"
-                      border="none"
-                      borderBottom="1px solid white"
-                      value={password}
-                      onChange={(event) => setPassword(event.target.value)}
-                      pl="3rem"
-                      pr="3rem"
-                      py={3}
-                      bg="transparent"
-                      placeholder="Insira sua senha"
-                      color="white"
-                      required
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowPassword((value) => !value)}
-                      color="gray.500"
-                      _hover={{ color: "white", bg: "transparent" }}
-                      position="absolute"
-                      insetY={0}
-                      right={0}
-                      minW="36px"
-                    >
-                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </Button>
                   </Box>
-                </Box>
 
-                <Flex align="center" justify="space-between">
-                  <label
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={(event) => setRememberMe(event.target.checked)}
-                      style={{ width: 16, height: 16 }}
-                    />
-                    <Text fontSize="sm" color="white">
-                      Lembrar-me
-                    </Text>
-                  </label>
-                </Flex>
-
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  w="full"
-                  py={3}
-                  borderRadius="lg"
-                  fontWeight="semibold"
-                  color="white"
-                  bgGradient={
-                    loading ? undefined : "linear(to-r, black, purple.900)"
-                  }
-                  bg={loading ? "purple.900" : undefined}
-                  cursor={loading ? "not-allowed" : "pointer"}
-                  boxShadow={loading ? undefined : "lg"}
-                  _hover={
-                    loading
-                      ? undefined
-                      : {
-                          bgGradient: "linear(to-r, black, purple.900)",
-                          boxShadow: "xl",
-                        }
-                  }
-                >
-                  <Flex align="center" justify="center" gap={2}>
-                    {loading ? (
-                      <>
-                        <Spinner size="sm" color="white" />
-                        <Text>Entrando...</Text>
-                      </>
-                    ) : (
-                      <>
-                        <Text>Entrar</Text>
-                        <ArrowRight size={20} />
-                      </>
-                    )}
+                  {/* Lembrar-me */}
+                  <Flex align="center" justify="space-between">
+                    <label
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        style={{ width: 16, height: 16 }}
+                      />
+                      <Text fontSize="sm" color="white">
+                        Lembrar-me
+                      </Text>
+                    </label>
                   </Flex>
-                </Button>
-              </Flex>
-            </form>
 
+                  {/* Submit */}
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    w="full"
+                    py={3}
+                    borderRadius="lg"
+                    fontWeight="semibold"
+                    color="white"
+                    bgGradient={
+                      loading ? undefined : "linear(to-r, black, purple.900)"
+                    }
+                    bg={loading ? "purple.900" : undefined}
+                    cursor={loading ? "not-allowed" : "pointer"}
+                    boxShadow={loading ? undefined : "lg"}
+                    _hover={
+                      loading
+                        ? undefined
+                        : {
+                            bgGradient: "linear(to-r, black, purple.900)",
+                            boxShadow: "xl",
+                          }
+                    }
+                  >
+                    <Flex align="center" justify="center" gap={2}>
+                      {loading ? (
+                        <>
+                          <Spinner size="sm" color="white" />
+                          <Text>Entrando...</Text>
+                        </>
+                      ) : (
+                        <>
+                          <Text>Entrar</Text>
+                          <ArrowRight size={20} />
+                        </>
+                      )}
+                    </Flex>
+                  </Button>
+                </Flex>
+              </form>
+            )}
+
+            {/* ── REGISTER FORM ── */}
+            {mode === "register" && (
+              <form onSubmit={handleRegisterSubmit} style={{ width: "100%" }}>
+                <Flex direction="column" gap={6}>
+                  {/* Nome da empresa */}
+                  <Box>
+                    <Text {...fieldLabelStyle}>Nome da empresa</Text>
+                    <Box position="relative">
+                      <Box
+                        position="absolute"
+                        insetY={0}
+                        left={0}
+                        pl={4}
+                        display="flex"
+                        alignItems="center"
+                        pointerEvents="none"
+                        zIndex={1}
+                      >
+                        <Building2 size={20} color="#9CA3AF" />
+                      </Box>
+                      <Input
+                        type="text"
+                        {...inputStyle}
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        placeholder="Nome da sua empresa"
+                        required
+                      />
+                    </Box>
+                  </Box>
+
+                  {/* CNPJ */}
+                  <Box>
+                    <Text {...fieldLabelStyle}>CNPJ</Text>
+                    <Box position="relative">
+                      <Box
+                        position="absolute"
+                        insetY={0}
+                        left={0}
+                        pl={4}
+                        display="flex"
+                        alignItems="center"
+                        pointerEvents="none"
+                        zIndex={1}
+                      >
+                        <Hash size={20} color="#9CA3AF" />
+                      </Box>
+                      <Input
+                        type="text"
+                        {...inputStyle}
+                        value={cnpj}
+                        onChange={(e) => setCnpj(e.target.value)}
+                        placeholder="00.000.000/0000-00"
+                        required
+                      />
+                    </Box>
+                  </Box>
+
+                  {/* Email */}
+                  <Box>
+                    <Text {...fieldLabelStyle}>E-mail</Text>
+                    <Box position="relative">
+                      <Box
+                        position="absolute"
+                        insetY={0}
+                        left={0}
+                        pl={4}
+                        display="flex"
+                        alignItems="center"
+                        pointerEvents="none"
+                        zIndex={1}
+                      >
+                        <Mail size={20} color="#9CA3AF" />
+                      </Box>
+                      <Input
+                        type="email"
+                        {...inputStyle}
+                        value={registerEmail}
+                        color="white"
+                        onChange={(e) => setRegisterEmail(e.target.value)}
+                        placeholder="Insira seu e-mail"
+                        required
+                      />
+                    </Box>
+                  </Box>
+
+                  {/* Nome do usuário */}
+                  <Box>
+                    <Text {...fieldLabelStyle}>Nome do usuário</Text>
+                    <Box position="relative">
+                      <Box
+                        position="absolute"
+                        insetY={0}
+                        left={0}
+                        pl={4}
+                        display="flex"
+                        alignItems="center"
+                        pointerEvents="none"
+                        zIndex={1}
+                      >
+                        <User size={20} color="#9CA3AF" />
+                      </Box>
+                      <Input
+                        type="text"
+                        {...inputStyle}
+                        value={userName}
+                        onChange={(e) => setUserName(e.target.value)}
+                        placeholder="Seu nome completo"
+                        required
+                      />
+                    </Box>
+                  </Box>
+
+                  {/* Senha */}
+                  <Box>
+                    <Text {...fieldLabelStyle}>Senha</Text>
+                    <Box position="relative">
+                      <Box
+                        position="absolute"
+                        insetY={0}
+                        left={0}
+                        pl={4}
+                        display="flex"
+                        alignItems="center"
+                        pointerEvents="none"
+                        zIndex={1}
+                      >
+                        <Lock size={20} color="#9CA3AF" />
+                      </Box>
+                      <Input
+                        type={showRegisterPassword ? "text" : "password"}
+                        border="none"
+                        borderBottom="1px solid white"
+                        value={registerPassword}
+                        onChange={(e) => setRegisterPassword(e.target.value)}
+                        pl="3rem"
+                        pr="3rem"
+                        py={3}
+                        bg="transparent"
+                        placeholder="Crie uma senha"
+                        color="white"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowRegisterPassword((v) => !v)}
+                        color="gray.500"
+                        _hover={{ color: "white", bg: "transparent" }}
+                        position="absolute"
+                        insetY={0}
+                        right={0}
+                        minW="36px"
+                      >
+                        {showRegisterPassword ? (
+                          <EyeOff size={20} />
+                        ) : (
+                          <Eye size={20} />
+                        )}
+                      </Button>
+                    </Box>
+                  </Box>
+
+                  {/* Submit */}
+                  <Button
+                    type="submit"
+                    disabled={registerLoading}
+                    w="full"
+                    py={3}
+                    borderRadius="lg"
+                    fontWeight="semibold"
+                    color="white"
+                    bgGradient={
+                      registerLoading
+                        ? undefined
+                        : "linear(to-r, black, purple.900)"
+                    }
+                    bg={registerLoading ? "purple.900" : undefined}
+                    cursor={registerLoading ? "not-allowed" : "pointer"}
+                    boxShadow={registerLoading ? undefined : "lg"}
+                    _hover={
+                      registerLoading
+                        ? undefined
+                        : {
+                            bgGradient: "linear(to-r, black, purple.900)",
+                            boxShadow: "xl",
+                          }
+                    }
+                  >
+                    <Flex align="center" justify="center" gap={2}>
+                      {registerLoading ? (
+                        <>
+                          <Spinner size="sm" color="white" />
+                          <Text>Cadastrando...</Text>
+                        </>
+                      ) : (
+                        <>
+                          <Text>Criar conta</Text>
+                          <ArrowRight size={20} />
+                        </>
+                      )}
+                    </Flex>
+                  </Button>
+                </Flex>
+              </form>
+            )}
+
+            {/* Footer toggle */}
             <Box
               mt={8}
               pt={6}
@@ -261,13 +581,39 @@ const Login = () => {
               w="full"
               flexDir="column"
             >
-              <Text fontSize="sm" color="white">
-                Não tem uma conta?{" "}
-              </Text>
-              <Text as="span" fontWeight="semibold" color="blue.700">
-                Entre em contato com o administrador
-              </Text>
+              {mode === "login" ? (
+                <>
+                  <Text fontSize="sm" color="white">
+                    Novo por aqui?{" "}
+                  </Text>
+                  <Text
+                    as="button"
+                    onClick={() => setMode("register")}
+                    color="blue.500"
+                    textDecoration="underline"
+                    cursor="pointer"
+                  >
+                    Começar agora
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text fontSize="sm" color="white">
+                    Já tem uma conta?{" "}
+                  </Text>
+                  <Text
+                    as="button"
+                    onClick={() => setMode("login")}
+                    color="blue.500"
+                    textDecoration="underline"
+                    cursor="pointer"
+                  >
+                    Fazer login
+                  </Text>
+                </>
+              )}
             </Box>
+
             <Text mt={4} textAlign="center" color="white" fontSize="xs">
               v1.0.0
             </Text>

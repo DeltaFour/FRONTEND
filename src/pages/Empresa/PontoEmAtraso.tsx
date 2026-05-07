@@ -31,6 +31,8 @@ const PontoEmAtraso = () => {
   const [shiftType, setShiftType] = useState<string | undefined>(
     user?.shiftType as string | undefined,
   );
+  const [email, setEmail] = useState(user?.email ?? "");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [lateDate, setLateDate] = useState("");
@@ -39,7 +41,6 @@ const PontoEmAtraso = () => {
   const [lateNote, setLateNote] = useState("");
   const [lateAttachmentBase64, setLateAttachmentBase64] = useState("");
   const [lateAttachmentName, setLateAttachmentName] = useState("");
-  const [lateAttachmentType, setLateAttachmentType] = useState("");
 
   const maxNoteLength = 200;
   const remainingChars = maxNoteLength - lateNote.length;
@@ -117,7 +118,6 @@ const PontoEmAtraso = () => {
       const base64 = dataUrl.split(",")[1] ?? "";
       setLateAttachmentBase64(base64);
       setLateAttachmentName(file.name);
-      setLateAttachmentType(file.type);
     };
     reader.onerror = () => {
       toaster.error({
@@ -132,6 +132,14 @@ const PontoEmAtraso = () => {
 
   const handlePunch = async (shouldExit: boolean) => {
     if (!punchType || submitting) return;
+    if (!email.trim() || !password) {
+      const description = "Informe email e senha para registrar o ponto.";
+      toaster.error({
+        title: "Credenciais obrigatórias",
+        description,
+      });
+      return;
+    }
 
     if (!lateReason) {
       const description = "Selecione um motivo para o ponto em atraso.";
@@ -170,15 +178,15 @@ const PontoEmAtraso = () => {
       type: punchType,
       timePunched: resolvedTime,
       shiftType: shiftType ?? "Matutino",
-      lateReason,
-      lateNote: lateNote.trim() || undefined,
-      lateAttachmentBase64: lateAttachmentBase64 || undefined,
-      lateAttachmentName: lateAttachmentName || undefined,
-      lateAttachmentType: lateAttachmentType || undefined,
+      email: email.trim(),
+      password,
+      justification: lateReason,
+      observation: lateNote.trim() || undefined,
+      fileBase64: lateAttachmentBase64 || undefined,
     };
 
     try {
-      await api.post("/user/register-point", payload);
+      await api.post("/user/punch-by-email", payload);
       toaster.success({
         title: "Ponto registrado",
         description: "Ponto em atraso registrado com sucesso!",
@@ -187,7 +195,6 @@ const PontoEmAtraso = () => {
       setLateNote("");
       setLateAttachmentBase64("");
       setLateAttachmentName("");
-      setLateAttachmentType("");
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -256,6 +263,32 @@ const PontoEmAtraso = () => {
           >
             <option value={user?.name ?? ""}>{user?.name ?? ""}</option>
           </select>
+        </GridItem>
+
+        <GridItem>
+          <Text mb={1} fontWeight="medium" color="gray.700">
+            Email
+          </Text>
+          <Input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="seu@email.com"
+            autoComplete="email"
+          />
+        </GridItem>
+
+        <GridItem>
+          <Text mb={1} fontWeight="medium" color="gray.700">
+            Senha
+          </Text>
+          <Input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="Digite sua senha"
+            autoComplete="current-password"
+          />
         </GridItem>
 
         <GridItem>

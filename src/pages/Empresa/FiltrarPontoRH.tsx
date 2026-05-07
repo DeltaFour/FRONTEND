@@ -1,4 +1,6 @@
 import {
+  useCallback,
+  useEffect,
   useMemo,
   useState,
   type ChangeEvent,
@@ -11,7 +13,6 @@ import {
   DialogBackdrop,
   DialogBody,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogPositioner,
   DialogRoot,
@@ -22,31 +23,30 @@ import {
   Heading,
   IconButton,
   Portal,
+  Spinner,
   Text,
   VStack,
 } from "@chakra-ui/react";
-import { FaFilter, FaInfoCircle, FaTimes } from "react-icons/fa";
+import { FaInfoCircle, FaTimes } from "react-icons/fa";
+import api from "../../services/api";
 import { Input } from "../../components/ui/Input";
+import { toaster } from "../../components/ui/toaster";
 
 type PunchType = "IN" | "OUT";
 
 interface PunchRecord {
   id: string;
-  employeeId: string;
+  employeeKey: string;
   employeeName: string;
   timePunched: string;
   punchType: PunchType;
-  shiftType: string;
+  shiftType?: string;
   isLate: boolean;
+  status?: string | null;
   lateReason?: string;
   lateNote?: string;
   lateAttachmentName?: string;
   lateAttachmentUrl?: string;
-  device?: string;
-  location?: string;
-  ipAddress?: string;
-  source?: string;
-  createdBy?: string;
 }
 
 interface EnrichedPunchRecord extends PunchRecord {
@@ -64,129 +64,6 @@ interface FilterState {
   lateStatus: "all" | "late" | "on-time";
   sort: "recent" | "oldest";
 }
-
-const mockPunches: PunchRecord[] = [
-  {
-    id: "p-001",
-    employeeId: "emp-001",
-    employeeName: "Ana Souza",
-    timePunched: "2026-05-06T08:07:00-03:00",
-    punchType: "IN",
-    shiftType: "Matutino",
-    isLate: true,
-    lateReason: "TRÂNSITO",
-    lateNote: "Acidente leve na via principal atrasou o deslocamento.",
-    lateAttachmentName: "justificativa-ana.pdf",
-    lateAttachmentUrl: "https://files.deltafour.local/justificativa-ana.pdf",
-    device: "Totem 01",
-    location: "Portaria principal",
-    ipAddress: "10.0.0.12",
-    source: "Totem",
-    createdBy: "Auto",
-  },
-  {
-    id: "p-002",
-    employeeId: "emp-001",
-    employeeName: "Ana Souza",
-    timePunched: "2026-05-06T17:01:00-03:00",
-    punchType: "OUT",
-    shiftType: "Matutino",
-    isLate: false,
-    device: "Totem 01",
-    location: "Portaria principal",
-    ipAddress: "10.0.0.12",
-    source: "Totem",
-    createdBy: "Auto",
-  },
-  {
-    id: "p-003",
-    employeeId: "emp-002",
-    employeeName: "Bruno Lima",
-    timePunched: "2026-05-06T07:58:00-03:00",
-    punchType: "IN",
-    shiftType: "Matutino",
-    isLate: false,
-    device: "App iOS",
-    location: "Entrada lateral",
-    ipAddress: "10.0.0.28",
-    source: "Mobile",
-    createdBy: "Auto",
-  },
-  {
-    id: "p-004",
-    employeeId: "emp-002",
-    employeeName: "Bruno Lima",
-    timePunched: "2026-05-06T12:04:00-03:00",
-    punchType: "OUT",
-    shiftType: "Matutino",
-    isLate: false,
-    device: "App iOS",
-    location: "Entrada lateral",
-    ipAddress: "10.0.0.28",
-    source: "Mobile",
-    createdBy: "Auto",
-  },
-  {
-    id: "p-005",
-    employeeId: "emp-003",
-    employeeName: "Carla Mendes",
-    timePunched: "2026-05-05T09:14:00-03:00",
-    punchType: "IN",
-    shiftType: "Vespertino",
-    isLate: true,
-    lateReason: "SAÚDE",
-    lateNote: "Consulta médica confirmada.",
-    lateAttachmentName: "atestado-carla.jpg",
-    lateAttachmentUrl: "https://files.deltafour.local/atestado-carla.jpg",
-    device: "Painel RH",
-    location: "Recepção",
-    ipAddress: "10.0.1.15",
-    source: "RH",
-    createdBy: "RH",
-  },
-  {
-    id: "p-006",
-    employeeId: "emp-003",
-    employeeName: "Carla Mendes",
-    timePunched: "2026-05-05T18:03:00-03:00",
-    punchType: "OUT",
-    shiftType: "Vespertino",
-    isLate: false,
-    device: "Painel RH",
-    location: "Recepção",
-    ipAddress: "10.0.1.15",
-    source: "RH",
-    createdBy: "RH",
-  },
-  {
-    id: "p-007",
-    employeeId: "emp-004",
-    employeeName: "Diego Alves",
-    timePunched: "2026-05-04T06:55:00-03:00",
-    punchType: "IN",
-    shiftType: "Noturno",
-    isLate: false,
-    device: "Totem 02",
-    location: "Docas",
-    ipAddress: "10.0.2.19",
-    source: "Totem",
-    createdBy: "Auto",
-  },
-  {
-    id: "p-008",
-    employeeId: "emp-004",
-    employeeName: "Diego Alves",
-    timePunched: "2026-05-04T15:02:00-03:00",
-    punchType: "OUT",
-    shiftType: "Noturno",
-    isLate: false,
-    device: "Totem 02",
-    location: "Docas",
-    ipAddress: "10.0.2.19",
-    source: "Totem",
-    createdBy: "Auto",
-  },
-];
 
 const initialFilters: FilterState = {
   search: "",
@@ -242,20 +119,82 @@ const getLocalDateKey = (value: string) => {
 const resolvePunchTypeLabel = (type: PunchType) =>
   type === "IN" ? "Entrada" : "Saída";
 
-const resolvePunchPositionLabel = (punch: EnrichedPunchRecord) => {
-  if (punch.isFirstOfDay && punch.isLastOfDay) {
-    return "Única batida do dia";
+const resolveAttachmentName = (filePath?: string) => {
+  if (!filePath) {
+    return undefined;
   }
 
-  if (punch.isFirstOfDay) {
-    return "Primeiro batido";
+  const sanitized = filePath.split("?")[0];
+  const parts = sanitized.split("/");
+  return parts[parts.length - 1] || undefined;
+};
+
+const normalizeAttendances = (rawData: unknown): PunchRecord[] => {
+  const list = Array.isArray(rawData)
+    ? rawData
+    : (rawData as { data?: unknown })?.data;
+
+  if (!Array.isArray(list)) {
+    return [];
   }
 
-  if (punch.isLastOfDay) {
-    return "Último batido";
+  return list.map((item, index) => {
+    const raw = (item || {}) as Record<string, unknown>;
+    const id = String(raw.attendanceId ?? index);
+    const employeeName = String(raw.name ?? "").trim();
+    const employeeKey = String(raw.attendanceId ?? (employeeName || id));
+    const timePunched = String(raw.timePunched ?? "");
+    const punchTypeRaw = String(raw.type ?? "IN").toUpperCase();
+    const punchType: PunchType = punchTypeRaw === "OUT" ? "OUT" : "IN";
+    const isLate =
+      raw.isLate === true ||
+      raw.isLate === "true" ||
+      raw.isLate === 1 ||
+      raw.isLate === "1";
+    const statusRaw = raw.status ?? null;
+    const status =
+      statusRaw === null || statusRaw === undefined ? null : String(statusRaw);
+    const filePath = raw.filePath ?? null;
+    const lateAttachmentUrl = filePath ? String(filePath) : undefined;
+    const lateAttachmentName = resolveAttachmentName(lateAttachmentUrl);
+
+    return {
+      id,
+      employeeKey,
+      employeeName,
+      timePunched,
+      punchType,
+      shiftType: raw.shiftType ? String(raw.shiftType) : undefined,
+      isLate,
+      status,
+      lateReason: raw.justification ? String(raw.justification) : undefined,
+      lateNote: raw.observation ? String(raw.observation) : undefined,
+      lateAttachmentName,
+      lateAttachmentUrl,
+    };
+  });
+};
+
+const isAttendanceApproved = (attendance: PunchRecord) => {
+  if (!attendance.isLate) {
+    return true;
   }
 
-  return "Intermediário";
+  const normalized = String(attendance.status ?? "")
+    .trim()
+    .toLowerCase();
+
+  return [
+    "valid",
+    "valido",
+    "validado",
+    "approved",
+    "aprovado",
+    "authorized",
+    "autorizado",
+    "true",
+    "1",
+  ].includes(normalized);
 };
 
 const selectBaseStyle: CSSProperties = {
@@ -294,13 +233,91 @@ const StatusPill = ({ isLate }: { isLate: boolean }) => (
   </Box>
 );
 
+const ApprovalPill = ({ isApproved }: { isApproved: boolean }) => (
+  <Box
+    px={3}
+    py={1}
+    borderRadius="full"
+    fontSize="xs"
+    fontWeight="semibold"
+    bg={isApproved ? "blue.100" : "orange.100"}
+    color={isApproved ? "blue.700" : "orange.700"}
+    display="inline-flex"
+    alignItems="center"
+  >
+    {isApproved ? "Válido" : "Pendente"}
+  </Box>
+);
+
 const FiltrarPontoRH = () => {
   const [filters, setFilters] = useState<FilterState>(initialFilters);
+  const [punches, setPunches] = useState<PunchRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [validatingIds, setValidatingIds] = useState<string[]>([]);
   const [selectedPunch, setSelectedPunch] =
     useState<EnrichedPunchRecord | null>(null);
 
+  const fetchAttendances = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await api.get("/user/get-all-attendances");
+      setPunches(normalizeAttendances(response.data));
+    } catch (err) {
+      toaster.error({
+        title: "Erro ao carregar pontos",
+        description: "Não foi possível carregar os pontos registrados.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchAttendances();
+  }, [fetchAttendances]);
+
+  const handleValidateAttendance = useCallback(
+    async (attendanceId: string) => {
+      if (!attendanceId || validatingIds.includes(attendanceId)) {
+        return;
+      }
+
+      setValidatingIds((prev) => [...prev, attendanceId]);
+
+      try {
+        await api.patch(`/user/update-status-attendance/${attendanceId}`);
+        setPunches((prev) =>
+          prev.map((punch) =>
+            punch.id === attendanceId
+              ? { ...punch, status: "VALIDADO" }
+              : punch,
+          ),
+        );
+        setSelectedPunch((prev) =>
+          prev?.id === attendanceId ? { ...prev, status: "VALIDADO" } : prev,
+        );
+        toaster.success({
+          title: "Ponto validado",
+          description: "O ponto em atraso foi validado com sucesso.",
+        });
+      } catch (err: unknown) {
+        const description =
+          (err as { response?: { data?: { message?: string } } })?.response
+            ?.data?.message || "Não foi possível validar o ponto em atraso.";
+
+        toaster.error({
+          title: "Erro ao validar ponto",
+          description,
+        });
+      } finally {
+        setValidatingIds((prev) => prev.filter((id) => id !== attendanceId));
+      }
+    },
+    [validatingIds],
+  );
+
   const enrichedPunches = useMemo<EnrichedPunchRecord[]>(() => {
-    const withMeta = mockPunches.map((punch) => {
+    const withMeta = punches.map((punch) => {
       const timeMs = new Date(punch.timePunched).getTime();
       const dateKey = getLocalDateKey(punch.timePunched);
 
@@ -316,7 +333,7 @@ const FiltrarPontoRH = () => {
     const grouped = new Map<string, EnrichedPunchRecord[]>();
 
     withMeta.forEach((punch) => {
-      const key = `${punch.employeeId}-${punch.dateKey}`;
+      const key = `${punch.employeeKey}-${punch.dateKey}`;
       if (!grouped.has(key)) {
         grouped.set(key, []);
       }
@@ -332,11 +349,10 @@ const FiltrarPontoRH = () => {
     });
 
     return withMeta;
-  }, []);
+  }, [punches]);
 
   const filteredPunches = useMemo(() => {
     const normalizedSearch = filters.search.trim().toLowerCase();
-    e;
 
     const filtered = enrichedPunches.filter((punch) => {
       if (
@@ -406,6 +422,15 @@ const FiltrarPontoRH = () => {
   const clearFilters = () => setFilters(initialFilters);
 
   const activePunch = selectedPunch;
+
+  if (loading) {
+    return (
+      <Flex align="center" justify="center" py={10} gap={3}>
+        <Spinner />
+        <Text>Carregando pontos...</Text>
+      </Flex>
+    );
+  }
 
   return (
     <Box
@@ -601,6 +626,28 @@ const FiltrarPontoRH = () => {
               >
                 Ponto em atraso
               </Box>
+              <Box
+                as="th"
+                px={6}
+                py={3}
+                textAlign="left"
+                fontSize="xs"
+                color="gray.500"
+                textTransform="uppercase"
+              >
+                Status
+              </Box>
+              <Box
+                as="th"
+                px={6}
+                py={3}
+                textAlign="left"
+                fontSize="xs"
+                color="gray.500"
+                textTransform="uppercase"
+              >
+                Ação
+              </Box>
 
               <Box
                 as="th"
@@ -621,7 +668,7 @@ const FiltrarPontoRH = () => {
               <Box as="tr">
                 <Box
                   as="td"
-                  colSpan={4}
+                  colSpan={6}
                   px={6}
                   py={6}
                   textAlign="center"
@@ -654,6 +701,29 @@ const FiltrarPontoRH = () => {
                   </Box>
                   <Box as="td" px={6} py={4}>
                     <StatusPill isLate={punch.isLate} />
+                  </Box>
+                  <Box as="td" px={6} py={4}>
+                    <ApprovalPill isApproved={isAttendanceApproved(punch)} />
+                  </Box>
+                  <Box as="td" px={6} py={4}>
+                    {punch.isLate && !isAttendanceApproved(punch) ? (
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        borderRadius="full"
+                        borderColor="orange.200"
+                        color="orange.600"
+                        isLoading={validatingIds.includes(punch.id)}
+                        loadingText="Validando"
+                        onClick={() => handleValidateAttendance(punch.id)}
+                      >
+                        Validar
+                      </Button>
+                    ) : (
+                      <Text fontSize="xs" color="gray.400">
+                        --
+                      </Text>
+                    )}
                   </Box>
                   <Box as="td" px={6} py={4} textAlign="right">
                     <IconButton
@@ -727,29 +797,16 @@ const FiltrarPontoRH = () => {
                     />
                     <InfoRow label="Turno" value={activePunch.shiftType} />
                     <InfoRow
-                      label="Batida do dia"
-                      value={resolvePunchPositionLabel(activePunch)}
-                    />
-                    <InfoRow
                       label="Status"
                       value={<StatusPill isLate={activePunch.isLate} />}
                     />
                     <InfoRow
-                      label="Origem"
-                      value={activePunch.source ?? "--"}
-                    />
-                    <InfoRow
-                      label="Dispositivo"
-                      value={activePunch.device ?? "--"}
-                    />
-                    <InfoRow
-                      label="Local"
-                      value={activePunch.location ?? "--"}
-                    />
-                    <InfoRow label="IP" value={activePunch.ipAddress ?? "--"} />
-                    <InfoRow
-                      label="Registrado por"
-                      value={activePunch.createdBy ?? "--"}
+                      label="Validação"
+                      value={
+                        <ApprovalPill
+                          isApproved={isAttendanceApproved(activePunch)}
+                        />
+                      }
                     />
 
                     {activePunch.isLate && (
