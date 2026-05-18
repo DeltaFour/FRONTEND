@@ -9,6 +9,7 @@ import {
   Spinner,
   Text,
 } from "@chakra-ui/react";
+import { useColorModeValue } from "../../theme/colorMode";
 import {
   FaCalendarAlt,
   FaCamera,
@@ -54,6 +55,32 @@ const PontoEletronico = () => {
   const [cameraActive, setCameraActive] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const accentCardBg = useColorModeValue("purple.50", "purple.900");
+  const accentCardBorder = useColorModeValue("purple.100", "purple.700");
+  const accentIcon = useColorModeValue("purple.500", "purple.300");
+  const accentLabel = useColorModeValue("purple.400", "purple.300");
+  const accentText = useColorModeValue("purple.800", "purple.100");
+  const dragBorder = useColorModeValue("purple.400", "purple.300");
+  const dragBg = useColorModeValue("purple.50", "purple.900");
+  const dropHoverBorder = useColorModeValue("purple.300", "purple.400");
+  const dropHoverBg = useColorModeValue("purple.50", "purple.900");
+  const accentAction = useColorModeValue("purple.600", "purple.300");
+  const removeHoverBg = useColorModeValue("red.50", "red.900");
+  const actionInBg = useColorModeValue("green.50", "green.900");
+  const actionInBorder = useColorModeValue("green.100", "green.700");
+  const actionInIcon = useColorModeValue("green.500", "green.300");
+  const actionOutBg = useColorModeValue("orange.50", "orange.900");
+  const actionOutBorder = useColorModeValue("orange.100", "orange.700");
+  const actionOutIcon = useColorModeValue("orange.400", "orange.300");
+  const availableBg = useColorModeValue("green.50", "green.900");
+  const availableBorder = useColorModeValue("green.100", "green.700");
+  const availableDot = useColorModeValue("green.400", "green.300");
+  const availableText = useColorModeValue("green.600", "green.300");
+  const submitEnabledBg = useColorModeValue("purple.600", "purple.500");
+  const submitHoverBg = useColorModeValue("purple.700", "purple.400");
+  const submitActiveBg = useColorModeValue("purple.800", "purple.300");
+  const submitDisabledBg = useColorModeValue("surface.subtle", "surface.muted");
+  const loadingSpinner = useColorModeValue("purple.500", "purple.300");
 
   const horarioAtual = now.toLocaleTimeString("pt-BR", {
     hour: "2-digit",
@@ -299,11 +326,9 @@ const PontoEletronico = () => {
       imageBase64,
       latitude: coords?.latitude ?? 0,
       longitude: coords?.longitude ?? 0,
-      email: email.trim(),
-      password,
     };
     try {
-      await api.post("/user/punch-by-email", payload);
+      await api.post("/user/register-point", payload);
       toaster.success({
         title: "Ponto registrado",
         description: `Ponto de ${NomePonto[punchType]} registrado com sucesso!`,
@@ -324,8 +349,8 @@ const PontoEletronico = () => {
   if (loading) {
     return (
       <Flex justify="center" align="center" py={10} gap={3}>
-        <Spinner color="purple.500" />
-        <Text color="gray.500" fontSize="sm">
+        <Spinner color={loadingSpinner} />
+        <Text color="fg.muted" fontSize="sm">
           Verificando status de ponto...
         </Text>
       </Flex>
@@ -333,14 +358,21 @@ const PontoEletronico = () => {
   }
 
   const isPunchOut = punchType === "OUT";
+  const actionBg = isPunchOut ? actionOutBg : actionInBg;
+  const actionBorder = isPunchOut ? actionOutBorder : actionInBorder;
+  const actionIcon = isPunchOut ? actionOutIcon : actionInIcon;
+  const availabilityBg = canPunch ? availableBg : "surface.subtle";
+  const availabilityBorder = canPunch ? availableBorder : "border";
+  const availabilityDot = canPunch ? availableDot : "fg.muted";
+  const availabilityText = canPunch ? availableText : "fg.muted";
 
   return (
     <Box
-      bg="white"
+      bg="surface"
       borderRadius="xl"
       boxShadow="sm"
-      border="1px solid"
-      borderColor="gray.100"
+      borderWidth="1px"
+      borderColor="border"
       p={6}
       mx="auto"
       w="800px"
@@ -352,21 +384,21 @@ const PontoEletronico = () => {
           flex={1}
           align="center"
           gap={3}
-          bg="purple.50"
+          bg={accentCardBg}
           borderRadius="lg"
           px={4}
           py={3}
           border="1px solid"
-          borderColor="purple.100"
+          borderColor={accentCardBorder}
         >
-          <Box color="purple.500" lineHeight={1}>
+          <Box color={accentIcon} lineHeight={1}>
             <Icon as={FaClock} boxSize={6} />
           </Box>
           <Box>
             <Text
               fontSize="11px"
               fontWeight="600"
-              color="purple.400"
+              color={accentLabel}
               textTransform="uppercase"
               letterSpacing="0.6px"
               mb="1px"
@@ -376,7 +408,7 @@ const PontoEletronico = () => {
             <Text
               fontSize="22px"
               fontWeight="700"
-              color="purple.800"
+              color={accentText}
               letterSpacing="1px"
               fontFamily="mono"
             >
@@ -388,21 +420,21 @@ const PontoEletronico = () => {
           flex={1}
           align="center"
           gap={3}
-          bg="gray.50"
+          bg="surface.subtle"
           borderRadius="lg"
           px={4}
           py={3}
           border="1px solid"
-          borderColor="gray.200"
+          borderColor="border"
         >
-          <Box color="gray.400" lineHeight={1}>
+          <Box color="fg.muted" lineHeight={1}>
             <Icon as={FaCalendarAlt} boxSize={6} />
           </Box>
           <Box>
             <Text
               fontSize="11px"
               fontWeight="600"
-              color="gray.400"
+              color="fg.muted"
               textTransform="uppercase"
               letterSpacing="0.6px"
               mb="1px"
@@ -412,7 +444,7 @@ const PontoEletronico = () => {
             <Text
               fontSize="22px"
               fontWeight="700"
-              color="gray.700"
+              color="fg"
               letterSpacing="0.5px"
             >
               {dataAtual}
@@ -428,7 +460,7 @@ const PontoEletronico = () => {
           <Text
             fontSize="11px"
             fontWeight="600"
-            color="gray.400"
+            color="fg.muted"
             textTransform="uppercase"
             letterSpacing="0.6px"
             mb={3}
@@ -443,21 +475,21 @@ const PontoEletronico = () => {
               justify="center"
               gap={2}
               border="1.5px dashed"
-              borderColor={isDragging ? "purple.400" : "gray.200"}
+              borderColor={isDragging ? dragBorder : "border"}
               borderRadius="lg"
               p={5}
               minH="300px"
-              bg={isDragging ? "purple.50" : "gray.50"}
+              bg={isDragging ? dragBg : "surface.subtle"}
               cursor="pointer"
               transition="all 0.15s"
-              _hover={{ borderColor: "purple.300", bg: "purple.50" }}
+              _hover={{ borderColor: dropHoverBorder, bg: dropHoverBg }}
               onClick={() => fileInputRef.current?.click()}
               onDragOver={handleDropAreaDragOver}
               onDragLeave={handleDropAreaDragLeave}
               onDrop={handleDropAreaDrop}
             >
-              <Icon as={FaImage} boxSize={7} color="gray.400" opacity={0.6} />
-              <Text fontSize="13px" color="gray.400" textAlign="center">
+              <Icon as={FaImage} boxSize={7} color="fg.muted" opacity={0.6} />
+              <Text fontSize="13px" color="fg.muted" textAlign="center">
                 {isDragging
                   ? "Solte para enviar a foto"
                   : "Clique para enviar ou use a câmera"}
@@ -468,7 +500,7 @@ const PontoEletronico = () => {
           {cameraActive && (
             <Box
               border="1px solid"
-              borderColor="gray.200"
+              borderColor="border"
               borderRadius="lg"
               overflow="hidden"
               bg="black"
@@ -485,7 +517,7 @@ const PontoEletronico = () => {
                   objectFit: "cover",
                 }}
               />
-              <Flex gap={2} p={2} bg="gray.900">
+              <Flex gap={2} p={2} bg="surface.muted">
                 <Button
                   size="sm"
                   colorPalette="green"
@@ -498,9 +530,10 @@ const PontoEletronico = () => {
                 <Button
                   size="sm"
                   variant="ghost"
-                  color="gray.300"
+                  color="fg.muted"
                   onClick={stopCamera}
                   fontSize="13px"
+                  _hover={{ bg: "surface.subtle", color: "fg" }}
                 >
                   Cancelar
                 </Button>
@@ -514,7 +547,7 @@ const PontoEletronico = () => {
               borderRadius="lg"
               overflow="hidden"
               border="1px solid"
-              borderColor="gray.200"
+              borderColor="border"
             >
               <img
                 src={photoPreview}
@@ -560,10 +593,10 @@ const PontoEletronico = () => {
               variant="outline"
               onClick={startCamera}
               fontSize="13px"
-              borderColor="gray.200"
-              color="gray.600"
+              borderColor="border"
+              color="fg.muted"
               p="10px"
-              _hover={{ borderColor: "purple.400", color: "purple.600" }}
+              _hover={{ borderColor: dropHoverBorder, color: accentAction }}
             >
               <Icon as={FaCamera} boxSize={4} mr={2} />
               Câmera
@@ -573,10 +606,10 @@ const PontoEletronico = () => {
               variant="outline"
               onClick={() => fileInputRef.current?.click()}
               fontSize="13px"
-              borderColor="gray.200"
-              color="gray.600"
+              borderColor="border"
+              color="fg.muted"
               p="10px"
-              _hover={{ borderColor: "purple.400", color: "purple.600" }}
+              _hover={{ borderColor: dropHoverBorder, color: accentAction }}
             >
               <Icon as={FaFolderOpen} boxSize={4} mr={2} />
               Arquivo
@@ -589,7 +622,7 @@ const PontoEletronico = () => {
                 fontSize="13px"
                 color="red.400"
                 p="10px"
-                _hover={{ bg: "red.50" }}
+                _hover={{ bg: removeHoverBg }}
               >
                 Remover
               </Button>
@@ -602,7 +635,7 @@ const PontoEletronico = () => {
           <Text
             fontSize="11px"
             fontWeight="600"
-            color="gray.400"
+            color="fg.muted"
             textTransform="uppercase"
             letterSpacing="0.6px"
             mb={3}
@@ -612,10 +645,10 @@ const PontoEletronico = () => {
 
           <Box
             border="1px solid"
-            borderColor="gray.100"
+            borderColor="border"
             borderRadius="lg"
             p={4}
-            bg="white"
+            bg="surface"
             h="200px"
             display="flex"
             flexDirection="column"
@@ -626,16 +659,16 @@ const PontoEletronico = () => {
               <Flex
                 align="center"
                 gap={2}
-                bg="gray.50"
+                bg="surface.subtle"
                 px={3}
                 py={2}
                 borderRadius="md"
                 border="1px solid"
-                borderColor="gray.100"
+                borderColor="border"
                 w="fit-content"
               >
-                <Box w="6px" h="6px" borderRadius="full" bg="gray.400" />
-                <Text fontSize="12px" color="gray.500" fontWeight="500">
+                <Box w="6px" h="6px" borderRadius="full" bg="fg.muted" />
+                <Text fontSize="12px" color="fg.muted" fontWeight="500">
                   {shiftType}
                 </Text>
               </Flex>
@@ -647,24 +680,24 @@ const PontoEletronico = () => {
                 w="40px"
                 h="40px"
                 borderRadius="full"
-                bg={isPunchOut ? "orange.50" : "green.50"}
+                bg={actionBg}
                 align="center"
                 justify="center"
                 flexShrink={0}
                 border="1px solid"
-                borderColor={isPunchOut ? "orange.100" : "green.100"}
+                borderColor={actionBorder}
               >
                 <Icon
                   as={isPunchOut ? FaDoorOpen : FaCheckCircle}
                   boxSize={5}
-                  color={isPunchOut ? "orange.400" : "green.500"}
+                  color={actionIcon}
                 />
               </Flex>
               <Box>
-                <Text fontSize="11px" color="gray.400" mb="1px">
+                <Text fontSize="11px" color="fg.muted" mb="1px">
                   Próxima ação
                 </Text>
-                <Text fontSize="15px" fontWeight="600" color="gray.700">
+                <Text fontSize="15px" fontWeight="600" color="fg">
                   {punchType ? NomePonto[punchType] : "—"}
                 </Text>
               </Box>
@@ -678,22 +711,18 @@ const PontoEletronico = () => {
               px={3}
               py={2}
               borderRadius="md"
-              bg={canPunch ? "green.50" : "gray.50"}
+              bg={availabilityBg}
               border="1px solid"
-              borderColor={canPunch ? "green.100" : "gray.100"}
+              borderColor={availabilityBorder}
             >
               <Box
                 w="7px"
                 h="7px"
                 borderRadius="full"
-                bg={canPunch ? "green.400" : "gray.300"}
+                bg={availabilityDot}
                 flexShrink={0}
               />
-              <Text
-                fontSize="12px"
-                color={canPunch ? "green.600" : "gray.400"}
-                fontWeight="500"
-              >
+              <Text fontSize="12px" color={availabilityText} fontWeight="500">
                 {canPunch
                   ? "Disponível para registro"
                   : "Indisponível no momento"}
@@ -703,52 +732,6 @@ const PontoEletronico = () => {
         </Box>
       </Flex>
 
-      {/* Credentials */}
-      <Box mb={6}>
-        <Text
-          fontSize="11px"
-          fontWeight="600"
-          color="gray.400"
-          textTransform="uppercase"
-          letterSpacing="0.6px"
-          mb={3}
-        >
-          Credenciais
-        </Text>
-        <Flex gap={4} direction={{ base: "column", md: "row" }}>
-          <Box flex={1}>
-            <Text fontSize="12px" color="gray.600" mb={1}>
-              Email
-            </Text>
-            <Input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="seu@email.com"
-              autoComplete="email"
-              bg="white"
-              borderColor="gray.200"
-              size="sm"
-            />
-          </Box>
-          <Box flex={1}>
-            <Text fontSize="12px" color="gray.600" mb={1}>
-              Senha
-            </Text>
-            <Input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Digite sua senha"
-              autoComplete="current-password"
-              bg="white"
-              borderColor="gray.200"
-              size="sm"
-            />
-          </Box>
-        </Flex>
-      </Box>
-
       <canvas ref={canvasRef} style={{ display: "none" }} />
 
       {/* Submit Button */}
@@ -757,16 +740,16 @@ const PontoEletronico = () => {
         h="52px"
         fontSize="15px"
         fontWeight="600"
-        bg={canPunch && !submitting ? "purple.600" : "gray.200"}
-        color={canPunch && !submitting ? "white" : "gray.400"}
+        bg={canPunch && !submitting ? submitEnabledBg : submitDisabledBg}
+        color={canPunch && !submitting ? "white" : "fg.muted"}
         borderRadius="lg"
         cursor={canPunch && !submitting ? "pointer" : "not-allowed"}
         onClick={handlePunch}
         disabled={!canPunch || submitting}
-        _hover={canPunch && !submitting ? { bg: "purple.700" } : {}}
+        _hover={canPunch && !submitting ? { bg: submitHoverBg } : {}}
         _active={
           canPunch && !submitting
-            ? { bg: "purple.800", transform: "scale(0.99)" }
+            ? { bg: submitActiveBg, transform: "scale(0.99)" }
             : {}
         }
         transition="all 0.15s"

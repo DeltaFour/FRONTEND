@@ -31,6 +31,7 @@ import { FaInfoCircle, FaTimes } from "react-icons/fa";
 import api from "../../services/api";
 import { Input } from "../../components/ui/Input";
 import { toaster } from "../../components/ui/toaster";
+import { useColorModeValue } from "../../theme/colorMode";
 
 type PunchType = "IN" | "OUT";
 
@@ -197,65 +198,106 @@ const isAttendanceApproved = (attendance: PunchRecord) => {
   ].includes(normalized);
 };
 
-const selectBaseStyle: CSSProperties = {
-  width: "100%",
-  padding: "8px 12px",
-  borderRadius: "0.375rem",
-  border: "1px solid #E2E8F0",
-  backgroundColor: "#FFFFFF",
-  color: "#1A202C",
-};
+
 
 const InfoRow = ({ label, value }: { label: string; value: ReactNode }) => (
   <Flex justify="space-between" align="center" gap={4} flexWrap="wrap">
-    <Text fontSize="sm" color="gray.500">
+    <Text fontSize="sm" color="fg.muted">
       {label}
     </Text>
-    <Box fontSize="sm" fontWeight="medium" color="gray.700" textAlign="right">
+    <Box fontSize="sm" fontWeight="medium" color="fg" textAlign="right">
       {value}
     </Box>
   </Flex>
 );
 
-const StatusPill = ({ isLate }: { isLate: boolean }) => (
-  <Box
-    px={3}
-    py={1}
-    borderRadius="full"
-    fontSize="xs"
-    fontWeight="semibold"
-    bg={isLate ? "red.100" : "green.100"}
-    color={isLate ? "red.700" : "green.700"}
-    display="inline-flex"
-    alignItems="center"
-  >
-    {isLate ? "Em atraso" : "No horário"}
-  </Box>
-);
+const StatusPill = ({ isLate }: { isLate: boolean }) => {
+  const bg = useColorModeValue(
+    isLate ? "red.100" : "green.100",
+    isLate ? "red.900" : "green.900",
+  );
+  const color = useColorModeValue(
+    isLate ? "red.700" : "green.700",
+    isLate ? "red.200" : "green.200",
+  );
 
-const ApprovalPill = ({ isApproved }: { isApproved: boolean }) => (
-  <Box
-    px={3}
-    py={1}
-    borderRadius="full"
-    fontSize="xs"
-    fontWeight="semibold"
-    bg={isApproved ? "blue.100" : "orange.100"}
-    color={isApproved ? "blue.700" : "orange.700"}
-    display="inline-flex"
-    alignItems="center"
-  >
-    {isApproved ? "Válido" : "Pendente"}
-  </Box>
-);
+  return (
+    <Box
+      px={3}
+      py={1}
+      borderRadius="full"
+      fontSize="xs"
+      fontWeight="semibold"
+      bg={bg}
+      color={color}
+      display="inline-flex"
+      alignItems="center"
+    >
+      {isLate ? "Em atraso" : "No horário"}
+    </Box>
+  );
+};
+
+const ApprovalPill = ({ isApproved }: { isApproved: boolean }) => {
+  const bg = useColorModeValue(
+    isApproved ? "blue.100" : "orange.100",
+    isApproved ? "blue.900" : "orange.900",
+  );
+  const color = useColorModeValue(
+    isApproved ? "blue.700" : "orange.700",
+    isApproved ? "blue.200" : "orange.200",
+  );
+
+  return (
+    <Box
+      px={3}
+      py={1}
+      borderRadius="full"
+      fontSize="xs"
+      fontWeight="semibold"
+      bg={bg}
+      color={color}
+      display="inline-flex"
+      alignItems="center"
+    >
+      {isApproved ? "Válido" : "Pendente"}
+    </Box>
+  );
+};
 
 const FiltrarPontoRH = () => {
+  const selectBg = useColorModeValue("#FFFFFF", "#1A1A1F");
+  const selectColor = useColorModeValue("#1A202C", "#E2E8F0");
+  const selectBorder = useColorModeValue("1px solid #E2E8F0", "1px solid rgba(255, 255, 255, 0.1)");
+  const selectColorScheme = useColorModeValue("light", "dark");
+  
+  const selectBaseStyle: CSSProperties = {
+    width: "100%",
+    padding: "8px 12px",
+    borderRadius: "0.375rem",
+    border: selectBorder,
+    backgroundColor: selectBg,
+    color: selectColor,
+    colorScheme: selectColorScheme as any,
+  };
+
   const [filters, setFilters] = useState<FilterState>(initialFilters);
   const [punches, setPunches] = useState<PunchRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [validatingIds, setValidatingIds] = useState<string[]>([]);
   const [selectedPunch, setSelectedPunch] =
     useState<EnrichedPunchRecord | null>(null);
+  const filterGradient = useColorModeValue(
+    "linear(to-r, #F8FAFC, #EFF6FF)",
+    "linear(to-r, #1F2937, #111827)",
+  );
+  const validateBorder = useColorModeValue("orange.200", "orange.400");
+  const validateColor = useColorModeValue("orange.600", "orange.300");
+  const dialogBg = "surface";
+  const dialogBorder = "border";
+  const lateCardBg = useColorModeValue("red.50", "red.900");
+  const lateCardBorder = useColorModeValue("red.100", "red.700");
+  const lateTitleColor = useColorModeValue("red.700", "red.200");
 
   const fetchAttendances = useCallback(async () => {
     try {
@@ -434,7 +476,7 @@ const FiltrarPontoRH = () => {
 
   return (
     <Box
-      bg="white"
+      bg="surface"
       p={6}
       borderRadius="lg"
       boxShadow="xl"
@@ -444,14 +486,14 @@ const FiltrarPontoRH = () => {
         <Box>
           <Heading
             size="lg"
-            color="gray.800"
+            color="fg"
             display="flex"
             alignItems="center"
             gap={3}
           >
             Pontos por colaborador
           </Heading>
-          <Text mt={2} fontSize="sm" color="gray.500">
+          <Text mt={2} fontSize="sm" color="fg.muted">
             Filtre pontos individuais por colaborador, data e status de atraso.
           </Text>
         </Box>
@@ -474,7 +516,8 @@ const FiltrarPontoRH = () => {
         p={4}
         borderWidth="1px"
         borderRadius="lg"
-        bgGradient="linear(to-r, #F8FAFC, #EFF6FF)"
+        borderColor="border"
+        bgGradient={filterGradient}
       >
         <Grid
           templateColumns={{
@@ -485,7 +528,7 @@ const FiltrarPontoRH = () => {
           gap={4}
         >
           <GridItem colSpan={{ base: 1, xl: 2 }}>
-            <Text mb={1} fontSize="sm" fontWeight="medium" color="gray.700">
+            <Text mb={1} fontSize="sm" fontWeight="medium" color="fg">
               Nome
             </Text>
             <Input
@@ -493,12 +536,11 @@ const FiltrarPontoRH = () => {
               value={filters.search}
               onChange={handleFilterChange}
               placeholder="Buscar colaborador"
-              bg="white"
             />
           </GridItem>
 
           <GridItem>
-            <Text mb={1} fontSize="sm" fontWeight="medium" color="gray.700">
+            <Text mb={1} fontSize="sm" fontWeight="medium" color="fg">
               Data
             </Text>
             <Input
@@ -506,12 +548,11 @@ const FiltrarPontoRH = () => {
               type="date"
               value={filters.date}
               onChange={handleFilterChange}
-              bg="white"
             />
           </GridItem>
 
           <GridItem>
-            <Text mb={1} fontSize="sm" fontWeight="medium" color="gray.700">
+            <Text mb={1} fontSize="sm" fontWeight="medium" color="fg">
               Batida
             </Text>
             <select
@@ -527,7 +568,7 @@ const FiltrarPontoRH = () => {
           </GridItem>
 
           <GridItem>
-            <Text mb={1} fontSize="sm" fontWeight="medium" color="gray.700">
+            <Text mb={1} fontSize="sm" fontWeight="medium" color="fg">
               Tipo
             </Text>
             <select
@@ -543,7 +584,7 @@ const FiltrarPontoRH = () => {
           </GridItem>
 
           <GridItem>
-            <Text mb={1} fontSize="sm" fontWeight="medium" color="gray.700">
+            <Text mb={1} fontSize="sm" fontWeight="medium" color="fg">
               Atraso
             </Text>
             <select
@@ -559,7 +600,7 @@ const FiltrarPontoRH = () => {
           </GridItem>
 
           <GridItem>
-            <Text mb={1} fontSize="sm" fontWeight="medium" color="gray.700">
+            <Text mb={1} fontSize="sm" fontWeight="medium" color="fg">
               Ordenação
             </Text>
             <select
@@ -583,15 +624,20 @@ const FiltrarPontoRH = () => {
         flexWrap="wrap"
         gap={3}
       >
-        <Text fontSize="sm" color="gray.500">
+        <Text fontSize="sm" color="fg.muted">
           Resultados: {summary.total} | Em atraso: {summary.late} | No horário:{" "}
           {summary.onTime}
         </Text>
       </Flex>
 
-      <Box overflowX="auto" borderWidth="1px" borderRadius="md">
+      <Box
+        overflowX="auto"
+        borderWidth="1px"
+        borderRadius="md"
+        borderColor="border"
+      >
         <Box as="table" width="100%" borderCollapse="collapse">
-          <Box as="thead" bg="gray.50">
+          <Box as="thead" bg="surface.subtle">
             <Box as="tr">
               <Box
                 as="th"
@@ -599,7 +645,7 @@ const FiltrarPontoRH = () => {
                 py={3}
                 textAlign="left"
                 fontSize="xs"
-                color="gray.500"
+                color="fg.muted"
                 textTransform="uppercase"
               >
                 Nome
@@ -610,7 +656,7 @@ const FiltrarPontoRH = () => {
                 py={3}
                 textAlign="left"
                 fontSize="xs"
-                color="gray.500"
+                color="fg.muted"
                 textTransform="uppercase"
               >
                 Horário do ponto
@@ -621,7 +667,7 @@ const FiltrarPontoRH = () => {
                 py={3}
                 textAlign="left"
                 fontSize="xs"
-                color="gray.500"
+                color="fg.muted"
                 textTransform="uppercase"
               >
                 Ponto em atraso
@@ -632,7 +678,7 @@ const FiltrarPontoRH = () => {
                 py={3}
                 textAlign="left"
                 fontSize="xs"
-                color="gray.500"
+                color="fg.muted"
                 textTransform="uppercase"
               >
                 Status
@@ -643,7 +689,7 @@ const FiltrarPontoRH = () => {
                 py={3}
                 textAlign="left"
                 fontSize="xs"
-                color="gray.500"
+                color="fg.muted"
                 textTransform="uppercase"
               >
                 Ação
@@ -655,7 +701,7 @@ const FiltrarPontoRH = () => {
                 py={3}
                 textAlign="right"
                 fontSize="xs"
-                color="gray.500"
+                color="fg.muted"
                 textTransform="uppercase"
               >
                 Detalhes
@@ -672,7 +718,7 @@ const FiltrarPontoRH = () => {
                   px={6}
                   py={6}
                   textAlign="center"
-                  color="gray.500"
+                  color="fg.muted"
                 >
                   Nenhum ponto encontrado com os filtros atuais.
                 </Box>
@@ -687,15 +733,15 @@ const FiltrarPontoRH = () => {
                     whiteSpace="nowrap"
                     fontSize="sm"
                     fontWeight="semibold"
-                    color="red.800"
+                    color="fg"
                   >
                     {punch.employeeName}
                   </Box>
-                  <Box as="td" px={6} py={4} color="gray.600">
-                    <Text fontWeight="semibold" color="gray.700">
+                  <Box as="td" px={6} py={4} color="fg.muted">
+                    <Text fontWeight="semibold" color="fg">
                       {formatTimeOnly(punch.timePunched)}
                     </Text>
-                    <Text fontSize="xs" color="gray.500">
+                    <Text fontSize="xs" color="fg.muted">
                       {formatDateOnly(punch.timePunched)}
                     </Text>
                   </Box>
@@ -711,8 +757,8 @@ const FiltrarPontoRH = () => {
                         size="xs"
                         variant="outline"
                         borderRadius="full"
-                        borderColor="orange.200"
-                        color="orange.600"
+                        borderColor={validateBorder}
+                        color={validateColor}
                         isLoading={validatingIds.includes(punch.id)}
                         loadingText="Validando"
                         onClick={() => handleValidateAttendance(punch.id)}
@@ -720,7 +766,7 @@ const FiltrarPontoRH = () => {
                         Validar
                       </Button>
                     ) : (
-                      <Text fontSize="xs" color="gray.400">
+                      <Text fontSize="xs" color="fg.muted">
                         --
                       </Text>
                     )}
@@ -759,13 +805,12 @@ const FiltrarPontoRH = () => {
               maxH={{ base: "85vh", md: "90vh" }}
               borderRadius="16px"
               boxShadow="lg"
+              bg={dialogBg}
+              borderWidth="1px"
+              borderColor={dialogBorder}
             >
               <DialogHeader px={6} pt={5} pb={3}>
-                <DialogTitle
-                  fontSize="lg"
-                  fontWeight="semibold"
-                  color="gray.700"
-                >
+                <DialogTitle fontSize="lg" fontWeight="semibold" color="fg">
                   Detalhes do ponto
                 </DialogTitle>
                 <IconButton
@@ -814,14 +859,14 @@ const FiltrarPontoRH = () => {
                         mt={2}
                         p={4}
                         borderRadius="md"
-                        bg="red.50"
+                        bg={lateCardBg}
                         borderWidth="1px"
-                        borderColor="red.100"
+                        borderColor={lateCardBorder}
                       >
                         <Text
                           fontSize="sm"
                           fontWeight="semibold"
-                          color="red.700"
+                          color={lateTitleColor}
                           mb={3}
                         >
                           Detalhes do atraso
@@ -843,12 +888,12 @@ const FiltrarPontoRH = () => {
                             gap={4}
                             flexWrap="wrap"
                           >
-                            <Text fontSize="sm" color="gray.500">
+                            <Text fontSize="sm" color="fg.muted">
                               Anexo
                             </Text>
                             {activePunch.lateAttachmentUrl ? (
                               <Flex align="center" gap={3}>
-                                <Text fontSize="sm" color="gray.600">
+                                <Text fontSize="sm" color="fg.muted">
                                   {activePunch.lateAttachmentName}
                                 </Text>
                                 <Button
@@ -864,7 +909,7 @@ const FiltrarPontoRH = () => {
                                 </Button>
                               </Flex>
                             ) : (
-                              <Text fontSize="sm" color="gray.600">
+                              <Text fontSize="sm" color="fg.muted">
                                 Sem anexo
                               </Text>
                             )}

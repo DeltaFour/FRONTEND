@@ -1,12 +1,24 @@
 import { Input as ChakraInput, type InputProps } from "@chakra-ui/react";
-
-const defaultInputProps: InputProps = {
-	color: "gray.700",
-	p: "10px",
-};
+import { useColorModeValue } from "../../theme/colorMode";
 
 export const Input = (props: InputProps) => {
-	return <ChakraInput {...defaultInputProps} {...props} />;
+  const bg = "surface";
+  const borderColor = "border";
+  const color = "fg";
+  const placeholderColor = "fg.muted";
+  const focusBorder = useColorModeValue("purple.500", "purple.300");
+
+  return (
+    <ChakraInput
+      p="10px"
+      bg={bg}
+      borderColor={borderColor}
+      color={color}
+      _focusVisible={{ borderColor: focusBorder }}
+      _placeholder={{ color: placeholderColor }}
+      {...props}
+    />
+  );
 };
 
 export type { InputProps };

@@ -222,7 +222,7 @@ const PontoEmAtraso = () => {
     return (
       <Flex justify="center" align="center" py={10}>
         <Spinner mr={3} />
-        <Text>Carregando informações...</Text>
+        <Text color="fg.muted">Carregando informações...</Text>
       </Flex>
     );
   }
@@ -230,14 +230,14 @@ const PontoEmAtraso = () => {
   return (
     <Box
       p={8}
-      bg="white"
+      bg="surface"
       borderRadius="lg"
       boxShadow="2xl"
       mx="auto"
       w="full"
       maxW="1100px"
     >
-      <Heading mb={6} size="lg" color="gray.800">
+      <Heading mb={6} size="lg" color="fg">
         Ponto em atraso
       </Heading>
 
@@ -246,7 +246,7 @@ const PontoEmAtraso = () => {
         gap={6}
       >
         <GridItem>
-          <Text mb={1} fontWeight="medium" color="gray.700">
+          <Text mb={1} fontWeight="medium" color="fg">
             Colaborador
           </Text>
           <select
@@ -259,6 +259,7 @@ const PontoEmAtraso = () => {
               border: "1px solid #E2E8F0",
               backgroundColor: "#F3F4F6",
               color: "#1A202C",
+              colorScheme: "light",
             }}
           >
             <option value={user?.name ?? ""}>{user?.name ?? ""}</option>
@@ -266,7 +267,7 @@ const PontoEmAtraso = () => {
         </GridItem>
 
         <GridItem>
-          <Text mb={1} fontWeight="medium" color="gray.700">
+          <Text mb={1} fontWeight="medium" color="fg">
             Email
           </Text>
           <Input
@@ -279,7 +280,7 @@ const PontoEmAtraso = () => {
         </GridItem>
 
         <GridItem>
-          <Text mb={1} fontWeight="medium" color="gray.700">
+          <Text mb={1} fontWeight="medium" color="fg">
             Senha
           </Text>
           <Input
@@ -292,7 +293,7 @@ const PontoEmAtraso = () => {
         </GridItem>
 
         <GridItem>
-          <Text mb={1} fontWeight="medium" color="gray.700">
+          <Text mb={1} fontWeight="medium" color="fg">
             Justificativa
           </Text>
           <select
@@ -305,6 +306,7 @@ const PontoEmAtraso = () => {
               border: "1px solid #E2E8F0",
               backgroundColor: "#FFFFFF",
               color: "#1A202C",
+              colorScheme: "light",
             }}
           >
             <option value="">Escolha</option>
@@ -316,7 +318,7 @@ const PontoEmAtraso = () => {
         </GridItem>
 
         <GridItem>
-          <Text mb={1} fontWeight="medium" color="gray.700">
+          <Text mb={1} fontWeight="medium" color="fg">
             Data
           </Text>
           <Input
@@ -327,7 +329,7 @@ const PontoEmAtraso = () => {
         </GridItem>
 
         <GridItem>
-          <Text mb={1} fontWeight="medium" color="gray.700">
+          <Text mb={1} fontWeight="medium" color="fg">
             Hora
           </Text>
           <Input
@@ -338,7 +340,7 @@ const PontoEmAtraso = () => {
         </GridItem>
 
         <GridItem colSpan={{ base: 1, md: 2 }}>
-          <Text mb={2} fontWeight="medium" color="gray.700">
+          <Text mb={2} fontWeight="medium" color="fg">
             Anexo (opcional)
           </Text>
           <Flex align="center" gap={3} wrap="wrap">
@@ -360,7 +362,7 @@ const PontoEmAtraso = () => {
             </Button>
 
             {lateAttachmentName && (
-              <Text fontSize="sm" color="gray.600">
+              <Text fontSize="sm" color="fg.muted">
                 {lateAttachmentName}
               </Text>
             )}
@@ -375,16 +377,18 @@ const PontoEmAtraso = () => {
 
         <GridItem colSpan={{ base: 1, md: 2 }}>
           <Flex justify="space-between" align="center" mb={2} wrap="wrap">
-            <Text fontWeight="medium" color="gray.700">
+            <Text fontWeight="medium" color="fg">
               Observação (opcional)
             </Text>
-            <Text fontSize="sm" color="gray.500">
+            <Text fontSize="sm" color="fg.muted">
               Caracteres restantes: {remainingChars}
             </Text>
           </Flex>
           <Textarea
             value={lateNote}
-            color="gray.700"
+            color="fg"
+            bg="surface"
+            borderColor="border"
             onChange={(event) =>
               setLateNote(event.target.value.slice(0, maxNoteLength))
             }
@@ -401,16 +405,16 @@ const PontoEmAtraso = () => {
           type="button"
           onClick={() => handlePunch(true)}
           bg="transparent"
-          color="black"
+          color="fg"
           borderWidth="1px"
-          borderColor="gray.300"
+          borderColor="border"
           borderRadius="full"
           minW="180px"
           h="36px"
           isDisabled={submitting}
           boxShadow="sm"
           transition="all 0.2s"
-          _hover={{ boxShadow: "md" }}
+          _hover={{ boxShadow: "md", bg: "surface.subtle" }}
           _active={{ boxShadow: "sm" }}
         >
           {submitting ? (

@@ -25,6 +25,16 @@ import DarkVeil from "../../components/background/background";
 import { Input } from "../../components/ui/Input";
 import { toaster } from "../../components/ui/toaster";
 
+const maskCnpj = (value: string) => {
+  return value
+    .replace(/\D/g, "")
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\d{4})(\d)/, "$1-$2")
+    .substring(0, 18);
+};
+
 type Mode = "login" | "register";
 
 const Login = () => {
@@ -102,7 +112,7 @@ const Login = () => {
 
     try {
       const response = await fetch(
-        "http://localhost:8080/api/v1/subscription/register",
+        `${import.meta.env.VITE_BASE_URL}/api/v1/subscription/register`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -283,7 +293,7 @@ const Login = () => {
                         variant="ghost"
                         size="sm"
                         onClick={() => setShowPassword((v) => !v)}
-                        color="gray.500"
+                        color="whiteAlpha.600"
                         _hover={{ color: "white", bg: "transparent" }}
                         position="absolute"
                         insetY={0}
@@ -330,10 +340,7 @@ const Login = () => {
                     borderRadius="lg"
                     fontWeight="semibold"
                     color="white"
-                    bgGradient={
-                      loading ? undefined : "linear(to-r, black, purple.900)"
-                    }
-                    bg={loading ? "purple.900" : undefined}
+                    bg="purple.900"
                     cursor={loading ? "not-allowed" : "pointer"}
                     boxShadow={loading ? undefined : "lg"}
                     _hover={
@@ -354,7 +361,6 @@ const Login = () => {
                       ) : (
                         <>
                           <Text>Entrar</Text>
-                          <ArrowRight size={20} />
                         </>
                       )}
                     </Flex>
@@ -414,8 +420,9 @@ const Login = () => {
                         type="text"
                         {...inputStyle}
                         value={cnpj}
-                        onChange={(e) => setCnpj(e.target.value)}
-                        placeholder="00.000.000/0000-00"
+                        onChange={(e) => setCnpj(maskCnpj(e.target.value))}
+                        placeholder="00.000.000/0001-00"
+                        maxLength={18}
                         required
                       />
                     </Box>
@@ -511,7 +518,7 @@ const Login = () => {
                         variant="ghost"
                         size="sm"
                         onClick={() => setShowRegisterPassword((v) => !v)}
-                        color="gray.500"
+                        color="whiteAlpha.600"
                         _hover={{ color: "white", bg: "transparent" }}
                         position="absolute"
                         insetY={0}
@@ -536,12 +543,7 @@ const Login = () => {
                     borderRadius="lg"
                     fontWeight="semibold"
                     color="white"
-                    bgGradient={
-                      registerLoading
-                        ? undefined
-                        : "linear(to-r, black, purple.900)"
-                    }
-                    bg={registerLoading ? "purple.900" : undefined}
+                    bg="purple.900"
                     cursor={registerLoading ? "not-allowed" : "pointer"}
                     boxShadow={registerLoading ? undefined : "lg"}
                     _hover={
@@ -562,7 +564,6 @@ const Login = () => {
                       ) : (
                         <>
                           <Text>Criar conta</Text>
-                          <ArrowRight size={20} />
                         </>
                       )}
                     </Flex>
@@ -576,7 +577,7 @@ const Login = () => {
               mt={8}
               pt={6}
               borderTopWidth="1px"
-              borderColor="gray.200"
+              borderColor="whiteAlpha.200"
               textAlign="center"
               w="full"
               flexDir="column"
