@@ -4,6 +4,7 @@ import { Moon, Sun } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import UserProfileMenu from "./userProfile";
 import { useColorMode } from "../theme/colorMode";
+import { FaTimesCircle } from "react-icons/fa";
 
 const getPageInfo = (pathname: string) => {
   if (pathname === "/dashboard-empresa") {
@@ -132,6 +133,9 @@ const GlobalHeader = () => {
 
         {user && (
           <Flex align="center" gap={2}>
+            <IconButton variant="ghost" as={FaTimesCircle}>
+              Bater Ponto
+            </IconButton>
             <IconButton
               variant="ghost"
               aria-label={toggleLabel}

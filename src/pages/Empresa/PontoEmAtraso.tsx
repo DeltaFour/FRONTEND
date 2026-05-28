@@ -31,8 +31,6 @@ const PontoEmAtraso = () => {
   const [shiftType, setShiftType] = useState<string | undefined>(
     user?.shiftType as string | undefined,
   );
-  const [email, setEmail] = useState(user?.email ?? "");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [lateDate, setLateDate] = useState("");
@@ -132,14 +130,6 @@ const PontoEmAtraso = () => {
 
   const handlePunch = async (shouldExit: boolean) => {
     if (!punchType || submitting) return;
-    if (!email.trim() || !password) {
-      const description = "Informe email e senha para registrar o ponto.";
-      toaster.error({
-        title: "Credenciais obrigatórias",
-        description,
-      });
-      return;
-    }
 
     if (!lateReason) {
       const description = "Selecione um motivo para o ponto em atraso.";
@@ -178,8 +168,6 @@ const PontoEmAtraso = () => {
       type: punchType,
       timePunched: resolvedTime,
       shiftType: shiftType ?? "Matutino",
-      email: email.trim(),
-      password,
       justification: lateReason,
       observation: lateNote.trim() || undefined,
       fileBase64: lateAttachmentBase64 || undefined,
@@ -264,32 +252,6 @@ const PontoEmAtraso = () => {
           >
             <option value={user?.name ?? ""}>{user?.name ?? ""}</option>
           </select>
-        </GridItem>
-
-        <GridItem>
-          <Text mb={1} fontWeight="medium" color="fg">
-            Email
-          </Text>
-          <Input
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="seu@email.com"
-            autoComplete="email"
-          />
-        </GridItem>
-
-        <GridItem>
-          <Text mb={1} fontWeight="medium" color="fg">
-            Senha
-          </Text>
-          <Input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            placeholder="Digite sua senha"
-            autoComplete="current-password"
-          />
         </GridItem>
 
         <GridItem>

@@ -198,8 +198,6 @@ const isAttendanceApproved = (attendance: PunchRecord) => {
   ].includes(normalized);
 };
 
-
-
 const InfoRow = ({ label, value }: { label: string; value: ReactNode }) => (
   <Flex justify="space-between" align="center" gap={4} flexWrap="wrap">
     <Text fontSize="sm" color="fg.muted">
@@ -268,9 +266,12 @@ const ApprovalPill = ({ isApproved }: { isApproved: boolean }) => {
 const FiltrarPontoRH = () => {
   const selectBg = useColorModeValue("#FFFFFF", "#1A1A1F");
   const selectColor = useColorModeValue("#1A202C", "#E2E8F0");
-  const selectBorder = useColorModeValue("1px solid #E2E8F0", "1px solid rgba(255, 255, 255, 0.1)");
+  const selectBorder = useColorModeValue(
+    "1px solid #E2E8F0",
+    "1px solid rgba(255, 255, 255, 0.1)",
+  );
   const selectColorScheme = useColorModeValue("light", "dark");
-  
+
   const selectBaseStyle: CSSProperties = {
     width: "100%",
     padding: "8px 12px",

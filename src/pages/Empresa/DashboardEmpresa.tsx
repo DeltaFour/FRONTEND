@@ -2,7 +2,9 @@ import { Outlet } from "react-router-dom";
 import { Box, Flex } from "@chakra-ui/react";
 import {
   FaBusinessTime,
+  FaChartBar,
   FaClock,
+  FaFileSignature,
   FaHome,
   FaUserPlus,
   FaUsers,
@@ -20,6 +22,11 @@ const DashboardEmpresa = () => {
       to: "/dashboard-empresa/ponto",
       icon: FaHome,
       exact: true,
+    },
+    {
+      label: "Gráficos",
+      to: "/dashboard-empresa/dashboard",
+      icon: FaChartBar,
     },
     {
       label: "Funcionários",
@@ -40,6 +47,11 @@ const DashboardEmpresa = () => {
       label: "Ponto RH",
       to: "/dashboard-empresa/ponto/rh",
       icon: FaUserPlus,
+    },
+    {
+      label: "Folha de Ponto",
+      to: "/dashboard-empresa/timesheet",
+      icon: FaFileSignature,
     },
     {
       label: "Turnos",

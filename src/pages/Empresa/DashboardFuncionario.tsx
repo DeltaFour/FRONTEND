@@ -2,6 +2,7 @@ import { Outlet } from "react-router-dom";
 import { Box, Flex } from "@chakra-ui/react";
 import {
   FaClock,
+  FaFileSignature,
   FaHistory,
   FaHome,
   FaExclamationTriangle,
@@ -24,6 +25,11 @@ const DashboardFuncionario = () => {
       label: "Bater Ponto",
       to: "/dashboard-funcionario/ponto",
       icon: FaClock,
+    },
+    {
+      label: "Folha de Ponto",
+      to: "/dashboard-funcionario/timesheet",
+      icon: FaFileSignature,
     },
     {
       label: "Ponto em atraso",

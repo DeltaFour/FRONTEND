@@ -40,9 +40,12 @@ interface PontoFormData {
 const PontoParaFuncionario = () => {
   const selectBg = useColorModeValue("#FFFFFF", "#1A1A1F");
   const selectColor = useColorModeValue("#1A202C", "#E2E8F0");
-  const selectBorder = useColorModeValue("1px solid #E2E8F0", "1px solid rgba(255, 255, 255, 0.1)");
+  const selectBorder = useColorModeValue(
+    "1px solid #E2E8F0",
+    "1px solid rgba(255, 255, 255, 0.1)",
+  );
   const selectColorScheme = useColorModeValue("light", "dark");
-  
+
   const selectStyle: React.CSSProperties = {
     width: "100%",
     padding: "8px 12px",
@@ -248,7 +251,7 @@ const PontoParaFuncionario = () => {
               </select>
             </GridItem>
 
-            <GridItem colSpan={{ base: 1, md: 2 }} >
+            <GridItem colSpan={{ base: 1, md: 2 }}>
               <Flex justify="space-between" align="center" mb={1} wrap="wrap">
                 <Text fontWeight="medium" color="fg">
                   Data e Hora
@@ -264,7 +267,6 @@ const PontoParaFuncionario = () => {
                 </Button>
               </Flex>
               <Input
-              
                 type="datetime-local"
                 name="timePunched"
                 id="timePunched"

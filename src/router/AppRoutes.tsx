@@ -17,6 +17,8 @@ import PontoParaFuncionario from "../pages/Empresa/PontoParaFuncionario";
 import FiltrarPontoRH from "../pages/Empresa/FiltrarPontoRH";
 import DashboardFuncionario from "../pages/Empresa/DashboardFuncionario";
 import HistoricoPontos from "../pages/Empresa/HistoricoPontos";
+import TimeSheetManager from "../pages/Empresa/TimeSheetManager";
+import TimeSheetView from "../pages/Empresa/TimeSheetView";
 import { useAuth } from "../context/AuthContext";
 import DashBoardGraficos from "../pages/Empresa/DashBoardGraficos";
 
@@ -67,6 +69,8 @@ const AppRoutes = () => (
           <Route path="ponto" element={<PontoEletronico />} />
           <Route path="ponto/rh" element={<FiltrarPontoRH />} />
           <Route path="ponto/terceiros" element={<PontoParaFuncionario />} />
+          <Route path="timesheet" element={<TimeSheetManager />} />
+          <Route path="timesheet/:userId" element={<TimeSheetView />} />
           <Route path="turnos" element={<GerenciarTurnos />} />
         </Route>
       </Route>
@@ -77,6 +81,7 @@ const AppRoutes = () => (
           <Route path="ponto" element={<PontoEletronico />} />
           <Route path="ponto-atraso" element={<PontoEmAtraso />} />
           <Route path="historico" element={<HistoricoPontos />} />
+          <Route path="timesheet" element={<TimeSheetView />} />
         </Route>
       </Route>
 

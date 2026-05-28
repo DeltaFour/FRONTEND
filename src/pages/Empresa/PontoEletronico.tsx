@@ -33,6 +33,7 @@ const NomePonto = {
 interface RefreshInfoResponse {
   shiftType?: string;
   lastPunchType?: PunchType;
+  hasFacialBypass?: boolean;
 }
 
 const PontoEletronico = () => {
@@ -46,8 +47,7 @@ const PontoEletronico = () => {
   const [shiftType, setShiftType] = useState<string | undefined>(
     user?.shiftType as string | undefined,
   );
-  const [email, setEmail] = useState(user?.email ?? "");
-  const [password, setPassword] = useState("");
+  const [hasFacialBypass, setHasFacialBypass] = useState(false);
   const [imageBase64, setImageBase64] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -55,6 +55,7 @@ const PontoEletronico = () => {
   const [cameraActive, setCameraActive] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+
   const accentCardBg = useColorModeValue("purple.50", "purple.900");
   const accentCardBorder = useColorModeValue("purple.100", "purple.700");
   const accentIcon = useColorModeValue("purple.500", "purple.300");
@@ -81,7 +82,6 @@ const PontoEletronico = () => {
   const submitActiveBg = useColorModeValue("purple.800", "purple.300");
   const submitDisabledBg = useColorModeValue("surface.subtle", "surface.muted");
   const loadingSpinner = useColorModeValue("purple.500", "purple.300");
-
   const horarioAtual = now.toLocaleTimeString("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
@@ -129,6 +129,7 @@ const PontoEletronico = () => {
       const info = infoResponse.data || {};
       const nextPunchType = resolveNextPunchType(info.lastPunchType);
       setShiftType(info.shiftType ?? (user?.shiftType as string | undefined));
+      setHasFacialBypass(Boolean(info.hasFacialBypass));
       setPunchType(nextPunchType);
       const canPunchResponse = await api.post<boolean>("/user/allowed-punch", {
         timePunched: formatTimeOnly(new Date()),
@@ -303,14 +304,8 @@ const PontoEletronico = () => {
 
   const handlePunch = async () => {
     if (!punchType || submitting || !canPunch) return;
-    if (!email.trim() || !password) {
-      toaster.error({
-        title: "Credenciais obrigatórias",
-        description: "Informe email e senha para registrar o ponto.",
-      });
-      return;
-    }
-    if (!imageBase64) {
+
+    if (!hasFacialBypass && !imageBase64) {
       toaster.error({
         title: "Foto obrigatória",
         description: "Adicione uma foto antes de registrar o ponto.",
@@ -323,7 +318,7 @@ const PontoEletronico = () => {
       type: punchType,
       timePunched: new Date().toISOString(),
       shiftType: shiftType ?? "Matutino",
-      imageBase64,
+      imageBase64: hasFacialBypass ? "" : imageBase64,
       latitude: coords?.latitude ?? 0,
       longitude: coords?.longitude ?? 0,
     };
@@ -349,7 +344,7 @@ const PontoEletronico = () => {
   if (loading) {
     return (
       <Flex justify="center" align="center" py={10} gap={3}>
-        <Spinner color={loadingSpinner} />
+        <Spinner color="loading.spinner" />
         <Text color="fg.muted" fontSize="sm">
           Verificando status de ponto...
         </Text>
@@ -398,7 +393,7 @@ const PontoEletronico = () => {
             <Text
               fontSize="11px"
               fontWeight="600"
-              color={accentLabel}
+              color="accent.label"
               textTransform="uppercase"
               letterSpacing="0.6px"
               mb="1px"
@@ -456,182 +451,184 @@ const PontoEletronico = () => {
       {/* Main Grid */}
       <Flex gap={4} mb={6} align="stretch">
         {/* Photo Column */}
-        <Box flex={1}>
-          <Text
-            fontSize="11px"
-            fontWeight="600"
-            color="fg.muted"
-            textTransform="uppercase"
-            letterSpacing="0.6px"
-            mb={3}
-          >
-            Verificação por foto
-          </Text>
-
-          {!photoPreview && !cameraActive && (
-            <Flex
-              direction="column"
-              align="center"
-              justify="center"
-              gap={2}
-              border="1.5px dashed"
-              borderColor={isDragging ? dragBorder : "border"}
-              borderRadius="lg"
-              p={5}
-              minH="300px"
-              bg={isDragging ? dragBg : "surface.subtle"}
-              cursor="pointer"
-              transition="all 0.15s"
-              _hover={{ borderColor: dropHoverBorder, bg: dropHoverBg }}
-              onClick={() => fileInputRef.current?.click()}
-              onDragOver={handleDropAreaDragOver}
-              onDragLeave={handleDropAreaDragLeave}
-              onDrop={handleDropAreaDrop}
+        {!hasFacialBypass && (
+          <Box flex={1}>
+            <Text
+              fontSize="11px"
+              fontWeight="600"
+              color="fg.muted"
+              textTransform="uppercase"
+              letterSpacing="0.6px"
+              mb={3}
             >
-              <Icon as={FaImage} boxSize={7} color="fg.muted" opacity={0.6} />
-              <Text fontSize="13px" color="fg.muted" textAlign="center">
-                {isDragging
-                  ? "Solte para enviar a foto"
-                  : "Clique para enviar ou use a câmera"}
-              </Text>
-            </Flex>
-          )}
+              Verificação por foto
+            </Text>
 
-          {cameraActive && (
-            <Box
-              border="1px solid"
-              borderColor="border"
-              borderRadius="lg"
-              overflow="hidden"
-              bg="black"
-            >
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                style={{
-                  width: "100%",
-                  display: "block",
-                  maxHeight: "200px",
-                  objectFit: "cover",
-                }}
-              />
-              <Flex gap={2} p={2} bg="surface.muted">
-                <Button
-                  size="sm"
-                  colorPalette="green"
-                  flex={1}
-                  onClick={capturePhoto}
-                  fontSize="13px"
+            {!photoPreview && !cameraActive && (
+              <Flex
+                direction="column"
+                align="center"
+                justify="center"
+                gap={2}
+                border="1.5px dashed"
+                borderColor={isDragging ? dragBorder : "border"}
+                borderRadius="lg"
+                p={5}
+                minH="300px"
+                bg={isDragging ? dragBg : "surface.subtle"}
+                cursor="pointer"
+                transition="all 0.15s"
+                _hover={{ borderColor: dropHoverBorder, bg: dropHoverBg }}
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={handleDropAreaDragOver}
+                onDragLeave={handleDropAreaDragLeave}
+                onDrop={handleDropAreaDrop}
+              >
+                <Icon as={FaImage} boxSize={7} color="fg.muted" opacity={0.6} />
+                <Text fontSize="13px" color="fg.muted" textAlign="center">
+                  {isDragging
+                    ? "Solte para enviar a foto"
+                    : "Clique para enviar ou use a câmera"}
+                </Text>
+              </Flex>
+            )}
+
+            {cameraActive && (
+              <Box
+                border="1px solid"
+                borderColor="border"
+                borderRadius="lg"
+                overflow="hidden"
+                bg="black"
+              >
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  style={{
+                    width: "100%",
+                    display: "block",
+                    maxHeight: "200px",
+                    objectFit: "cover",
+                  }}
+                />
+                <Flex gap={2} p={2} bg="surface.muted">
+                  <Button
+                    size="sm"
+                    colorPalette="green"
+                    flex={1}
+                    onClick={capturePhoto}
+                    fontSize="13px"
+                  >
+                    Capturar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    color="fg.muted"
+                    onClick={stopCamera}
+                    fontSize="13px"
+                    _hover={{ bg: "surface.subtle", color: "fg" }}
+                  >
+                    Cancelar
+                  </Button>
+                </Flex>
+              </Box>
+            )}
+
+            {photoPreview && (
+              <Box
+                position="relative"
+                borderRadius="lg"
+                overflow="hidden"
+                border="1px solid"
+                borderColor="border"
+              >
+                <img
+                  src={photoPreview}
+                  alt="Foto capturada"
+                  style={{
+                    width: "100%",
+                    maxHeight: "300px",
+                    objectFit: "cover",
+                    display: "block",
+                  }}
+                />
+                <Flex
+                  position="absolute"
+                  top={2}
+                  right={2}
+                  bg="green.500"
+                  color="white"
+                  borderRadius="full"
+                  px={2}
+                  py="2px"
+                  align="center"
+                  gap={1}
                 >
-                  Capturar
-                </Button>
+                  <Icon as={FaCheckCircle} boxSize={3} />
+                  <Text fontSize="11px" fontWeight="600">
+                    Foto adicionada
+                  </Text>
+                </Flex>
+              </Box>
+            )}
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              style={{ display: "none" }}
+            />
+
+            <Flex gap={2} mt={3} flexWrap="wrap">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={startCamera}
+                fontSize="13px"
+                borderColor="border"
+                color="fg.muted"
+                p="10px"
+                _hover={{ borderColor: dropHoverBorder, color: accentAction }}
+              >
+                <Icon as={FaCamera} boxSize={4} mr={2} />
+                Câmera
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                fontSize="13px"
+                borderColor="border"
+                color="fg.muted"
+                p="10px"
+                _hover={{ borderColor: dropHoverBorder, color: accentAction }}
+              >
+                <Icon as={FaFolderOpen} boxSize={4} mr={2} />
+                Arquivo
+              </Button>
+              {imageBase64 && (
                 <Button
                   size="sm"
                   variant="ghost"
-                  color="fg.muted"
-                  onClick={stopCamera}
+                  onClick={clearPhoto}
                   fontSize="13px"
-                  _hover={{ bg: "surface.subtle", color: "fg" }}
+                  color="red.400"
+                  p="10px"
+                  _hover={{ bg: removeHoverBg }}
                 >
-                  Cancelar
+                  Remover
                 </Button>
-              </Flex>
-            </Box>
-          )}
-
-          {photoPreview && (
-            <Box
-              position="relative"
-              borderRadius="lg"
-              overflow="hidden"
-              border="1px solid"
-              borderColor="border"
-            >
-              <img
-                src={photoPreview}
-                alt="Foto capturada"
-                style={{
-                  width: "100%",
-                  maxHeight: "300px",
-                  objectFit: "cover",
-                  display: "block",
-                }}
-              />
-              <Flex
-                position="absolute"
-                top={2}
-                right={2}
-                bg="green.500"
-                color="white"
-                borderRadius="full"
-                px={2}
-                py="2px"
-                align="center"
-                gap={1}
-              >
-                <Icon as={FaCheckCircle} boxSize={3} />
-                <Text fontSize="11px" fontWeight="600">
-                  Foto adicionada
-                </Text>
-              </Flex>
-            </Box>
-          )}
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleImageChange}
-            style={{ display: "none" }}
-          />
-
-          <Flex gap={2} mt={3} flexWrap="wrap">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={startCamera}
-              fontSize="13px"
-              borderColor="border"
-              color="fg.muted"
-              p="10px"
-              _hover={{ borderColor: dropHoverBorder, color: accentAction }}
-            >
-              <Icon as={FaCamera} boxSize={4} mr={2} />
-              Câmera
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => fileInputRef.current?.click()}
-              fontSize="13px"
-              borderColor="border"
-              color="fg.muted"
-              p="10px"
-              _hover={{ borderColor: dropHoverBorder, color: accentAction }}
-            >
-              <Icon as={FaFolderOpen} boxSize={4} mr={2} />
-              Arquivo
-            </Button>
-            {imageBase64 && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={clearPhoto}
-                fontSize="13px"
-                color="red.400"
-                p="10px"
-                _hover={{ bg: removeHoverBg }}
-              >
-                Remover
-              </Button>
-            )}
-          </Flex>
-        </Box>
+              )}
+            </Flex>
+          </Box>
+        )}
 
         {/* Status Column */}
-        <Box flex={1}>
+        <Box flex={hasFacialBypass ? 1 : 1}>
           <Text
             fontSize="11px"
             fontWeight="600"

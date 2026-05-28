@@ -312,7 +312,7 @@ export default function DashboardRH() {
     <Box
       bg="surface.muted"
       minH="100vh"
-      p={{ base: 4, md: 6 }}
+      px={{ base: 4, md: 6 }}
       fontFamily="'Inter', sans-serif"
     >
       {/* cabeçalho */}
@@ -322,9 +322,6 @@ export default function DashboardRH() {
         transition={{ duration: 0.35 }}
         mb={6}
       >
-        <Text fontSize="22px" fontWeight={700} color="fg">
-          Painel de RH
-        </Text>
         <Text
           fontSize="13px"
           color={mutedText}
