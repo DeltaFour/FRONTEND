@@ -10,7 +10,7 @@ import {
   Spinner,
   Text,
 } from "@chakra-ui/react";
-import { FaClock, FaEdit, FaSave, FaTimes, FaUserShield } from "react-icons/fa";
+import { FaClock, FaEdit, FaSave, FaSitemap, FaTimes, FaUserShield } from "react-icons/fa";
 import api from "../../services/api";
 import { Input } from "../../components/ui/Input";
 import { toaster } from "../../components/ui/toaster";
@@ -19,6 +19,11 @@ import { useColorModeValue } from "../../theme/colorMode";
 interface Shift {
   id: string;
   label: string;
+}
+
+interface Department {
+  id: string;
+  name: string;
 }
 
 interface EmployeeShiftDto {
@@ -32,6 +37,7 @@ interface EmployeeResponse {
   cellphone: string;
   roleName: string;
   isAllowedBypassCoord: boolean;
+  departmentId?: string;
   shiftDto?: EmployeeShiftDto[];
 }
 
@@ -52,6 +58,7 @@ interface EditEmployeeFormData {
   roleName: string;
   shiftId: string;
   userShiftId: string;
+  departmentId: string;
   isAllowedBypassCoord: boolean;
 }
 
@@ -89,13 +96,33 @@ const isGuid = (value?: string | null) =>
 const EditarFuncionario = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+
+  const selectBg = useColorModeValue("#FFFFFF", "#1A1A1F");
+  const selectColor = useColorModeValue("#1A202C", "#E2E8F0");
+  const selectBorder = useColorModeValue(
+    "1px solid #E2E8F0",
+    "1px solid rgba(255, 255, 255, 0.1)",
+  );
+  const selectColorScheme = useColorModeValue("light", "dark");
+
+  const selectStyle: React.CSSProperties = {
+    width: "100%",
+    padding: "8px 12px",
+    borderRadius: "0.375rem",
+    border: selectBorder,
+    backgroundColor: selectBg,
+    color: selectColor,
+    colorScheme: selectColorScheme as any,
+  };
   const [shifts, setShifts] = useState<Shift[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [formData, setFormData] = useState<EditEmployeeFormData>({
     name: "",
     cellPhone: "",
     roleName: "",
     shiftId: "",
     userShiftId: "",
+    departmentId: "",
     isAllowedBypassCoord: false,
   });
   const [loading, setLoading] = useState(true);
@@ -110,10 +137,16 @@ const EditarFuncionario = () => {
       try {
         setLoading(true);
 
-        const shiftsResponse = await api.get("/workshift/list");
+        const [shiftsResponse, deptsResponse] = await Promise.all([
+          api.get("/workshift/list"),
+          api.get("/department/list"),
+        ]);
         const shiftsData = (shiftsResponse.data?.data ??
           shiftsResponse.data) as ShiftApiResponse[];
         setShifts(shiftsData.map(normalizeShift));
+
+        const deptsData = (deptsResponse.data?.departments ?? deptsResponse.data?.data ?? []) as Department[];
+        setDepartments(deptsData);
 
         if (!id) {
           throw new Error("ID do funcionário não informado.");
@@ -142,6 +175,7 @@ const EditarFuncionario = () => {
           cellPhone: employee.cellphone ?? "",
           roleName: employee.roleName ?? "",
           isAllowedBypassCoord: employee.isAllowedBypassCoord ?? false,
+          departmentId: employee.departmentId ?? "",
           shiftId: currentShiftId,
           userShiftId: currentUserShiftId,
         });
@@ -192,12 +226,11 @@ const EditarFuncionario = () => {
     ];
 
     const payload = {
-      userUpdateDto: {
-        id: formData.id,
-        name: formData.name,
-        cellPhone: formData.cellPhone,
-        isAllowedBypassCoord: formData.isAllowedBypassCoord,
-      },
+      id: formData.id,
+      name: formData.name,
+      cellPhone: formData.cellPhone,
+      isAllowedBypassCoord: formData.isAllowedBypassCoord,
+      departmentId: formData.departmentId || null,
       userShift: userShiftArray,
     };
 
@@ -340,20 +373,39 @@ const EditarFuncionario = () => {
               value={formData.shiftId}
               onChange={handleChange}
               required
-              style={{
-                width: "100%",
-                padding: "8px 12px",
-                borderRadius: "0.375rem",
-                border: "1px solid #E2E8F0",
-                backgroundColor: "#FFFFFF",
-                color: "#1A202C",
-                colorScheme: "light",
-              }}
+              style={selectStyle}
             >
               <option value="">Selecione o Turno</option>
               {shifts.map((shift) => (
                 <option key={shift.id} value={shift.id}>
                   {shift.label}
+                </option>
+              ))}
+            </select>
+          </Box>
+
+          <Box>
+            <Text
+              mb={1}
+              fontWeight="medium"
+              color="fg"
+              display="flex"
+              alignItems="center"
+              gap={2}
+            >
+              <FaSitemap /> Departamento
+            </Text>
+            <select
+              name="departmentId"
+              id="departmentId"
+              value={formData.departmentId}
+              onChange={handleChange}
+              style={selectStyle}
+            >
+              <option value="">Sem departamento</option>
+              {departments.map((dept) => (
+                <option key={dept.id} value={dept.id}>
+                  {dept.name}
                 </option>
               ))}
             </select>
@@ -375,14 +427,14 @@ const EditarFuncionario = () => {
           </GridItem>
 
           <GridItem colSpan={{ base: 1, md: 2 }}>
-            <Flex justify="center" pt={4} gap="14px" w="100%">
+            <Flex justify="center" pt={4} gap="14px" w="100%" flexDir={{ base: "column", sm: "row" }} align="center">
               <Button
                 type="button"
                 onClick={() => navigate(-1)}
                 bg="red.500"
                 color="white"
                 _hover={{ bg: "red.600" }}
-                w="210px"
+                w={{ base: "100%", sm: "210px" }}
                 h="34px"
                 borderRadius="full"
               >
@@ -392,7 +444,7 @@ const EditarFuncionario = () => {
                 type="submit"
                 colorPalette="green"
                 disabled={submitting}
-                w="210px"
+                w={{ base: "100%", sm: "210px" }}
                 h="34px"
                 borderRadius="full"
               >

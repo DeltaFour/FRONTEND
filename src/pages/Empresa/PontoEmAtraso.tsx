@@ -15,6 +15,7 @@ import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
 import { Input } from "../../components/ui/Input";
 import { toaster } from "../../components/ui/toaster";
+import { useColorModeValue } from "../../theme/colorMode";
 
 type PunchType = "IN" | "OUT";
 
@@ -27,6 +28,30 @@ const PontoEmAtraso = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const selectBg = useColorModeValue("#FFFFFF", "#1A1A1F");
+  const selectColor = useColorModeValue("#1A202C", "#E2E8F0");
+  const selectBorder = useColorModeValue(
+    "1px solid #E2E8F0",
+    "1px solid rgba(255, 255, 255, 0.1)",
+  );
+  const selectColorScheme = useColorModeValue("light", "dark");
+  const disabledBg = useColorModeValue("#F3F4F6", "#2A2A2F");
+
+  const selectStyle: React.CSSProperties = {
+    width: "100%",
+    padding: "8px 12px",
+    borderRadius: "0.375rem",
+    border: selectBorder,
+    backgroundColor: selectBg,
+    color: selectColor,
+    colorScheme: selectColorScheme as any,
+  };
+
+  const disabledSelectStyle: React.CSSProperties = {
+    ...selectStyle,
+    backgroundColor: disabledBg,
+  };
   const [punchType, setPunchType] = useState<PunchType | null>(null);
   const [shiftType, setShiftType] = useState<string | undefined>(
     user?.shiftType as string | undefined,
@@ -240,15 +265,7 @@ const PontoEmAtraso = () => {
           <select
             disabled
             value={user?.name ?? ""}
-            style={{
-              width: "100%",
-              padding: "8px 12px",
-              borderRadius: "0.375rem",
-              border: "1px solid #E2E8F0",
-              backgroundColor: "#F3F4F6",
-              color: "#1A202C",
-              colorScheme: "light",
-            }}
+            style={disabledSelectStyle}
           >
             <option value={user?.name ?? ""}>{user?.name ?? ""}</option>
           </select>
@@ -261,15 +278,7 @@ const PontoEmAtraso = () => {
           <select
             value={lateReason}
             onChange={(event) => setLateReason(event.target.value)}
-            style={{
-              width: "100%",
-              padding: "8px 12px",
-              borderRadius: "0.375rem",
-              border: "1px solid #E2E8F0",
-              backgroundColor: "#FFFFFF",
-              color: "#1A202C",
-              colorScheme: "light",
-            }}
+            style={selectStyle}
           >
             <option value="">Escolha</option>
             <option value="ATESTADO_MEDICO">Atestado médico</option>

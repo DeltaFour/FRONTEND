@@ -27,8 +27,7 @@ import {
   FaSave,
   FaTimes,
   FaTrash,
-  FaClock,
-  FaShieldAlt,
+  FaSitemap,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../../services/api";
@@ -40,30 +39,23 @@ import { useColorModeValue } from "../../theme/colorMode";
 const MotionBox = motion(Box);
 const MotionFlex = motion(Flex);
 
-interface ShiftListItem {
-  id: number;
-  workShiftType: string;
-  startTime: string;
-  endTime: string;
-  workShiftToleranceMinutes: number;
+interface DepartmentListItem {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string | null;
 }
 
-interface ShiftFormData {
-  id?: number;
-  workShiftType: string;
-  startTime: string;
-  endTime: string;
-  workShiftToleranceMinutes: number;
+interface DepartmentFormData {
+  id?: string;
+  name: string;
 }
 
-const initialShiftForm: ShiftFormData = {
-  workShiftType: "",
-  startTime: "08:00:00",
-  endTime: "17:00:00",
-  workShiftToleranceMinutes: 15,
+const initialDepartmentForm: DepartmentFormData = {
+  name: "",
 };
 
-export const GerenciarTurnos = () => {
+export const GerenciarDepartamentos = () => {
   const modalBg = useColorModeValue("#FFFFFF", "#0D0D0F");
   const modalBorder = useColorModeValue(
     "rgba(0,0,0,0.08)",
@@ -86,36 +78,35 @@ export const GerenciarTurnos = () => {
     "whiteAlpha.100",
   );
 
-  const [shifts, setShifts] = useState<ShiftListItem[]>([]);
+  const [departments, setDepartments] = useState<DepartmentListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<ShiftFormData>(initialShiftForm);
+  const [formData, setFormData] =
+    useState<DepartmentFormData>(initialDepartmentForm);
   const [isEditing, setIsEditing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [shiftToDelete, setShiftToDelete] = useState<ShiftListItem | null>(
-    null,
-  );
+  const [departmentToDelete, setDepartmentToDelete] =
+    useState<DepartmentListItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchShifts = useCallback(async () => {
+  const fetchDepartments = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get("/workshift/list");
-      const raw = (response.data?.data ?? response.data) as unknown[];
-      const formatted: ShiftListItem[] = (
-        raw as Array<Record<string, unknown>>
-      ).map((shift) => ({
-        id: shift.id as number,
-        workShiftType: shift.shiftType as unknown as string,
-        startTime: String(shift.startTime).slice(0, 8),
-        endTime: String(shift.endTime).slice(0, 8),
-        workShiftToleranceMinutes: Number(shift.toleranceMinutes ?? 0),
+      const response = await api.get("/department/list");
+      const data = response.data?.departments ?? response.data?.data ?? [];
+      const formatted: DepartmentListItem[] = (
+        data as Array<Record<string, unknown>>
+      ).map((dept) => ({
+        id: String(dept.id),
+        name: String(dept.name),
+        createdAt: String(dept.createdAt),
+        updatedAt: dept.updatedAt ? String(dept.updatedAt) : null,
       }));
-      setShifts(formatted);
+      setDepartments(formatted);
     } catch {
       toaster.error({
-        title: "Erro ao carregar turnos",
-        description: "Não foi possível carregar a lista de turnos.",
+        title: "Erro ao carregar departamentos",
+        description: "Não foi possível carregar a lista de departamentos.",
       });
     } finally {
       setLoading(false);
@@ -123,8 +114,8 @@ export const GerenciarTurnos = () => {
   }, []);
 
   useEffect(() => {
-    void fetchShifts();
-  }, [fetchShifts]);
+    void fetchDepartments();
+  }, [fetchDepartments]);
 
   const handleChange = (
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -132,62 +123,59 @@ export const GerenciarTurnos = () => {
     const { name, value } = event.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "workShiftToleranceMinutes" ? Number(value) : value,
+      [name]: value,
     }));
   };
 
-  const openModal = (shift?: ShiftListItem) => {
-    if (shift) {
+  const openModal = (department?: DepartmentListItem) => {
+    if (department) {
       setIsEditing(true);
       setFormData({
-        id: shift.id,
-        workShiftType: shift.workShiftType,
-        startTime: shift.startTime,
-        endTime: shift.endTime,
-        workShiftToleranceMinutes: shift.workShiftToleranceMinutes,
+        id: department.id,
+        name: department.name,
       });
     } else {
       setIsEditing(false);
-      setFormData(initialShiftForm);
+      setFormData(initialDepartmentForm);
     }
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setFormData(initialShiftForm);
+    setFormData(initialDepartmentForm);
     setIsEditing(false);
   };
 
   const handleSave = async (event: FormEvent<HTMLDivElement>) => {
     event.preventDefault();
     setSubmitting(true);
-    const payload: Record<string, unknown> = {
-      shiftType: formData.workShiftType,
-      startTime: formData.startTime.includes(":")
-        ? formData.startTime
-        : `${formData.startTime}:00`,
-      endTime: formData.endTime.includes(":")
-        ? formData.endTime
-        : `${formData.endTime}:00`,
-      toleranceMinutes: Number(formData.workShiftToleranceMinutes),
-    };
-    if (isEditing && formData.id != null) payload.id = formData.id;
-    const endpoint = isEditing ? "/workshift/update" : "/workshift/create";
-    const method = isEditing ? api.patch : api.post;
+
     try {
-      await method(endpoint, payload);
-      toaster.success({
-        title: "Turno salvo",
-        description: `Turno ${isEditing ? "atualizado" : "criado"} com sucesso!`,
-      });
+      if (isEditing && formData.id) {
+        await api.put(`/department/update/${formData.id}`, {
+          name: formData.name,
+        });
+        toaster.success({
+          title: "Departamento atualizado",
+          description: "Departamento atualizado com sucesso!",
+        });
+      } else {
+        await api.post("/department/create", {
+          name: formData.name,
+        });
+        toaster.success({
+          title: "Departamento criado",
+          description: "Departamento criado com sucesso!",
+        });
+      }
       closeModal();
-      void fetchShifts();
+      void fetchDepartments();
     } catch (err: unknown) {
       const errorData = (err as { response?: { data?: { message?: string } } })
         .response?.data;
       toaster.error({
-        title: "Erro ao salvar turno",
+        title: "Erro ao salvar departamento",
         description: `Erro ao salvar: ${errorData?.message ?? "Verifique os dados informados."}`,
       });
     } finally {
@@ -195,29 +183,49 @@ export const GerenciarTurnos = () => {
     }
   };
 
-  const openDeleteModal = (shift: ShiftListItem) => setShiftToDelete(shift);
+  const openDeleteModal = (department: DepartmentListItem) =>
+    setDepartmentToDelete(department);
   const closeDeleteModal = () => {
-    if (!isDeleting) setShiftToDelete(null);
+    if (!isDeleting) setDepartmentToDelete(null);
   };
 
   const handleConfirmDelete = async () => {
-    if (!shiftToDelete) return;
+    if (!departmentToDelete) return;
     try {
       setIsDeleting(true);
-      await api.delete(`/workshift/change-status/${shiftToDelete.id}`);
+      await api.delete(`/department/delete/${departmentToDelete.id}`);
       toaster.success({
-        title: "Turno excluído",
-        description: `Turno "${shiftToDelete.workShiftType}" excluído com sucesso!`,
+        title: "Departamento excluído",
+        description: `Departamento "${departmentToDelete.name}" excluído com sucesso!`,
       });
-      setShiftToDelete(null);
-      void fetchShifts();
-    } catch {
+      setDepartmentToDelete(null);
+      void fetchDepartments();
+    } catch (err: unknown) {
+      const errorData = (err as { response?: { data?: { message?: string } } })
+        .response?.data;
       toaster.error({
-        title: "Erro ao excluir turno",
-        description: "Não foi possível excluir o turno selecionado.",
+        title: "Erro ao excluir departamento",
+        description:
+          errorData?.message ??
+          "Não foi possível excluir o departamento selecionado.",
       });
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return "—";
+    try {
+      return new Date(dateStr).toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "—";
     }
   };
 
@@ -225,7 +233,7 @@ export const GerenciarTurnos = () => {
     return (
       <Flex justify="center" align="center" py={10}>
         <Spinner mr={3} />
-        <Text>Carregando jornadas de trabalho...</Text>
+        <Text>Carregando departamentos...</Text>
       </Flex>
     );
   }
@@ -240,7 +248,7 @@ export const GerenciarTurnos = () => {
         borderBottomWidth="1px"
       >
         <Text fontSize="lg" fontWeight="semibold" color="fg">
-          Lista de turnos
+          Lista de departamentos
         </Text>
         <Button
           colorPalette="green"
@@ -250,11 +258,11 @@ export const GerenciarTurnos = () => {
           alignItems="center"
           gap={2}
         >
-          <FaPlus /> Novo Turno
+          <FaPlus /> Novo Departamento
         </Button>
       </Flex>
 
-      {shifts.length === 0 ? (
+      {departments.length === 0 ? (
         <Box
           mt={4}
           p={4}
@@ -263,7 +271,7 @@ export const GerenciarTurnos = () => {
           bg="surface.subtle"
           borderRadius="lg"
         >
-          Nenhuma jornada de trabalho cadastrada.
+          Nenhum departamento cadastrado.
         </Box>
       ) : (
         <Box
@@ -272,35 +280,31 @@ export const GerenciarTurnos = () => {
           borderRadius="lg"
           borderColor="border"
         >
-          <Box as="table" w="full" borderCollapse="collapse" minW="550px">
+          <Box as="table" w="full" borderCollapse="collapse" minW="500px">
             <Box as="thead" bg="surface.subtle">
               <Box as="tr">
-                {[
-                  "Nome do Turno",
-                  "Início",
-                  "Fim",
-                  "Tolerância (min)",
-                  "Ações",
-                ].map((h, i) => (
-                  <Box
-                    key={h}
-                    as="th"
-                    textAlign={i === 4 ? "right" : "left"}
-                    px={{ base: 3, md: 6 }}
-                    py={3}
-                    fontSize="xs"
-                    color="fg.muted"
-                    textTransform="uppercase"
-                    letterSpacing="wide"
-                  >
-                    {h}
-                  </Box>
-                ))}
+                {["Nome", "Criado em", "Atualizado em", "Ações"].map(
+                  (h, i) => (
+                    <Box
+                      key={h}
+                      as="th"
+                      textAlign={i === 3 ? "right" : "left"}
+                      px={{ base: 3, md: 6 }}
+                      py={3}
+                      fontSize="xs"
+                      color="fg.muted"
+                      textTransform="uppercase"
+                      letterSpacing="wide"
+                    >
+                      {h}
+                    </Box>
+                  ),
+                )}
               </Box>
             </Box>
             <Box as="tbody" bg="surface">
-              {shifts.map((shift) => (
-                <Box as="tr" key={shift.id} borderTopWidth="1px">
+              {departments.map((dept) => (
+                <Box as="tr" key={dept.id} borderTopWidth="1px">
                   <Box
                     as="td"
                     px={{ base: 3, md: 6 }}
@@ -310,7 +314,7 @@ export const GerenciarTurnos = () => {
                     fontWeight="semibold"
                     color="fg"
                   >
-                    {shift.workShiftType}
+                    {dept.name}
                   </Box>
                   <Box
                     as="td"
@@ -320,7 +324,7 @@ export const GerenciarTurnos = () => {
                     fontSize="sm"
                     color="fg.muted"
                   >
-                    {shift.startTime}
+                    {formatDate(dept.createdAt)}
                   </Box>
                   <Box
                     as="td"
@@ -330,17 +334,7 @@ export const GerenciarTurnos = () => {
                     fontSize="sm"
                     color="fg.muted"
                   >
-                    {shift.endTime}
-                  </Box>
-                  <Box
-                    as="td"
-                    px={{ base: 3, md: 6 }}
-                    py={4}
-                    whiteSpace="nowrap"
-                    fontSize="sm"
-                    color="fg.muted"
-                  >
-                    {shift.workShiftToleranceMinutes}
+                    {formatDate(dept.updatedAt)}
                   </Box>
                   <Box as="td" px={6} py={4} textAlign="right">
                     <Flex justify="flex-end">
@@ -352,7 +346,7 @@ export const GerenciarTurnos = () => {
                       >
                         <MenuTrigger asChild>
                           <IconButton
-                            aria-label={`Ações para ${shift.workShiftType}`}
+                            aria-label={`Ações para ${dept.name}`}
                             variant="ghost"
                             size="sm"
                           >
@@ -364,15 +358,15 @@ export const GerenciarTurnos = () => {
                             <MenuContent>
                               <MenuItem
                                 p="10px"
-                                value={`editar-${shift.id}`}
-                                onSelect={() => openModal(shift)}
+                                value={`editar-${dept.id}`}
+                                onSelect={() => openModal(dept)}
                               >
                                 <FaEdit style={{ marginRight: 8 }} /> Editar
                               </MenuItem>
                               <MenuItem
                                 p="10px"
-                                value={`excluir-${shift.id}`}
-                                onSelect={() => openDeleteModal(shift)}
+                                value={`excluir-${dept.id}`}
+                                onSelect={() => openDeleteModal(dept)}
                               >
                                 <FaTrash style={{ marginRight: 8 }} /> Excluir
                               </MenuItem>
@@ -389,7 +383,7 @@ export const GerenciarTurnos = () => {
         </Box>
       )}
 
-      {/* ── Modal melhorado ─────────────────────────────────── */}
+      {/* ── Modal de Criar/Editar Departamento ─────────────────── */}
       <AnimatePresence>
         {isModalOpen && (
           <MotionFlex
@@ -458,7 +452,7 @@ export const GerenciarTurnos = () => {
                         border: "1px solid rgba(99,102,241,0.3)",
                       }}
                     >
-                      <FaClock color="#818CF8" size={15} />
+                      <FaSitemap color="#818CF8" size={15} />
                     </Flex>
                     <Box>
                       <Text
@@ -467,12 +461,14 @@ export const GerenciarTurnos = () => {
                         color={textColor}
                         letterSpacing="-0.01em"
                       >
-                        {isEditing ? "Editar Turno" : "Criar Novo Turno"}
+                        {isEditing
+                          ? "Editar Departamento"
+                          : "Criar Novo Departamento"}
                       </Text>
                       <Text fontSize="xs" color={textMuted} mt="1px">
                         {isEditing
-                          ? "Atualize as informações do turno"
-                          : "Preencha os dados do novo turno"}
+                          ? "Atualize as informações do departamento"
+                          : "Preencha os dados do novo departamento"}
                       </Text>
                     </Box>
                   </Flex>
@@ -502,7 +498,7 @@ export const GerenciarTurnos = () => {
               {/* Body */}
               <Box as="form" onSubmit={handleSave} px={6} py={5}>
                 <VStack align="stretch" gap={5}>
-                  {/* Tipo de Turno — input de texto */}
+                  {/* Nome do Departamento */}
                   <Box>
                     <Text
                       mb={2}
@@ -512,100 +508,18 @@ export const GerenciarTurnos = () => {
                       textTransform="uppercase"
                       letterSpacing="0.08em"
                     >
-                      Nome do Turno
+                      Nome do Departamento
                     </Text>
                     <Input
                       type="text"
-                      name="workShiftType"
-                      placeholder="Ex: Matutino, Diurno, Noturno ou outro"
-                      value={formData.workShiftType}
+                      name="name"
+                      placeholder="Ex: Recursos Humanos, TI, Financeiro"
+                      value={formData.name}
                       onChange={handleChange}
                       required
                     />
-                  </Box>
-
-                  {/* Horários */}
-                  <Box>
-                    <Text
-                      mb={2}
-                      fontSize="xs"
-                      fontWeight="600"
-                      color={textLabel}
-                      textTransform="uppercase"
-                      letterSpacing="0.08em"
-                    >
-                      Horários
-                    </Text>
-                    <Flex gap={3}>
-                      <Box flex={1}>
-                        <Text mb={1.5} fontSize="xs" color={textMuted}>
-                          Início
-                        </Text>
-                        <Box position="relative">
-                          <Input
-                            type="time"
-                            name="startTime"
-                            value={formData.startTime}
-                            onChange={handleChange}
-                            step="1"
-                            required
-                          />
-                        </Box>
-                      </Box>
-                      <Flex align="flex-end" pb={2} color={textSubtle}>
-                        <Text fontSize="lg">→</Text>
-                      </Flex>
-                      <Box flex={1}>
-                        <Text mb={1.5} fontSize="xs" color={textMuted}>
-                          Fim
-                        </Text>
-                        <Input
-                          type="time"
-                          name="endTime"
-                          value={formData.endTime}
-                          onChange={handleChange}
-                          step="1"
-                          required
-                        />
-                      </Box>
-                    </Flex>
-                  </Box>
-
-                  {/* Tolerância */}
-                  <Box>
-                    <Flex align="center" gap={2} mb={2}>
-                      <FaShieldAlt size={11} color="#6366F1" />
-                      <Text
-                        fontSize="xs"
-                        fontWeight="600"
-                        color={textLabel}
-                        textTransform="uppercase"
-                        letterSpacing="0.08em"
-                      >
-                        Tolerância
-                      </Text>
-                    </Flex>
-                    <Flex align="center" gap={3}>
-                      <Box flex={1}>
-                        <Input
-                          type="number"
-                          name="workShiftToleranceMinutes"
-                          value={formData.workShiftToleranceMinutes}
-                          onChange={handleChange}
-                          min={0}
-                          required
-                        />
-                      </Box>
-                      <Text
-                        fontSize="sm"
-                        color={textSubtle}
-                        whiteSpace="nowrap"
-                      >
-                        minutos
-                      </Text>
-                    </Flex>
                     <Text mt={1.5} fontSize="xs" color={textSubtle}>
-                      Margem aceita para entrada e saída
+                      Identifique o setor ou área da empresa
                     </Text>
                   </Box>
 
@@ -628,7 +542,7 @@ export const GerenciarTurnos = () => {
                     <Button
                       type="submit"
                       flex={2}
-                      disabled={submitting || !formData.workShiftType}
+                      disabled={submitting || !formData.name.trim()}
                       h="38px"
                       borderRadius="10px"
                       fontSize="sm"
@@ -640,11 +554,11 @@ export const GerenciarTurnos = () => {
                         boxShadow: "0 4px 15px rgba(99,102,241,0.3)",
                         color: "white",
                         cursor:
-                          submitting || !formData.workShiftType
+                          submitting || !formData.name.trim()
                             ? "not-allowed"
                             : "pointer",
                         opacity:
-                          submitting || !formData.workShiftType ? 0.6 : 1,
+                          submitting || !formData.name.trim() ? 0.6 : 1,
                       }}
                     >
                       {submitting ? (
@@ -654,7 +568,9 @@ export const GerenciarTurnos = () => {
                       ) : (
                         <Flex align="center" gap={2}>
                           <FaSave size={13} />
-                          {isEditing ? "Atualizar Turno" : "Criar Turno"}
+                          {isEditing
+                            ? "Atualizar Departamento"
+                            : "Criar Departamento"}
                         </Flex>
                       )}
                     </Button>
@@ -667,14 +583,14 @@ export const GerenciarTurnos = () => {
       </AnimatePresence>
 
       <ConfirmDeleteModal
-        isOpen={Boolean(shiftToDelete)}
+        isOpen={Boolean(departmentToDelete)}
         onClose={closeDeleteModal}
         onConfirm={handleConfirmDelete}
-        itemName={shiftToDelete?.workShiftType}
+        itemName={departmentToDelete?.name}
         isLoading={isDeleting}
       />
     </Box>
   );
 };
 
-export default GerenciarTurnos;
+export default GerenciarDepartamentos;

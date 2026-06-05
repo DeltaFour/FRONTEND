@@ -1,6 +1,6 @@
 import { useLocation } from "react-router-dom";
 import { Box, Flex, Heading, IconButton, Text } from "@chakra-ui/react";
-import { Moon, Sun } from "lucide-react";
+import { Menu, Moon, Sun } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import UserProfileMenu from "../userProfile";
 import { useColorMode } from "../../theme/colorMode";
@@ -62,6 +62,13 @@ const getPageInfo = (pathname: string) => {
     };
   }
 
+  if (pathname.startsWith("/dashboard-empresa/departamentos")) {
+    return {
+      title: "Departamentos",
+      subtitle: "Gerencie os departamentos e setores da empresa.",
+    };
+  }
+
   if (pathname.startsWith("/dashboard-empresa")) {
     return {
       title: "Dashboard da Empresa",
@@ -100,7 +107,12 @@ const getPageInfo = (pathname: string) => {
   };
 };
 
-const GlobalHeader = () => {
+interface GlobalHeaderProps {
+  /** Callback to open the mobile sidebar drawer */
+  onMenuClick?: () => void;
+}
+
+const GlobalHeader = ({ onMenuClick }: GlobalHeaderProps) => {
   const location = useLocation();
   const { user } = useAuth();
   const { colorMode, toggleColorMode } = useColorMode();
@@ -112,16 +124,30 @@ const GlobalHeader = () => {
   return (
     <Box mb={6} pb={4} borderBottomWidth="1px" borderColor="border">
       <Flex justify="space-between" align="center" gap={4} flexWrap="wrap">
-        <Box>
-          <Heading size="lg" color="fg">
-            {title}
-          </Heading>
-          {subtitle && (
-            <Text mt={1} color="fg.muted" fontSize="sm">
-              {subtitle}
-            </Text>
+        <Flex align="center" gap={3}>
+          {/* Hamburger button — visible only on mobile */}
+          {onMenuClick && (
+            <IconButton
+              variant="ghost"
+              aria-label="Abrir menu"
+              onClick={onMenuClick}
+              display={{ base: "inline-flex", md: "none" }}
+              size="sm"
+            >
+              <Menu size={20} />
+            </IconButton>
           )}
-        </Box>
+          <Box>
+            <Heading size={{ base: "md", md: "lg" }} color="fg">
+              {title}
+            </Heading>
+            {subtitle && (
+              <Text mt={1} color="fg.muted" fontSize={{ base: "xs", md: "sm" }}>
+                {subtitle}
+              </Text>
+            )}
+          </Box>
+        </Flex>
 
         {user && (
           <Flex align="center" gap={2}>

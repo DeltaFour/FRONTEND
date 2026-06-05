@@ -407,7 +407,7 @@ const TimesheetGeneratorPanel = () => {
   return (
     <Box
       bg="surface"
-      p={6}
+      p={{ base: 3, md: 6 }}
       borderRadius="lg"
       boxShadow="xl"
       mb={6}
@@ -529,12 +529,12 @@ const TimesheetGeneratorPanel = () => {
             <Text>Carregando colaboradores...</Text>
           </Flex>
         ) : (
-          <Box as="table" width="100%" borderCollapse="collapse">
+          <Box as="table" width="100%" minW="900px" borderCollapse="collapse">
             <Box as="thead" bg="surface.subtle">
               <Box as="tr">
                 <Box
                   as="th"
-                  px={6}
+                  px={{ base: 3, md: 6 }}
                   py={3}
                   textAlign="left"
                   fontSize="xs"
@@ -545,7 +545,7 @@ const TimesheetGeneratorPanel = () => {
                 </Box>
                 <Box
                   as="th"
-                  px={6}
+                  px={{ base: 3, md: 6 }}
                   py={3}
                   textAlign="left"
                   fontSize="xs"
@@ -556,7 +556,7 @@ const TimesheetGeneratorPanel = () => {
                 </Box>
                 <Box
                   as="th"
-                  px={6}
+                  px={{ base: 3, md: 6 }}
                   py={3}
                   textAlign="left"
                   fontSize="xs"
@@ -567,7 +567,7 @@ const TimesheetGeneratorPanel = () => {
                 </Box>
                 <Box
                   as="th"
-                  px={6}
+                  px={{ base: 3, md: 6 }}
                   py={3}
                   textAlign="left"
                   fontSize="xs"
@@ -578,7 +578,7 @@ const TimesheetGeneratorPanel = () => {
                 </Box>
                 <Box
                   as="th"
-                  px={6}
+                  px={{ base: 3, md: 6 }}
                   py={3}
                   textAlign="left"
                   fontSize="xs"
@@ -589,7 +589,7 @@ const TimesheetGeneratorPanel = () => {
                 </Box>
                 <Box
                   as="th"
-                  px={6}
+                  px={{ base: 3, md: 6 }}
                   py={3}
                   textAlign="left"
                   fontSize="xs"
@@ -615,7 +615,7 @@ const TimesheetGeneratorPanel = () => {
               ) : (
                 filteredEmployees.map((employee) => (
                   <Box as="tr" key={employee.id} borderTopWidth="1px">
-                    <Box as="td" px={6} py={4} whiteSpace="nowrap">
+                    <Box as="td" px={{ base: 3, md: 6 }} py={4} whiteSpace="nowrap">
                       <input
                         type="checkbox"
                         checked={selectedEmployeeIds.includes(employee.id)}
@@ -629,7 +629,7 @@ const TimesheetGeneratorPanel = () => {
                     </Box>
                     <Box
                       as="td"
-                      px={6}
+                      px={{ base: 3, md: 6 }}
                       py={4}
                       whiteSpace="nowrap"
                       fontSize="sm"
@@ -643,10 +643,10 @@ const TimesheetGeneratorPanel = () => {
                         {employee.email}
                       </Text>
                     </Box>
-                    <Box as="td" px={6} py={4} color="fg.muted">
+                    <Box as="td" px={{ base: 3, md: 6 }} py={4} color="fg.muted">
                       {periodLabel}
                     </Box>
-                    <Box as="td" px={6} py={4}>
+                    <Box as="td" px={{ base: 3, md: 6 }} py={4}>
                       {loadingStatuses ? (
                         <Flex align="center" gap={2} color="fg.muted">
                           <Spinner size="xs" />
@@ -667,14 +667,14 @@ const TimesheetGeneratorPanel = () => {
                                 ? "gray"
                                 : "blue";
                           return (
-                            <Badge colorScheme={statusColor}>
+                            <Badge colorScheme={statusColor} p="5px" borderRadius="full">
                               {statusLabel}
                             </Badge>
                           );
                         })()
                       )}
                     </Box>
-                    <Box as="td" px={6} py={4}>
+                    <Box as="td" px={{ base: 3, md: 6 }} py={4}>
                       {loadingStatuses ? (
                         <Text fontSize="xs" color="fg.muted">
                           --
@@ -708,9 +708,9 @@ const TimesheetGeneratorPanel = () => {
                               ? "green"
                               : "orange";
                           return (
-                            <VStack align="start" gap={1}>
-                              <Badge colorScheme={rhColor}>RH: {rhLabel}</Badge>
-                              <Badge colorScheme={employeeColor}>
+                            <VStack align="start" gap={1} >
+                              <Badge colorScheme={rhColor} p="5px" borderRadius="full">RH: {rhLabel}</Badge>
+                              <Badge colorScheme={employeeColor} p="5px" borderRadius="full">
                                 Colab: {employeeLabel}
                               </Badge>
                             </VStack>
@@ -718,7 +718,7 @@ const TimesheetGeneratorPanel = () => {
                         })()
                       )}
                     </Box>
-                    <Box as="td" px={6} py={4}>
+                    <Box as="td" px={{ base: 3, md: 6 }} py={4}>
                       <Flex gap={2} flexWrap="wrap">
                         {(() => {
                           const status = statusByEmployeeId[employee.id];

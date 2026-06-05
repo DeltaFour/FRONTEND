@@ -20,7 +20,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { useAuth } from "../../context/AuthContext";
-import LogoHorizontal from "../../assets/LogoHorizontal.png";
+import LogoComEscrita from "../../assets/LogoComEscrita.svg";
 import DarkVeil from "../../components/background/background";
 import { Input } from "../../components/ui/Input";
 import { toaster } from "../../components/ui/toaster";
@@ -58,102 +58,65 @@ const Login = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { login, registerCompany } = useAuth();
 
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-
-    if (params.get("payment") === "true") {
-      toaster.success({
-        title: "Cadastro concluido!",
-        description: "Pagamento confirmado. Voce ja pode fazer login.",
-      });
-      navigate(location.pathname, { replace: true });
-    }
-  }, [location.pathname, location.search, navigate]);
-
-  const handleLoginSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleLoginSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setLoading(true);
 
-    const userData = await login(email, password, rememberMe);
-    setLoading(false);
-
-    if (!userData) {
-      toaster.error({
-        title: "Falha no login",
-        description:
-          "Não foi possível realizar o login. Verifique seu e-mail e senha.",
+    try {
+      await login(email, password);
+      toaster.success({
+        title: "Sucesso",
+        description: "Login realizado com sucesso!",
       });
-      return;
+
+      const destination = location.state?.from || "/dashboard-empresa";
+      navigate(destination, { replace: true });
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } })
+        .response?.data?.message;
+      const description =
+        message ?? "Verifique suas credenciais e tente novamente.";
+
+      toaster.error({
+        title: "Falha no Login",
+        description,
+      });
+    } finally {
+      setLoading(false);
     }
-
-    const roleSuffix = (userData.role || "").toUpperCase();
-
-    if (["SUPER_ADMIN", "ADMIN", "RH"].includes(roleSuffix)) {
-      navigate("/dashboard-empresa");
-      return;
-    }
-
-    if (roleSuffix === "EMPLOYEE") {
-      navigate("/dashboard-funcionario");
-      return;
-    }
-
-    toaster.error({
-      title: "Perfil desconhecido",
-      description: `Perfil desconhecido: ${roleSuffix}. Consulte o backend.`,
-    });
   };
 
-  const handleRegisterSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleRegisterSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setRegisterLoading(true);
 
+    const payload = {
+      companyName,
+      cnpj,
+      email: registerEmail,
+      name: userName,
+      password: registerPassword,
+    };
+
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_BASE_URL}/api/v1/subscription/register`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: companyName,
-            cnpj,
-            user: {
-              email: registerEmail,
-              name: userName,
-              password: registerPassword,
-            },
-          }),
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error("Erro ao registrar");
-      }
-
-      const data = await response.json();
-
-      if (data.checkoutUrl) {
-        window.location.replace(data.checkoutUrl.toString());
-        return;
-      }
-
+      await registerCompany(payload);
       toaster.success({
-        title: "Cadastro realizado!",
-        description: "Sua empresa foi registrada com sucesso. Faça o login.",
+        title: "Sucesso",
+        description: "Empresa cadastrada com sucesso! Faça login.",
       });
-      setCompanyName("");
-      setCnpj("");
-      setRegisterEmail("");
-      setUserName("");
-      setRegisterPassword("");
       setMode("login");
-    } catch {
+      setEmail(registerEmail);
+      setPassword("");
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } })
+        .response?.data?.message;
+      const description = message ?? "Erro ao cadastrar empresa.";
+
       toaster.error({
-        title: "Falha no cadastro",
-        description:
-          "Não foi possível realizar o cadastro. Verifique os dados e tente novamente.",
+        title: "Falha no Cadastro",
+        description,
       });
     } finally {
       setRegisterLoading(false);
@@ -161,22 +124,33 @@ const Login = () => {
   };
 
   const fieldLabelStyle = {
-    fontSize: "sm" as const,
-    fontWeight: "semibold" as const,
-    color: "white",
+    fontSize: "sm",
+    fontWeight: "semibold",
+    color: "#ffff",
+    mb: 2,
   };
 
   const inputStyle = {
-    border: "none",
-    borderBottom: "1px solid white",
-    bg: "transparent",
-    pl: "3rem",
+    w: "full",
+    h: 12,
+    pl: 12,
     pr: 4,
-    py: 3,
+    borderRadius: "xl",
+    borderWidth: "1.5px",
+    borderColor: "whiteAlpha.300",
+    bg: "rgba(255,255,255,0.05)",
+    color: "white",
+    fontSize: "md",
+    _placeholder: { color: "whiteAlpha.400" },
+    _focus: {
+      borderColor: "purple.500",
+      bg: "rgba(255,255,255,0.08)",
+    },
   };
 
   return (
-    <Flex minH="100vh" overflow="hidden" position="relative">
+    <Flex minH="100vh" bg="#0B0B0E" position="relative" overflow="hidden">
+      {/* Background veil */}
       <Box position="absolute" inset={0} zIndex={0}>
         <DarkVeil
           hueShift={0}
@@ -206,8 +180,7 @@ const Login = () => {
             bg="transparent"
             p={{ base: 6, md: 8 }}
           >
-            {/* Logo & subtitle */}
-            <Box mb={8} textAlign="center">
+            <Box mb={8} textAlign="center" w="100%">
               <Heading
                 as="h2"
                 fontSize="3xl"
@@ -215,14 +188,24 @@ const Login = () => {
                 color="white"
                 justifyContent="center"
                 display="flex"
+                mb={4}
               >
-                <Image src={LogoHorizontal} alt="Logo" maxW="65%" />
+                <Box
+                  w="240px"
+                  h="62px"
+                  bg="#E9D5FF"
+                  style={{
+                    maskImage: `url(${LogoComEscrita})`,
+                    WebkitMaskImage: `url(${LogoComEscrita})`,
+                    maskSize: "contain",
+                    WebkitMaskSize: "contain",
+                    maskRepeat: "no-repeat",
+                    WebkitMaskRepeat: "no-repeat",
+                    maskPosition: "center",
+                    WebkitMaskPosition: "center",
+                  }}
+                />
               </Heading>
-              <Text color="#ffff" mt={2}>
-                {mode === "login"
-                  ? "Entre com suas credenciais para acessar o sistema"
-                  : "Preencha os dados para criar sua conta"}
-              </Text>
             </Box>
 
             {/* ── LOGIN FORM ── */}
@@ -276,16 +259,11 @@ const Login = () => {
                       <Input
                         type={showPassword ? "text" : "password"}
                         id="password"
-                        border="none"
-                        borderBottom="1px solid white"
+                        {...inputStyle}
+                        pr={12}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        pl="3rem"
-                        pr="3rem"
-                        py={3}
-                        bg="transparent"
                         placeholder="Insira sua senha"
-                        color="white"
                         required
                       />
                       <Button
@@ -347,9 +325,9 @@ const Login = () => {
                       loading
                         ? undefined
                         : {
-                            bgGradient: "linear(to-r, black, purple.900)",
-                            boxShadow: "xl",
-                          }
+                          bgGradient: "linear(to-r, black, purple.900)",
+                          boxShadow: "xl",
+                        }
                     }
                   >
                     <Flex align="center" justify="center" gap={2}>
@@ -501,16 +479,11 @@ const Login = () => {
                       </Box>
                       <Input
                         type={showRegisterPassword ? "text" : "password"}
-                        border="none"
-                        borderBottom="1px solid white"
+                        {...inputStyle}
+                        pr={12}
                         value={registerPassword}
                         onChange={(e) => setRegisterPassword(e.target.value)}
-                        pl="3rem"
-                        pr="3rem"
-                        py={3}
-                        bg="transparent"
                         placeholder="Crie uma senha"
-                        color="white"
                         required
                       />
                       <Button
@@ -550,9 +523,9 @@ const Login = () => {
                       registerLoading
                         ? undefined
                         : {
-                            bgGradient: "linear(to-r, black, purple.900)",
-                            boxShadow: "xl",
-                          }
+                          bgGradient: "linear(to-r, black, purple.900)",
+                          boxShadow: "xl",
+                        }
                     }
                   >
                     <Flex align="center" justify="center" gap={2}>

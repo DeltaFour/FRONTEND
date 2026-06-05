@@ -34,6 +34,11 @@ interface Shift {
   shiftType: string;
 }
 
+interface Department {
+  id: string;
+  name: string;
+}
+
 interface CreateEmployeeFormData {
   name: string;
   roleName: string;
@@ -41,6 +46,7 @@ interface CreateEmployeeFormData {
   password: string;
   cellPhone: string;
   shiftId: string;
+  departmentId: string;
   isAllowedBypassCoord?: boolean;
   imageBase64: string;
   isFacialRecognitionEnabled?: boolean;
@@ -49,9 +55,12 @@ interface CreateEmployeeFormData {
 const CriarFuncionario = () => {
   const selectBg = useColorModeValue("#FFFFFF", "#1A1A1F");
   const selectColor = useColorModeValue("#1A202C", "#E2E8F0");
-  const selectBorder = useColorModeValue("1px solid #E2E8F0", "1px solid rgba(255, 255, 255, 0.1)");
+  const selectBorder = useColorModeValue(
+    "1px solid #E2E8F0",
+    "1px solid rgba(255, 255, 255, 0.1)",
+  );
   const selectColorScheme = useColorModeValue("light", "dark");
-  
+
   const selectStyle: React.CSSProperties = {
     width: "100%",
     padding: "8px 12px",
@@ -69,6 +78,7 @@ const CriarFuncionario = () => {
   const streamRef = useRef<MediaStream | null>(null);
 
   const [shifts, setShifts] = useState<Shift[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [formData, setFormData] = useState<CreateEmployeeFormData>({
     name: "",
     roleName: "",
@@ -76,6 +86,7 @@ const CriarFuncionario = () => {
     password: "",
     cellPhone: "",
     shiftId: "",
+    departmentId: "",
     isAllowedBypassCoord: false,
     isFacialRecognitionEnabled: false,
     imageBase64: "",
@@ -96,9 +107,17 @@ const CriarFuncionario = () => {
     const fetchShifts = async () => {
       try {
         setLoadingShifts(true);
-        const response = await api.get("/workshift/list");
-        const data = (response.data?.data ?? response.data) as Shift[];
+        const [shiftsRes, deptsRes] = await Promise.all([
+          api.get("/workshift/list"),
+          api.get("/department/list"),
+        ]);
+        const data = (shiftsRes.data?.data ?? shiftsRes.data) as Shift[];
         setShifts(data);
+
+        const deptsData = (deptsRes.data?.departments ??
+          deptsRes.data?.data ??
+          []) as Department[];
+        setDepartments(deptsData);
 
         if (data.length === 0) {
           toaster.info({
@@ -107,10 +126,10 @@ const CriarFuncionario = () => {
           });
         }
       } catch (err) {
-        const description = "Não foi possível carregar os turnos de trabalho.";
+        const description = "Não foi possível carregar os dados necessários.";
 
         toaster.error({
-          title: "Erro ao carregar turnos",
+          title: "Erro ao carregar dados",
           description,
         });
       } finally {
@@ -331,7 +350,7 @@ const CriarFuncionario = () => {
     setLoading(true);
     setSuccess(null);
 
-    const payload = {
+    const payload: Record<string, unknown> = {
       name: formData.name,
       roleName: formData.roleName,
       email: formData.email,
@@ -339,6 +358,7 @@ const CriarFuncionario = () => {
       cellPhone: formData.cellPhone,
       imageBase64: formData.imageBase64,
       isAllowedBypassCoord: formData.isAllowedBypassCoord,
+      isAllowedBypassFacial: formData.isFacialRecognitionEnabled,
       userShift: [
         {
           shiftId: formData.shiftId,
@@ -347,6 +367,10 @@ const CriarFuncionario = () => {
         },
       ],
     };
+
+    if (formData.departmentId) {
+      payload.departmentId = formData.departmentId;
+    }
 
     try {
       await api.post("/user/create", payload);
@@ -554,8 +578,35 @@ const CriarFuncionario = () => {
             </select>
           </Box>
 
+          <Box>
+            <Text
+              mb={1}
+              fontWeight="medium"
+              color="fg"
+              display="flex"
+              alignItems="center"
+              gap={2}
+            >
+              Departamento
+            </Text>
+            <select
+              name="departmentId"
+              id="departmentId"
+              value={formData.departmentId}
+              onChange={handleChange}
+              style={selectStyle}
+            >
+              <option value="">Selecione o Departamento (opcional)</option>
+              {departments.map((dept) => (
+                <option key={dept.id} value={dept.id}>
+                  {dept.name}
+                </option>
+              ))}
+            </select>
+          </Box>
+
           <GridItem colSpan={{ base: 1, md: 2 }}>
-            <Flex align="flex-start" gap={2} flexDir="column" >
+            <Flex align="flex-start" gap={2} flexDir="column">
               <Flex>
                 <input
                   type="checkbox"
@@ -577,7 +628,7 @@ const CriarFuncionario = () => {
                   onChange={handleChange}
                 />
                 <Text fontSize="sm" color="fg" ml="5px">
-                  Permitir marcação sem reconhecimento facial 
+                  Permitir marcação sem reconhecimento facial
                 </Text>
               </Flex>
             </Flex>
@@ -721,22 +772,24 @@ const CriarFuncionario = () => {
           </GridItem>
 
           <GridItem colSpan={{ base: 1, md: 2 }}>
-            <Flex justify="center" pt={4} gap="14px" w="100%">
+            <Flex justify="center" pt={4} gap="14px" w="100%" flexDir={{ base: "column", sm: "row" }} align="center">
               <Button
                 onClick={() => navigate(-1)}
-                bg="red.500"
+                bg="none"
+                border="1px solid"
+                borderColor="gray.400"
                 color="white"
-                w="210px"
+                w={{ base: "100%", sm: "210px" }}
                 h="34px"
                 borderRadius="full"
               >
-                <FaTimes /> Cancelar
+                Cancelar
               </Button>
               <Button
                 type="submit"
                 colorPalette="green"
                 disabled={loading}
-                w="210px"
+                w={{ base: "100%", sm: "210px" }}
                 h="34px"
                 borderRadius="full"
               >
@@ -745,9 +798,7 @@ const CriarFuncionario = () => {
                     <Spinner size="sm" mr={2} /> Cadastrando...
                   </>
                 ) : (
-                  <>
-                    <FaSave style={{ marginRight: 8 }} /> Salvar
-                  </>
+                  <>Salvar</>
                 )}
               </Button>
             </Flex>

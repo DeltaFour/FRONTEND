@@ -231,7 +231,7 @@ const TimeSheetView = () => {
   }
 
   return (
-    <Box bg="surface" p={6} borderRadius="lg" boxShadow="xl">
+    <Box bg="surface" p={{ base: 3, md: 6 }} borderRadius="lg" boxShadow="xl">
       <Flex
         justify="space-between"
         align="center"
@@ -306,8 +306,8 @@ const TimeSheetView = () => {
             />
           </GridItem>
           <GridItem>
-            <Flex justify={{ base: "flex-start", md: "flex-end" }} gap={3}>
-              <Button borderRadius="full" p="10px" onClick={handleApplyPeriod}>
+            <Flex justify={{ base: "flex-start", md: "flex-end" }} gap={3} w="100%">
+              <Button borderRadius="full" w={{ base: "100%", md: "auto" }} p="10px" onClick={handleApplyPeriod}>
                 Aplicar periodo
               </Button>
             </Flex>
@@ -411,7 +411,7 @@ const TimeSheetView = () => {
                         <FaCheckCircle /> Assinado em {formatDateTime(signatureStatus.employeeSignedAt)}
                       </Badge>
                     ) : (
-                      <Badge colorPalette="orange">Pendente</Badge>
+                      <Badge colorPalette="orange" p="5px" borderRadius="full">Pendente</Badge>
                     )}
                   </Flex>
 
@@ -423,7 +423,7 @@ const TimeSheetView = () => {
                         <FaCheckCircle /> Assinado por {signatureStatus.hrSignerName}
                       </Badge>
                     ) : (
-                      <Badge colorPalette="orange">Pendente</Badge>
+                      <Badge colorPalette="orange" p="5px" borderRadius="full">Pendente</Badge>
                     )}
                   </Flex>
 

@@ -57,8 +57,8 @@ export const ConfirmDeleteModal = ({
 
         <DialogPositioner>
           <DialogContent
-            w="500px"
-            height="350px"
+            w={{ base: "92vw", md: "500px" }}
+            maxH="85vh"
             borderRadius="15px"
             boxShadow="lg"
             px={6}

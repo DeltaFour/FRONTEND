@@ -257,6 +257,7 @@ const ApprovalPill = ({ isApproved }: { isApproved: boolean }) => {
       color={color}
       display="inline-flex"
       alignItems="center"
+
     >
       {isApproved ? "Válido" : "Pendente"}
     </Box>
@@ -478,7 +479,7 @@ const FiltrarPontoRH = () => {
   return (
     <Box
       bg="surface"
-      p={6}
+      p={{ base: 3, md: 6 }}
       borderRadius="lg"
       boxShadow="xl"
       className="animate-fade-in"
@@ -637,12 +638,12 @@ const FiltrarPontoRH = () => {
         borderRadius="md"
         borderColor="border"
       >
-        <Box as="table" width="100%" borderCollapse="collapse">
+        <Box as="table" width="100%" minW="800px" borderCollapse="collapse">
           <Box as="thead" bg="surface.subtle">
             <Box as="tr">
               <Box
                 as="th"
-                px={6}
+                px={{ base: 3, md: 6 }}
                 py={3}
                 textAlign="left"
                 fontSize="xs"
@@ -653,7 +654,7 @@ const FiltrarPontoRH = () => {
               </Box>
               <Box
                 as="th"
-                px={6}
+                px={{ base: 3, md: 6 }}
                 py={3}
                 textAlign="left"
                 fontSize="xs"
@@ -664,7 +665,7 @@ const FiltrarPontoRH = () => {
               </Box>
               <Box
                 as="th"
-                px={6}
+                px={{ base: 3, md: 6 }}
                 py={3}
                 textAlign="left"
                 fontSize="xs"
@@ -675,7 +676,7 @@ const FiltrarPontoRH = () => {
               </Box>
               <Box
                 as="th"
-                px={6}
+                px={{ base: 3, md: 6 }}
                 py={3}
                 textAlign="left"
                 fontSize="xs"
@@ -686,7 +687,7 @@ const FiltrarPontoRH = () => {
               </Box>
               <Box
                 as="th"
-                px={6}
+                px={{ base: 3, md: 6 }}
                 py={3}
                 textAlign="left"
                 fontSize="xs"
@@ -698,7 +699,7 @@ const FiltrarPontoRH = () => {
 
               <Box
                 as="th"
-                px={6}
+                px={{ base: 3, md: 6 }}
                 py={3}
                 textAlign="right"
                 fontSize="xs"
@@ -729,7 +730,7 @@ const FiltrarPontoRH = () => {
                 <Box as="tr" key={punch.id} borderTopWidth="1px">
                   <Box
                     as="td"
-                    px={6}
+                    px={{ base: 3, md: 6 }}
                     py={4}
                     whiteSpace="nowrap"
                     fontSize="sm"
@@ -738,7 +739,7 @@ const FiltrarPontoRH = () => {
                   >
                     {punch.employeeName}
                   </Box>
-                  <Box as="td" px={6} py={4} color="fg.muted">
+                  <Box as="td" px={{ base: 3, md: 6 }} py={4} color="fg.muted">
                     <Text fontWeight="semibold" color="fg">
                       {formatTimeOnly(punch.timePunched)}
                     </Text>
@@ -746,13 +747,13 @@ const FiltrarPontoRH = () => {
                       {formatDateOnly(punch.timePunched)}
                     </Text>
                   </Box>
-                  <Box as="td" px={6} py={4}>
+                  <Box as="td" px={{ base: 3, md: 6 }} py={4}>
                     <StatusPill isLate={punch.isLate} />
                   </Box>
-                  <Box as="td" px={6} py={4}>
+                  <Box as="td" px={{ base: 3, md: 6 }} py={4}>
                     <ApprovalPill isApproved={isAttendanceApproved(punch)} />
                   </Box>
-                  <Box as="td" px={6} py={4}>
+                  <Box as="td" px={{ base: 3, md: 6 }} py={4}>
                     {punch.isLate && !isAttendanceApproved(punch) ? (
                       <Button
                         size="xs"
@@ -772,7 +773,7 @@ const FiltrarPontoRH = () => {
                       </Text>
                     )}
                   </Box>
-                  <Box as="td" px={6} py={4} textAlign="right">
+                  <Box as="td" px={{ base: 3, md: 6 }} py={4} textAlign="right">
                     <IconButton
                       aria-label={`Ver detalhes do ponto de ${punch.employeeName}`}
                       variant="ghost"

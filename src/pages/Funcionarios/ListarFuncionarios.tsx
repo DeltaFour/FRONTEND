@@ -1,9 +1,18 @@
-import { useCallback, useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ChangeEvent,
+  type CSSProperties,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
   Button,
   Flex,
+  Grid,
+  GridItem,
   IconButton,
   MenuContent,
   MenuItem,
@@ -17,7 +26,9 @@ import {
 import { FaEdit, FaEllipsisV, FaPlus, FaTrash } from "react-icons/fa";
 import api from "../../services/api";
 import { ConfirmDeleteModal } from "../../components/Modal/ConfirmDeleteModal";
+import { Input } from "../../components/ui/Input";
 import { toaster } from "../../components/ui/toaster";
+import { useColorModeValue } from "../../theme/colorMode";
 
 interface Funcionario {
   id: string;
@@ -27,9 +38,38 @@ interface Funcionario {
   cellphone?: string;
 }
 
+interface FiltersState {
+  search: string;
+  roleName: string;
+}
+
+const initialFilters: FiltersState = {
+  search: "",
+  roleName: "all",
+};
+
 const ListarFuncionarios = () => {
+  const selectBg = useColorModeValue("#FFFFFF", "#1A1A1F");
+  const selectColor = useColorModeValue("#1A202C", "#E2E8F0");
+  const selectBorder = useColorModeValue(
+    "1px solid #E2E8F0",
+    "1px solid rgba(255, 255, 255, 0.1)",
+  );
+  const selectColorScheme = useColorModeValue("light", "dark");
+
+  const selectStyle: CSSProperties = {
+    width: "100%",
+    padding: "8px 12px",
+    borderRadius: "0.375rem",
+    border: selectBorder,
+    backgroundColor: selectBg,
+    color: selectColor,
+    colorScheme: selectColorScheme as any,
+  };
+
   const navigate = useNavigate();
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
+  const [filters, setFilters] = useState<FiltersState>(initialFilters);
   const [loading, setLoading] = useState(true);
   const [employeeToDelete, setEmployeeToDelete] = useState<{
     id: string;
@@ -60,6 +100,66 @@ const ListarFuncionarios = () => {
   useEffect(() => {
     void fetchEmployees();
   }, [fetchEmployees]);
+
+  const roleOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          funcionarios
+            .map((funcionario) => funcionario.roleName.trim())
+            .filter((roleName) => roleName.length > 0),
+        ),
+      ).sort((a, b) => a.localeCompare(b, "pt-BR")),
+    [funcionarios],
+  );
+
+  const filteredFuncionarios = useMemo(() => {
+    const normalizedSearch = filters.search.trim().toLowerCase();
+
+    return funcionarios.filter((funcionario) => {
+      const searchableFields = [
+        funcionario.name,
+        funcionario.email,
+        funcionario.cellphone ?? "",
+      ];
+
+      const matchesSearch =
+        !normalizedSearch ||
+        searchableFields.some((field) =>
+          field.toLowerCase().includes(normalizedSearch),
+        );
+
+      if (!matchesSearch) {
+        return false;
+      }
+
+      if (
+        filters.roleName !== "all" &&
+        funcionario.roleName !== filters.roleName
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [filters, funcionarios]);
+
+  const hasActiveFilters =
+    filters.search.trim().length > 0 ||
+    filters.roleName !== "all";
+
+  const handleFilterChange = (
+    event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value } = event.target;
+
+    setFilters((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const clearFilters = () => setFilters(initialFilters);
 
   const openDeleteModal = (employeeId: string, employeeName: string) => {
     setEmployeeToDelete({ id: employeeId, name: employeeName });
@@ -111,7 +211,7 @@ const ListarFuncionarios = () => {
   }
 
   return (
-    <Box bg="surface" p={6} borderRadius="lg" boxShadow="xl">
+    <Box bg="surface" p={{ base: 3, md: 6 }} borderRadius="lg" boxShadow="xl">
       <Flex justify="space-between" align="center" mb={6}>
         <Text fontSize="lg" fontWeight="semibold" color="fg">
           Lista de funcionários
@@ -127,18 +227,95 @@ const ListarFuncionarios = () => {
           <FaPlus style={{ marginRight: 8 }} /> Novo Funcionário
         </Button>
       </Flex>
+
+      <Box
+        mb={6}
+        p={4}
+        borderWidth="1px"
+        borderRadius="lg"
+        borderColor="border"
+        bg="surface.subtle"
+      >
+        <Flex
+          justify="space-between"
+          align="center"
+          gap={3}
+          flexWrap="wrap"
+          mb={4}
+        >
+          <Box>
+            <Text fontSize="sm" fontWeight="semibold" color="fg">
+              Filtros
+            </Text>
+            <Text fontSize="sm" color="fg.muted">
+              Filtre por nome, e-mail e perfil.
+            </Text>
+          </Box>
+
+          <Button type="button" variant="outline" onClick={clearFilters} p="10px">
+            Limpar filtros
+          </Button>
+        </Flex>
+
+        <Grid
+          templateColumns={{
+            base: "1fr",
+            md: "repeat(2, minmax(0, 1fr))",
+            xl: "repeat(3, minmax(0, 1fr))",
+          }}
+          gap={4}
+        >
+          <GridItem>
+            <Text mb={1} fontSize="sm" fontWeight="medium" color="fg">
+              Nome ou e-mail
+            </Text>
+            <Input
+              name="search"
+              value={filters.search}
+              onChange={handleFilterChange}
+              placeholder="Buscar funcionário"
+            />
+          </GridItem>
+
+          <GridItem>
+            <Text mb={1} fontSize="sm" fontWeight="medium" color="fg">
+              Perfil
+            </Text>
+            <Box
+              as="select"
+              name="roleName"
+              value={filters.roleName}
+              onChange={handleFilterChange}
+              width="100%"
+              p="10px"
+              borderWidth="1px"
+              borderColor="border"
+              borderRadius="md"
+              bg="surface"
+              color="fg"
+            >
+              <option value="all">Todos os perfis</option>
+              {roleOptions.map((role) => (
+                <option key={role} value={role}>
+                  {role}
+                </option>
+              ))}
+            </Box>
+          </GridItem>
+        </Grid>
+      </Box>
       <Box
         overflowX="auto"
         borderWidth="1px"
         borderRadius="md"
         borderColor="border"
       >
-        <Box as="table" width="100%" borderCollapse="collapse">
+        <Box as="table" width="100%" borderCollapse="collapse" minW="550px">
           <Box as="thead" bg="surface.subtle">
             <Box as="tr">
               <Box
                 as="th"
-                px={6}
+                px={{ base: 3, md: 6 }}
                 py={3}
                 textAlign="left"
                 fontSize="xs"
@@ -149,7 +326,7 @@ const ListarFuncionarios = () => {
               </Box>
               <Box
                 as="th"
-                px={6}
+                px={{ base: 3, md: 6 }}
                 py={3}
                 textAlign="left"
                 fontSize="xs"
@@ -160,7 +337,7 @@ const ListarFuncionarios = () => {
               </Box>
               <Box
                 as="th"
-                px={6}
+                px={{ base: 3, md: 6 }}
                 py={3}
                 textAlign="left"
                 fontSize="xs"
@@ -171,7 +348,7 @@ const ListarFuncionarios = () => {
               </Box>
               <Box
                 as="th"
-                px={6}
+                px={{ base: 3, md: 6 }}
                 py={3}
                 textAlign="right"
                 fontSize="xs"
@@ -184,12 +361,12 @@ const ListarFuncionarios = () => {
           </Box>
 
           <Box as="tbody">
-            {funcionarios.length > 0 ? (
-              funcionarios.map((funcionario) => (
+            {filteredFuncionarios.length > 0 ? (
+              filteredFuncionarios.map((funcionario) => (
                 <Box as="tr" key={funcionario.id} borderTopWidth="1px">
                   <Box
                     as="td"
-                    px={6}
+                    px={{ base: 3, md: 6 }}
                     py={4}
                     whiteSpace="nowrap"
                     fontSize="sm"
@@ -200,7 +377,7 @@ const ListarFuncionarios = () => {
                   </Box>
                   <Box
                     as="td"
-                    px={6}
+                    px={{ base: 3, md: 6 }}
                     py={4}
                     whiteSpace="nowrap"
                     fontSize="sm"
@@ -210,7 +387,7 @@ const ListarFuncionarios = () => {
                   </Box>
                   <Box
                     as="td"
-                    px={6}
+                    px={{ base: 3, md: 6 }}
                     py={4}
                     whiteSpace="nowrap"
                     fontSize="sm"
@@ -220,7 +397,7 @@ const ListarFuncionarios = () => {
                   </Box>
                   <Box
                     as="td"
-                    px={6}
+                    px={{ base: 3, md: 6 }}
                     py={4}
                     whiteSpace="nowrap"
                     fontSize="sm"
@@ -280,13 +457,13 @@ const ListarFuncionarios = () => {
               <Box as="tr" borderTopWidth="1px">
                 <Box
                   as="td"
-                  colSpan={4}
                   px={6}
                   py={4}
                   textAlign="center"
                   color="fg.muted"
+                  {...({ colSpan: 4 } as any)}
                 >
-                  Nenhum funcionário encontrado.
+                  Nenhum funcionário encontrado com os filtros aplicados.
                 </Box>
               </Box>
             )}

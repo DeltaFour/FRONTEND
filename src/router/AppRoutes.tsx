@@ -11,6 +11,7 @@ import ListarFuncionarios from "../pages/Funcionarios/ListarFuncionarios";
 import CriarFuncionario from "../pages/Funcionarios/CriarFuncionario";
 import EditarFuncionario from "../pages/Funcionarios/EditarFuncionario";
 import { GerenciarTurnos } from "../pages/Empresa/GerenciarTurnos";
+import { GerenciarDepartamentos } from "../pages/Empresa/GerenciarDepartamentos";
 import PontoEletronico from "../pages/Empresa/PontoEletronico";
 import PontoEmAtraso from "../pages/Empresa/PontoEmAtraso";
 import PontoParaFuncionario from "../pages/Empresa/PontoParaFuncionario";
@@ -55,7 +56,7 @@ const AppRoutes = () => (
         }
       >
         <Route path="/dashboard-empresa" element={<DashboardEmpresa />}>
-          <Route index element={<ListarFuncionarios />} />
+          <Route index element={<DashBoardGraficos />} />
           <Route path="funcionarios" element={<ListarFuncionarios />} />
           <Route path="funcionarios/criar" element={<CriarFuncionario />} />
           <Route
@@ -72,6 +73,7 @@ const AppRoutes = () => (
           <Route path="timesheet" element={<TimeSheetManager />} />
           <Route path="timesheet/:userId" element={<TimeSheetView />} />
           <Route path="turnos" element={<GerenciarTurnos />} />
+          <Route path="departamentos" element={<GerenciarDepartamentos />} />
         </Route>
       </Route>
 

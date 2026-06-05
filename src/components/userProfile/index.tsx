@@ -272,7 +272,8 @@ export default function UserProfileMenu() {
           font-family: 'DM Sans', sans-serif;
           border-radius: 20px;
           box-shadow: 0 24px 64px rgba(0,0,0,0.14), 0 4px 16px rgba(0,0,0,0.07);
-          width: 460px;
+          max-width: 460px;
+          width: calc(100vw - 32px);
           overflow: hidden;
           animation: pf-dialogIn 0.2s cubic-bezier(0.34,1.56,0.64,1);
         }

@@ -231,7 +231,7 @@ const HistoricoPontos = () => {
   }
 
   return (
-    <Box bg="surface" p={6} borderRadius="lg" boxShadow="xl">
+    <Box bg="surface" p={{ base: 3, md: 6 }} borderRadius="lg" boxShadow="xl">
       <Heading
         size="lg"
         mb={6}
@@ -348,7 +348,7 @@ const HistoricoPontos = () => {
                   borderRadius="md"
                   borderColor="border"
                 >
-                  <Box as="table" w="full" borderCollapse="collapse">
+                  <Box as="table" w="full" minW="500px" borderCollapse="collapse">
                     <Box as="thead" bg="surface.subtle">
                       <Box as="tr">
                         <Box

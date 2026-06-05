@@ -17,10 +17,12 @@
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 #root {
@@ -48,23 +50,54 @@ body {
   }
 }
 
-@keyframes fadeIn {
+@keyframes fluidFadeIn {
   from {
     opacity: 0;
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
-
-.animate-slide-in {
-  animation: slideInRight 0.6s ease-out;
-}
-
 .animate-fade-in {
-  animation: fadeIn 0.8s ease-out;
+  animation: fluidFadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Aplica a animação fluida para todos os modais/diálogos */
+.chakra-dialog__content,
+[role="dialog"],
+.pf-dialog {
+  animation: fluidFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+/* Padronização global dos botões (estilo Criar Funcionário: pílula, sem sombra) */
+button,
+.chakra-button {
+  border-radius: 9999px !important;
+  box-shadow: none !important;
+}
+
+@keyframes scan {
+  0% {
+    top: 0%;
+  }
+  50% {
+    top: 100%;
+  }
+  100% {
+    top: 0%;
+  }
+}
+
+.scanner-laser {
+  position: absolute;
+  height: 3px;
+  width: 100%;
+  background: linear-gradient(to right, transparent, #805AD5, transparent);
+  box-shadow: 0 0 8px #805AD5;
+  animation: scan 2.5s linear infinite;
+  z-index: 10;
+  pointer-events: none;
 }

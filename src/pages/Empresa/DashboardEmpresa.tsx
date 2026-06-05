@@ -1,12 +1,15 @@
-import { Outlet } from "react-router-dom";
+import { useState } from "react";
+import { Outlet, useLocation } from "react-router-dom";
 import { Box, Flex } from "@chakra-ui/react";
 import {
-  FaBusinessTime,
+  FaCalendarAlt,
   FaChartBar,
   FaClock,
   FaFileSignature,
+  FaHandshake,
   FaHome,
-  FaUserPlus,
+  FaSitemap,
+  FaUserCheck,
   FaUsers,
 } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
@@ -15,58 +18,76 @@ import GlobalHeader from "../../components/GlobalHeader/GlobalHeader";
 
 const DashboardEmpresa = () => {
   const { user, logout } = useAuth();
+  const location = useLocation();
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const menuItems: SidebarItem[] = [
     {
       label: "Início",
-      to: "/dashboard-empresa/ponto",
+      to: "/dashboard-empresa",
       icon: FaHome,
       exact: true,
-    },
-    {
-      label: "Gráficos",
-      to: "/dashboard-empresa/dashboard",
-      icon: FaChartBar,
+      category: "dashboard",
     },
     {
       label: "Funcionários",
       to: "/dashboard-empresa/funcionarios",
       icon: FaUsers,
+      category: "gestao",
+    },
+    {
+      label: "Departamentos",
+      to: "/dashboard-empresa/departamentos",
+      icon: FaSitemap,
+      category: "gestao",
+    },
+    {
+      label: "Turnos",
+      to: "/dashboard-empresa/turnos",
+      icon: FaCalendarAlt,
+      category: "gestao",
     },
     {
       label: "Meu Ponto",
       to: "/dashboard-empresa/ponto",
       icon: FaClock,
+      category: "ponto",
     },
     {
       label: "Ponto de Terceiros",
       to: "/dashboard-empresa/ponto/terceiros",
-      icon: FaUsers,
+      icon: FaHandshake,
+      category: "ponto",
     },
     {
       label: "Ponto RH",
       to: "/dashboard-empresa/ponto/rh",
-      icon: FaUserPlus,
+      icon: FaUserCheck,
+      category: "ponto",
     },
     {
       label: "Folha de Ponto",
       to: "/dashboard-empresa/timesheet",
       icon: FaFileSignature,
-    },
-    {
-      label: "Turnos",
-      to: "/dashboard-empresa/turnos",
-      icon: FaBusinessTime,
+      category: "ponto",
     },
   ];
 
   return (
     <Flex h="100vh" bg="surface.muted" overflow="hidden">
-      <Sidebar items={menuItems} userName={user?.name} onLogout={logout} />
+      <Sidebar
+        items={menuItems}
+        userName={user?.name}
+        onLogout={logout}
+        isMobileOpen={isMobileSidebarOpen}
+        onMobileClose={() => setIsMobileSidebarOpen(false)}
+      />
 
-      <Box flex={1} p={8} overflowY="auto" minH={0}>
-        <GlobalHeader />
-        <Outlet />
+      <Box flex={1} p={{ base: 3, md: 8 }} overflowY="auto" minH={0}>
+        <GlobalHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
+        <Box key={location.pathname} className="animate-fade-in">
+          <Outlet />
+        </Box>
       </Box>
     </Flex>
   );
