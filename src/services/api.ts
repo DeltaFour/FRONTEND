@@ -159,6 +159,25 @@ const createMockApi = () => {
       return delay(buildResponse({ data: users } as T, config));
     }
 
+    if (normalizedUrl === "/user/get-all-attendances") {
+      const allAttendances = punches.map((punch) => {
+        const employee = users.find((u) => u.id === punch.userId);
+        return {
+          attendanceId: punch.id,
+          name: employee?.name || "Funcionário Desconhecido",
+          timePunched: punch.timePunched,
+          isLate: false,
+          type: punch.type,
+          shiftType: punch.shiftType || employee?.shiftType,
+          status: "APROVADO",
+          justification: "",
+          observation: "",
+          filePath: "",
+        };
+      });
+      return delay(buildResponse(allAttendances as T, config));
+    }
+
     if (normalizedUrl === "/workshift/list" || normalizedUrl === "/workshift") {
       return delay(buildResponse({ data: shifts } as T, config));
     }
