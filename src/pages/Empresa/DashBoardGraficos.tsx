@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Badge, Box, Flex, Grid, Text } from "@chakra-ui/react";
+import { useEffect, useState } from "react";
+import { Badge, Box, Flex, Grid, Spinner, Text } from "@chakra-ui/react";
 import { useColorModeValue } from "../../theme/colorMode";
 import {
   BarChart,
@@ -24,6 +24,7 @@ import {
   FileWarning,
   ChevronRight,
 } from "lucide-react";
+import api from "../../services/api";
 
 // ─── tipos ────────────────────────────────────────────────────────────────────
 interface StatCardProps {
@@ -46,28 +47,13 @@ interface TopLateEmployee {
   count: number;
 }
 
-// ─── dados mock ───────────────────────────────────────────────────────────────
-const weeklyData = [
-  { semana: "Sem 1", pontual: 88, atrasado: 12 },
-  { semana: "Sem 2", pontual: 85, atrasado: 15 },
-  { semana: "Sem 3", pontual: 90, atrasado: 10 },
-  { semana: "Sem 4", pontual: 83, atrasado: 17 },
-];
-
+// ─── dados fallback/mock para abas extras ─────────────────────────────────────
 const deptData = [
   { dept: "TI", presenca: 95 },
   { dept: "RH", presenca: 88 },
   { dept: "Comercial", presenca: 82 },
   { dept: "Financeiro", presenca: 91 },
   { dept: "Operações", presenca: 78 },
-];
-
-const topLate: TopLateEmployee[] = [
-  { name: "Carlos Mendes", dept: "Operações", count: 9 },
-  { name: "Ana Souza", dept: "Comercial", count: 7 },
-  { name: "Roberto Lima", dept: "Operações", count: 6 },
-  { name: "Fernanda Dias", dept: "TI", count: 5 },
-  { name: "Paulo Ramos", dept: "Financeiro", count: 4 },
 ];
 
 const alerts: AlertItemProps[] = [
@@ -279,12 +265,16 @@ export default function DashboardRH() {
   const [activeTab, setActiveTab] = useState<"semana" | "departamento">(
     "semana",
   );
+  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
   const today = new Date().toLocaleDateString("pt-BR", {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
   });
+
   const cardBg = "surface";
   const cardBorder = "border";
   const mutedText = "fg.muted";
@@ -308,6 +298,55 @@ export default function DashboardRH() {
   const trackBg = "surface.subtle";
   const captionText = "fg.muted";
 
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get("/user/attendance-dashboard");
+        setDashboardData(response.data);
+      } catch (err) {
+        console.error("Failed to fetch dashboard data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    void loadDashboardData();
+  }, []);
+
+  if (loading) {
+    return (
+      <Flex align="center" justify="center" minH="50vh" gap={3}>
+        <Spinner />
+        <Text>Carregando métricas da dashboard...</Text>
+      </Flex>
+    );
+  }
+
+  // Map charts data from API response
+  const summary = dashboardData?.summary || {
+    activeEmployees: 0,
+    punctualityRate: 0,
+    noClockToday: 0,
+    monthlyOvertimeHours: 0,
+  };
+
+  const weeklyChartData = dashboardData?.weeklyPresence?.map((w: any) => ({
+    semana: w.weekLabel,
+    pontual: w.punctual,
+    atrasado: w.late,
+  })) || [];
+
+  const topLateChartData = dashboardData?.topLateEmployees?.map((e: any) => ({
+    name: e.name,
+    dept: "Geral",
+    count: e.lateCount,
+  })) || [];
+
+  const trendChartData = dashboardData?.punctualityTrend?.map((t: any) => ({
+    mes: t.month,
+    taxa: t.rate,
+  })) || [];
+
   return (
     <Box
       bg="surface.muted"
@@ -322,14 +361,16 @@ export default function DashboardRH() {
         transition={{ duration: 0.35 }}
         mb={6}
       >
-        <Text
-          fontSize="13px"
-          color={mutedText}
-          mt={0.5}
-          textTransform="capitalize"
-        >
-          {today}
-        </Text>
+        <Flex align="center" justify="space-between" flexWrap="wrap" gap={3}>
+          <Text
+            fontSize="13px"
+            color={mutedText}
+            mt={0.5}
+            textTransform="capitalize"
+          >
+            {today}
+          </Text>
+        </Flex>
       </MotionBox>
 
       {/* cards de resumo */}
@@ -340,28 +381,28 @@ export default function DashboardRH() {
       >
         <StatCard
           label="Funcionários ativos"
-          value="142"
+          value={String(summary.activeEmployees)}
           icon={<Users size={18} />}
           accent="purple"
           delay={0.05}
         />
         <StatCard
           label="Taxa de pontualidade"
-          value="87%"
+          value={`${summary.punctualityRate}%`}
           icon={<CheckCircle2 size={18} />}
           accent="green"
           delay={0.1}
         />
         <StatCard
           label="Sem ponto hoje"
-          value="8"
+          value={String(summary.noClockToday)}
           icon={<XCircle size={18} />}
           accent="red"
           delay={0.15}
         />
         <StatCard
           label="Horas extras (mês)"
-          value="312h"
+          value={`${summary.monthlyOvertimeHours}h`}
           icon={<TrendingUp size={18} />}
           accent="amber"
           delay={0.2}
@@ -387,7 +428,7 @@ export default function DashboardRH() {
                 Análise de presença
               </Text>
               <Text fontSize="12px" color={captionText} mt={0.5}>
-                Maio 2025
+                Período Atual
               </Text>
             </Box>
             <Flex gap={1} bg={tabBg} borderRadius="8px" p={0.5}>
@@ -446,7 +487,7 @@ export default function DashboardRH() {
 
           {activeTab === "semana" ? (
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={weeklyData} barSize={28} barGap={4}>
+              <BarChart data={weeklyChartData} barSize={28} barGap={4}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke={gridStroke}
@@ -571,7 +612,7 @@ export default function DashboardRH() {
           <Flex justify="space-between" align="center" mb={4}>
             <Box>
               <Text fontSize="14px" fontWeight={600} color="fg">
-                Top 5 — mais atrasos
+                Top mais atrasos
               </Text>
               <Text fontSize="12px" color={captionText} mt={0.5}>
                 Registros no mês atual
@@ -590,62 +631,67 @@ export default function DashboardRH() {
             </Flex>
           </Flex>
 
-          {topLate.map((f, i) => {
-            const pct = Math.round((f.count / topLate[0].count) * 100);
-            const isFirst = i === 0;
-            return (
-              <Box key={f.name} mb={i < topLate.length - 1 ? 3 : 0}>
-                <Flex justify="space-between" align="center" mb={1}>
-                  <Flex align="center" gap={2}>
+          {topLateChartData.length > 0 ? (
+            topLateChartData.map((f, i) => {
+              const maxCount = topLateChartData[0]?.count || 1;
+              const pct = Math.round((f.count / maxCount) * 100);
+              const isFirst = i === 0;
+              return (
+                <Box key={f.name} mb={i < topLateChartData.length - 1 ? 3 : 0}>
+                  <Flex justify="space-between" align="center" mb={1}>
+                    <Flex align="center" gap={2}>
+                      <Box
+                        w="22px"
+                        h="22px"
+                        borderRadius="50%"
+                        bg={isFirst ? rankFirstBg : rankOtherBg}
+                        color={isFirst ? rankFirstColor : rankOtherColor}
+                        fontSize="10px"
+                        fontWeight={700}
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="center"
+                        flexShrink={0}
+                      >
+                        {i + 1}
+                      </Box>
+                      <Text
+                        fontSize="12px"
+                        fontWeight={isFirst ? 600 : 400}
+                        color="fg"
+                      >
+                        {f.name}
+                      </Text>
+                    </Flex>
+                    <Flex align="center" gap={2}>
+                      <Text fontSize="11px" color={deptColor}>
+                        {f.dept}
+                      </Text>
+                      <Badge
+                        bg={isFirst ? badgeFirstBg : badgeOtherBg}
+                        color={isFirst ? badgeFirstColor : badgeOtherColor}
+                        fontSize="10px"
+                        px={1.5}
+                        borderRadius="4px"
+                      >
+                        {f.count}x
+                      </Badge>
+                    </Flex>
+                  </Flex>
+                  <Box bg={trackBg} borderRadius="full" h="5px" overflow="hidden">
                     <Box
-                      w="22px"
-                      h="22px"
-                      borderRadius="50%"
-                      bg={isFirst ? rankFirstBg : rankOtherBg}
-                      color={isFirst ? rankFirstColor : rankOtherColor}
-                      fontSize="10px"
-                      fontWeight={700}
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="center"
-                      flexShrink={0}
-                    >
-                      {i + 1}
-                    </Box>
-                    <Text
-                      fontSize="12px"
-                      fontWeight={isFirst ? 600 : 400}
-                      color="fg"
-                    >
-                      {f.name}
-                    </Text>
-                  </Flex>
-                  <Flex align="center" gap={2}>
-                    <Text fontSize="11px" color={deptColor}>
-                      {f.dept}
-                    </Text>
-                    <Badge
-                      bg={isFirst ? badgeFirstBg : badgeOtherBg}
-                      color={isFirst ? badgeFirstColor : badgeOtherColor}
-                      fontSize="10px"
-                      px={1.5}
-                      borderRadius="4px"
-                    >
-                      {f.count}x
-                    </Badge>
-                  </Flex>
-                </Flex>
-                <Box bg={trackBg} borderRadius="full" h="5px" overflow="hidden">
-                  <Box
-                    bg={isFirst ? RED : PURPLE_MID}
-                    h="100%"
-                    borderRadius="full"
-                    style={{ width: `${pct}%`, transition: "width 0.6s ease" }}
-                  />
+                      bg={isFirst ? RED : PURPLE_MID}
+                      h="100%"
+                      borderRadius="full"
+                      style={{ width: `${pct}%`, transition: "width 0.6s ease" }}
+                    />
+                  </Box>
                 </Box>
-              </Box>
-            );
-          })}
+              );
+            })
+          ) : (
+            <Text fontSize="12px" color="fg.muted">Sem dados de atraso no mês.</Text>
+          )}
         </MotionBox>
 
         {/* área — evolução de pontualidade */}
@@ -664,22 +710,11 @@ export default function DashboardRH() {
               Evolução da pontualidade
             </Text>
             <Text fontSize="12px" color={captionText} mt={0.5}>
-              Últimos 8 meses
+              Histórico Mensal
             </Text>
           </Box>
           <ResponsiveContainer width="100%" height={200}>
-            <AreaChart
-              data={[
-                { mes: "Out", taxa: 81 },
-                { mes: "Nov", taxa: 79 },
-                { mes: "Dez", taxa: 76 },
-                { mes: "Jan", taxa: 82 },
-                { mes: "Fev", taxa: 84 },
-                { mes: "Mar", taxa: 83 },
-                { mes: "Abr", taxa: 85 },
-                { mes: "Mai", taxa: 87 },
-              ]}
-            >
+            <AreaChart data={trendChartData}>
               <defs>
                 <linearGradient id="gradPontual" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor={PURPLE} stopOpacity={0.18} />
@@ -702,7 +737,7 @@ export default function DashboardRH() {
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(v) => `${v}%`}
-                domain={[70, 100]}
+                domain={[0, 100]}
               />
               <Tooltip content={<CustomTooltip />} />
               <Area

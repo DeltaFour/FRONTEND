@@ -36,16 +36,19 @@ interface Funcionario {
   email: string;
   roleName: string;
   cellphone?: string;
+  departmentName?: string;
 }
 
 interface FiltersState {
   search: string;
   roleName: string;
+  departmentName: string;
 }
 
 const initialFilters: FiltersState = {
   search: "",
   roleName: "all",
+  departmentName: "all",
 };
 
 const ListarFuncionarios = () => {
@@ -113,6 +116,18 @@ const ListarFuncionarios = () => {
     [funcionarios],
   );
 
+  const departmentOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          funcionarios
+            .map((funcionario) => funcionario.departmentName?.trim() ?? "")
+            .filter((dept) => dept.length > 0),
+        ),
+      ).sort((a, b) => a.localeCompare(b, "pt-BR")),
+    [funcionarios],
+  );
+
   const filteredFuncionarios = useMemo(() => {
     const normalizedSearch = filters.search.trim().toLowerCase();
 
@@ -121,6 +136,7 @@ const ListarFuncionarios = () => {
         funcionario.name,
         funcionario.email,
         funcionario.cellphone ?? "",
+        funcionario.departmentName ?? "",
       ];
 
       const matchesSearch =
@@ -140,13 +156,21 @@ const ListarFuncionarios = () => {
         return false;
       }
 
+      if (
+        filters.departmentName !== "all" &&
+        (funcionario.departmentName || "") !== filters.departmentName
+      ) {
+        return false;
+      }
+
       return true;
     });
   }, [filters, funcionarios]);
 
   const hasActiveFilters =
     filters.search.trim().length > 0 ||
-    filters.roleName !== "all";
+    filters.roleName !== "all" ||
+    filters.departmentName !== "all";
 
   const handleFilterChange = (
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -248,7 +272,7 @@ const ListarFuncionarios = () => {
               Filtros
             </Text>
             <Text fontSize="sm" color="fg.muted">
-              Filtre por nome, e-mail e perfil.
+              Filtre por nome, e-mail, departamento e perfil.
             </Text>
           </Box>
 
@@ -279,20 +303,52 @@ const ListarFuncionarios = () => {
 
           <GridItem>
             <Text mb={1} fontSize="sm" fontWeight="medium" color="fg">
+              Departamento
+            </Text>
+            <select
+              name="departmentName"
+              value={filters.departmentName}
+              onChange={handleFilterChange}
+              style={{
+                width: "100%",
+                padding: "10px",
+                borderWidth: "1px",
+                borderStyle: "solid",
+                borderColor: "var(--chakra-colors-border)",
+                borderRadius: "var(--chakra-radii-md)",
+                backgroundColor: "var(--chakra-colors-surface)",
+                color: "var(--chakra-colors-fg)",
+                outline: "none",
+              }}
+            >
+              <option value="all">Todos os departamentos</option>
+              {departmentOptions.map((dept) => (
+                <option key={dept} value={dept}>
+                  {dept}
+                </option>
+              ))}
+            </select>
+          </GridItem>
+
+          <GridItem>
+            <Text mb={1} fontSize="sm" fontWeight="medium" color="fg">
               Perfil
             </Text>
-            <Box
-              as="select"
+            <select
               name="roleName"
               value={filters.roleName}
               onChange={handleFilterChange}
-              width="100%"
-              p="10px"
-              borderWidth="1px"
-              borderColor="border"
-              borderRadius="md"
-              bg="surface"
-              color="fg"
+              style={{
+                width: "100%",
+                padding: "10px",
+                borderWidth: "1px",
+                borderStyle: "solid",
+                borderColor: "var(--chakra-colors-border)",
+                borderRadius: "var(--chakra-radii-md)",
+                backgroundColor: "var(--chakra-colors-surface)",
+                color: "var(--chakra-colors-fg)",
+                outline: "none",
+              }}
             >
               <option value="all">Todos os perfis</option>
               {roleOptions.map((role) => (
@@ -300,7 +356,7 @@ const ListarFuncionarios = () => {
                   {role}
                 </option>
               ))}
-            </Box>
+            </select>
           </GridItem>
         </Grid>
       </Box>
@@ -310,7 +366,7 @@ const ListarFuncionarios = () => {
         borderRadius="md"
         borderColor="border"
       >
-        <Box as="table" width="100%" borderCollapse="collapse" minW="550px">
+        <Box as="table" width="100%" borderCollapse="collapse" minW="650px">
           <Box as="thead" bg="surface.subtle">
             <Box as="tr">
               <Box
@@ -334,6 +390,17 @@ const ListarFuncionarios = () => {
                 textTransform="uppercase"
               >
                 E-mail
+              </Box>
+              <Box
+                as="th"
+                px={{ base: 3, md: 6 }}
+                py={3}
+                textAlign="left"
+                fontSize="xs"
+                color="fg.muted"
+                textTransform="uppercase"
+              >
+                Departamento
               </Box>
               <Box
                 as="th"
@@ -384,6 +451,16 @@ const ListarFuncionarios = () => {
                     color="fg.muted"
                   >
                     {funcionario.email}
+                  </Box>
+                  <Box
+                    as="td"
+                    px={{ base: 3, md: 6 }}
+                    py={4}
+                    whiteSpace="nowrap"
+                    fontSize="sm"
+                    color="fg.muted"
+                  >
+                    {funcionario.departmentName || "Sem departamento"}
                   </Box>
                   <Box
                     as="td"
@@ -461,7 +538,7 @@ const ListarFuncionarios = () => {
                   py={4}
                   textAlign="center"
                   color="fg.muted"
-                  {...({ colSpan: 4 } as any)}
+                  {...({ colSpan: 5 } as any)}
                 >
                   Nenhum funcionário encontrado com os filtros aplicados.
                 </Box>

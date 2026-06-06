@@ -11,6 +11,7 @@ import {
   FaSitemap,
   FaUserCheck,
   FaUsers,
+  FaCog,
 } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
 import Sidebar, { type SidebarItem } from "../../components/SideBar/Sidebar";
@@ -45,6 +46,12 @@ const DashboardEmpresa = () => {
       label: "Turnos",
       to: "/dashboard-empresa/turnos",
       icon: FaCalendarAlt,
+      category: "gestao",
+    },
+    {
+      label: "Configurações",
+      to: "/dashboard-empresa/configuracoes",
+      icon: FaCog,
       category: "gestao",
     },
     {

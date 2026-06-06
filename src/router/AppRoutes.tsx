@@ -22,6 +22,7 @@ import TimeSheetManager from "../pages/Empresa/TimeSheetManager";
 import TimeSheetView from "../pages/Empresa/TimeSheetView";
 import { useAuth } from "../context/AuthContext";
 import DashBoardGraficos from "../pages/Empresa/DashBoardGraficos";
+import ConfiguracoesEmpresa from "../pages/Empresa/ConfiguracoesEmpresa";
 
 interface ProtectedRouteProps {
   allowedRoles?: string[];
@@ -74,6 +75,7 @@ const AppRoutes = () => (
           <Route path="timesheet/:userId" element={<TimeSheetView />} />
           <Route path="turnos" element={<GerenciarTurnos />} />
           <Route path="departamentos" element={<GerenciarDepartamentos />} />
+          <Route path="configuracoes" element={<ConfiguracoesEmpresa />} />
         </Route>
       </Route>
 

@@ -10,7 +10,16 @@ import {
 import { AlertTriangle, CheckCircle, Info, X, XCircle } from "lucide-react";
 import { useColorModeValue } from "../../theme/colorMode";
 
-const lightVariants = {
+interface VariantStyle {
+  iconBg: string;
+  iconColor: string;
+  titleColor: string;
+  barColor: string;
+}
+
+type VariantGroup = Record<"info" | "warning" | "error" | "success", VariantStyle>;
+
+const lightVariants: VariantGroup = {
   info: {
     iconBg: "#dbeafe",
     iconColor: "#2563eb",
@@ -35,9 +44,9 @@ const lightVariants = {
     titleColor: "#14532d",
     barColor: "#22c55e",
   },
-} as const;
+};
 
-const darkVariants = {
+const darkVariants: VariantGroup = {
   info: {
     iconBg: "rgba(59,130,246,0.2)",
     iconColor: "#93c5fd",
@@ -62,7 +71,7 @@ const darkVariants = {
     titleColor: "#bbf7d0",
     barColor: "#4ade80",
   },
-} as const;
+};
 
 export const toaster = createToaster({
   placement: "top-end",
@@ -154,7 +163,7 @@ export const AppToaster = () => {
                 ml="18px"
                 color={variant.iconColor}
               >
-                <Box as={IconComponent} size={16} />
+                <IconComponent size={16} />
               </Flex>
 
               {/* Textos */}
@@ -165,7 +174,12 @@ export const AppToaster = () => {
                     fontSize="14px"
                     fontWeight="600"
                     lineHeight="1.3"
-                    noOfLines={1}
+                    style={{
+                      display: "-webkit-box",
+                      WebkitLineClamp: 1,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                    }}
                   >
                     {toast.title}
                   </Text>
@@ -176,7 +190,12 @@ export const AppToaster = () => {
                     color={descriptionColor}
                     lineHeight="1.4"
                     mt={toast.title ? "2px" : 0}
-                    noOfLines={2}
+                    style={{
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                    }}
                   >
                     {toast.description}
                   </Text>
@@ -198,7 +217,7 @@ export const AppToaster = () => {
                   transition="all 0.15s ease"
                   _hover={{ color: closeHoverColor, bg: closeHoverBg }}
                 >
-                  <Box as={X} size={12} />
+                  <X size={12} />
                 </Flex>
               </Toast.CloseTrigger>
             </Toast.Root>

@@ -28,6 +28,7 @@ import api from "../../services/api";
 import { Input } from "../../components/ui/Input";
 import { toaster } from "../../components/ui/toaster";
 import { useColorModeValue } from "../../theme/colorMode";
+import { validateEmail, validatePassword } from "../../utils/validation";
 
 interface Shift {
   id: string;
@@ -336,6 +337,24 @@ const CriarFuncionario = () => {
   const handleSubmit = async (event: FormEvent<HTMLDivElement>) => {
     event.preventDefault();
 
+    const sanitizedEmail = formData.email.trim().toLowerCase();
+    if (!validateEmail(sanitizedEmail)) {
+      toaster.error({
+        title: "E-mail Inválido",
+        description: "Por favor, insira um endereço de e-mail válido para o funcionário.",
+      });
+      return;
+    }
+
+    const passwordValidation = validatePassword(formData.password);
+    if (!passwordValidation.isValid) {
+      toaster.error({
+        title: "Senha Fraca",
+        description: "A senha inicial deve ter pelo menos: 8 caracteres, 1 maiúscula, 1 minúscula, 1 número, 1 caractere especial, e nenhum espaço.",
+      });
+      return;
+    }
+
     if (!formData.imageBase64) {
       const description =
         "Adicione uma foto por upload ou webcam antes de salvar.";
@@ -353,7 +372,7 @@ const CriarFuncionario = () => {
     const payload: Record<string, unknown> = {
       name: formData.name,
       roleName: formData.roleName,
-      email: formData.email,
+      email: sanitizedEmail,
       password: formData.password,
       cellPhone: formData.cellPhone,
       imageBase64: formData.imageBase64,

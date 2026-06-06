@@ -9,6 +9,8 @@ import {
   Building2,
   Hash,
   User,
+  Check,
+  X,
 } from "lucide-react";
 import {
   Box,
@@ -25,15 +27,8 @@ import DarkVeil from "../../components/background/background";
 import { Input } from "../../components/ui/Input";
 import { toaster } from "../../components/ui/toaster";
 
-const maskCnpj = (value: string) => {
-  return value
-    .replace(/\D/g, "")
-    .replace(/^(\d{2})(\d)/, "$1.$2")
-    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
-    .replace(/\.(\d{3})(\d)/, ".$1/$2")
-    .replace(/(\d{4})(\d)/, "$1-$2")
-    .substring(0, 18);
-};
+import { maskCnpj, validateCnpj } from "../../utils/cnpj";
+import { validateEmail, validatePassword } from "../../utils/validation";
 
 type Mode = "login" | "register";
 
@@ -54,6 +49,8 @@ const Login = () => {
   const [userName, setUserName] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [registerLoading, setRegisterLoading] = useState(false);
 
   const navigate = useNavigate();
@@ -64,8 +61,18 @@ const Login = () => {
     event.preventDefault();
     setLoading(true);
 
+    const sanitizedEmail = email.trim().toLowerCase();
+    if (!validateEmail(sanitizedEmail)) {
+      toaster.error({
+        title: "E-mail Inválido",
+        description: "Por favor, insira um endereço de e-mail válido.",
+      });
+      setLoading(false);
+      return;
+    }
+
     try {
-      await login(email, password);
+      await login(sanitizedEmail, password);
       toaster.success({
         title: "Sucesso",
         description: "Login realizado com sucesso!",
@@ -92,10 +99,48 @@ const Login = () => {
     event.preventDefault();
     setRegisterLoading(true);
 
+    const sanitizedEmail = registerEmail.trim().toLowerCase();
+    if (!validateEmail(sanitizedEmail)) {
+      toaster.error({
+        title: "E-mail Inválido",
+        description: "Por favor, insira um endereço de e-mail válido.",
+      });
+      setRegisterLoading(false);
+      return;
+    }
+
+    if (!validateCnpj(cnpj)) {
+      toaster.error({
+        title: "Erro de Validação",
+        description: "O CNPJ informado é inválido.",
+      });
+      setRegisterLoading(false);
+      return;
+    }
+
+    const passwordValidation = validatePassword(registerPassword);
+    if (!passwordValidation.isValid) {
+      toaster.error({
+        title: "Senha não atende aos requisitos",
+        description: "A senha precisa ter pelo menos: 8 caracteres, 1 maiúscula, 1 minúscula, 1 número, 1 caractere especial, e nenhum espaço.",
+      });
+      setRegisterLoading(false);
+      return;
+    }
+
+    if (registerPassword !== confirmPassword) {
+      toaster.error({
+        title: "Confirmação Incorreta",
+        description: "As senhas não coincidem.",
+      });
+      setRegisterLoading(false);
+      return;
+    }
+
     const payload = {
       companyName,
       cnpj,
-      email: registerEmail,
+      email: sanitizedEmail,
       name: userName,
       password: registerPassword,
     };
@@ -231,6 +276,7 @@ const Login = () => {
                       <Input
                         type="email"
                         id="email"
+                        autocomplete="username"
                         {...inputStyle}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
@@ -259,6 +305,7 @@ const Login = () => {
                       <Input
                         type={showPassword ? "text" : "password"}
                         id="password"
+                        autocomplete="current-password"
                         {...inputStyle}
                         pr={12}
                         value={password}
@@ -369,6 +416,8 @@ const Login = () => {
                       </Box>
                       <Input
                         type="text"
+                        id="companyName"
+                        autocomplete="organization"
                         {...inputStyle}
                         value={companyName}
                         onChange={(e) => setCompanyName(e.target.value)}
@@ -396,10 +445,12 @@ const Login = () => {
                       </Box>
                       <Input
                         type="text"
+                        id="cnpj"
+                        autocomplete="off"
                         {...inputStyle}
                         value={cnpj}
                         onChange={(e) => setCnpj(maskCnpj(e.target.value))}
-                        placeholder="00.000.000/0001-00"
+                        placeholder="00.000.000/0001-00 ou AA.AAA.AAA/AAAA-99"
                         maxLength={18}
                         required
                       />
@@ -424,6 +475,8 @@ const Login = () => {
                       </Box>
                       <Input
                         type="email"
+                        id="registerEmail"
+                        autocomplete="email"
                         {...inputStyle}
                         value={registerEmail}
                         color="white"
@@ -452,6 +505,8 @@ const Login = () => {
                       </Box>
                       <Input
                         type="text"
+                        id="userName"
+                        autocomplete="name"
                         {...inputStyle}
                         value={userName}
                         onChange={(e) => setUserName(e.target.value)}
@@ -479,6 +534,8 @@ const Login = () => {
                       </Box>
                       <Input
                         type={showRegisterPassword ? "text" : "password"}
+                        id="registerPassword"
+                        autocomplete="new-password"
                         {...inputStyle}
                         pr={12}
                         value={registerPassword}
@@ -499,6 +556,82 @@ const Login = () => {
                         minW="36px"
                       >
                         {showRegisterPassword ? (
+                          <EyeOff size={20} />
+                        ) : (
+                          <Eye size={20} />
+                        )}
+                      </Button>
+                    </Box>
+
+                    {/* Feedback visual dos requisitos da senha */}
+                    {registerPassword && (() => {
+                      const criteria = validatePassword(registerPassword).criteria;
+                      return (
+                        <Flex direction="column" gap={1} mt={2} pl={1}>
+                          <Text fontSize="xs" color="whiteAlpha.700">Requisitos da senha:</Text>
+                          <Flex align="center" gap={1.5} fontSize="xs" color={criteria.hasMinLength ? "green.300" : "red.300"}>
+                            {criteria.hasMinLength ? <Check size={12} /> : <X size={12} />} Mínimo de 8 caracteres
+                          </Flex>
+                          <Flex align="center" gap={1.5} fontSize="xs" color={criteria.hasUpper ? "green.300" : "red.300"}>
+                            {criteria.hasUpper ? <Check size={12} /> : <X size={12} />} Pelo menos 1 letra maiúscula
+                          </Flex>
+                          <Flex align="center" gap={1.5} fontSize="xs" color={criteria.hasLower ? "green.300" : "red.300"}>
+                            {criteria.hasLower ? <Check size={12} /> : <X size={12} />} Pelo menos 1 letra minúscula
+                          </Flex>
+                          <Flex align="center" gap={1.5} fontSize="xs" color={criteria.hasNumber ? "green.300" : "red.300"}>
+                            {criteria.hasNumber ? <Check size={12} /> : <X size={12} />} Pelo menos 1 número
+                          </Flex>
+                          <Flex align="center" gap={1.5} fontSize="xs" color={criteria.hasSpecial ? "green.300" : "red.300"}>
+                            {criteria.hasSpecial ? <Check size={12} /> : <X size={12} />} Pelo menos 1 caractere especial
+                          </Flex>
+                          <Flex align="center" gap={1.5} fontSize="xs" color={criteria.noSpaces ? "green.300" : "red.300"}>
+                            {criteria.noSpaces ? <Check size={12} /> : <X size={12} />} Sem espaços em branco
+                          </Flex>
+                        </Flex>
+                      );
+                    })()}
+                  </Box>
+
+                  {/* Confirmar Senha */}
+                  <Box>
+                    <Text {...fieldLabelStyle}>Confirmar Senha</Text>
+                    <Box position="relative">
+                      <Box
+                        position="absolute"
+                        insetY={0}
+                        left={0}
+                        pl={4}
+                        display="flex"
+                        alignItems="center"
+                        pointerEvents="none"
+                        zIndex={1}
+                      >
+                        <Lock size={20} color="#9CA3AF" />
+                      </Box>
+                      <Input
+                        type={showConfirmPassword ? "text" : "password"}
+                        id="confirmPassword"
+                        autocomplete="new-password"
+                        {...inputStyle}
+                        pr={12}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Confirme sua senha"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowConfirmPassword((v) => !v)}
+                        color="whiteAlpha.600"
+                        _hover={{ color: "white", bg: "transparent" }}
+                        position="absolute"
+                        insetY={0}
+                        right={0}
+                        minW="36px"
+                      >
+                        {showConfirmPassword ? (
                           <EyeOff size={20} />
                         ) : (
                           <Eye size={20} />

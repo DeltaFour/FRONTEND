@@ -2,12 +2,17 @@ import { createSystem, defaultConfig, defineConfig } from "@chakra-ui/react";
 
 const config = defineConfig({
   theme: {
-    fonts: {
-      body: "Nunito, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-      heading:
-        "Nunito, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    },
     tokens: {
+      fonts: {
+        body: {
+          value:
+            "Nunito, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        },
+        heading: {
+          value:
+            "Nunito, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        },
+      },
       colors: {
         brand: {
           50: { value: "#eef2ff" },

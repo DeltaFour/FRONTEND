@@ -147,11 +147,7 @@ const normalizeAttendances = (rawData: unknown): PunchRecord[] => {
     const timePunched = String(raw.timePunched ?? "");
     const punchTypeRaw = String(raw.type ?? "IN").toUpperCase();
     const punchType: PunchType = punchTypeRaw === "OUT" ? "OUT" : "IN";
-    const isLate =
-      raw.isLate === true ||
-      raw.isLate === "true" ||
-      raw.isLate === 1 ||
-      raw.isLate === "1";
+    const isLate = !!raw.isLate;
     const statusRaw = raw.status ?? null;
     const status =
       statusRaw === null || statusRaw === undefined ? null : String(statusRaw);
@@ -714,16 +710,16 @@ const FiltrarPontoRH = () => {
           <Box as="tbody">
             {filteredPunches.length === 0 ? (
               <Box as="tr">
-                <Box
-                  as="td"
+                <td
                   colSpan={6}
-                  px={6}
-                  py={6}
-                  textAlign="center"
-                  color="fg.muted"
+                  style={{
+                    padding: "24px",
+                    textAlign: "center",
+                    color: "var(--chakra-colors-fg-muted)",
+                  }}
                 >
                   Nenhum ponto encontrado com os filtros atuais.
-                </Box>
+                </td>
               </Box>
             ) : (
               filteredPunches.map((punch) => (
@@ -761,7 +757,7 @@ const FiltrarPontoRH = () => {
                         borderRadius="full"
                         borderColor={validateBorder}
                         color={validateColor}
-                        isLoading={validatingIds.includes(punch.id)}
+                        loading={validatingIds.includes(punch.id)}
                         loadingText="Validando"
                         onClick={() => handleValidateAttendance(punch.id)}
                       >
@@ -900,12 +896,14 @@ const FiltrarPontoRH = () => {
                                 </Text>
                                 <Button
                                   as="a"
-                                  href={activePunch.lateAttachmentUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
                                   size="sm"
                                   variant="outline"
                                   borderRadius="full"
+                                  {...({
+                                    href: activePunch.lateAttachmentUrl,
+                                    target: "_blank",
+                                    rel: "noopener noreferrer",
+                                  } as any)}
                                 >
                                   Ver anexo
                                 </Button>

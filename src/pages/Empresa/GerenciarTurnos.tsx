@@ -41,26 +41,26 @@ const MotionBox = motion(Box);
 const MotionFlex = motion(Flex);
 
 interface ShiftListItem {
-  id: number;
-  workShiftType: string;
+  id: string;
+  shiftType: string;
   startTime: string;
   endTime: string;
-  workShiftToleranceMinutes: number;
+  toleranceMinutes: number;
 }
 
 interface ShiftFormData {
-  id?: number;
-  workShiftType: string;
+  id?: string;
+  shiftType: string;
   startTime: string;
   endTime: string;
-  workShiftToleranceMinutes: number;
+  toleranceMinutes: number;
 }
 
 const initialShiftForm: ShiftFormData = {
-  workShiftType: "",
+  shiftType: "",
   startTime: "08:00:00",
   endTime: "17:00:00",
-  workShiftToleranceMinutes: 15,
+  toleranceMinutes: 15,
 };
 
 export const GerenciarTurnos = () => {
@@ -105,11 +105,11 @@ export const GerenciarTurnos = () => {
       const formatted: ShiftListItem[] = (
         raw as Array<Record<string, unknown>>
       ).map((shift) => ({
-        id: shift.id as number,
-        workShiftType: shift.shiftType as unknown as string,
+        id: String(shift.id),
+        shiftType: String(shift.shiftType ?? ""),
         startTime: String(shift.startTime).slice(0, 8),
         endTime: String(shift.endTime).slice(0, 8),
-        workShiftToleranceMinutes: Number(shift.toleranceMinutes ?? 0),
+        toleranceMinutes: Number(shift.toleranceMinutes ?? 0),
       }));
       setShifts(formatted);
     } catch {
@@ -132,7 +132,7 @@ export const GerenciarTurnos = () => {
     const { name, value } = event.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "workShiftToleranceMinutes" ? Number(value) : value,
+      [name]: name === "toleranceMinutes" ? Number(value) : value,
     }));
   };
 
@@ -141,10 +141,10 @@ export const GerenciarTurnos = () => {
       setIsEditing(true);
       setFormData({
         id: shift.id,
-        workShiftType: shift.workShiftType,
+        shiftType: shift.shiftType,
         startTime: shift.startTime,
         endTime: shift.endTime,
-        workShiftToleranceMinutes: shift.workShiftToleranceMinutes,
+        toleranceMinutes: shift.toleranceMinutes,
       });
     } else {
       setIsEditing(false);
@@ -163,14 +163,14 @@ export const GerenciarTurnos = () => {
     event.preventDefault();
     setSubmitting(true);
     const payload: Record<string, unknown> = {
-      shiftType: formData.workShiftType,
+      shiftType: formData.shiftType,
       startTime: formData.startTime.includes(":")
         ? formData.startTime
         : `${formData.startTime}:00`,
       endTime: formData.endTime.includes(":")
         ? formData.endTime
         : `${formData.endTime}:00`,
-      toleranceMinutes: Number(formData.workShiftToleranceMinutes),
+      toleranceMinutes: Number(formData.toleranceMinutes),
     };
     if (isEditing && formData.id != null) payload.id = formData.id;
     const endpoint = isEditing ? "/workshift/update" : "/workshift/create";
@@ -207,7 +207,7 @@ export const GerenciarTurnos = () => {
       await api.delete(`/workshift/change-status/${shiftToDelete.id}`);
       toaster.success({
         title: "Turno excluído",
-        description: `Turno "${shiftToDelete.workShiftType}" excluído com sucesso!`,
+        description: `Turno "${shiftToDelete.shiftType}" excluído com sucesso!`,
       });
       setShiftToDelete(null);
       void fetchShifts();
@@ -310,7 +310,7 @@ export const GerenciarTurnos = () => {
                     fontWeight="semibold"
                     color="fg"
                   >
-                    {shift.workShiftType}
+                    {shift.shiftType}
                   </Box>
                   <Box
                     as="td"
@@ -340,7 +340,7 @@ export const GerenciarTurnos = () => {
                     fontSize="sm"
                     color="fg.muted"
                   >
-                    {shift.workShiftToleranceMinutes}
+                    {shift.toleranceMinutes}
                   </Box>
                   <Box as="td" px={6} py={4} textAlign="right">
                     <Flex justify="flex-end">
@@ -352,7 +352,7 @@ export const GerenciarTurnos = () => {
                       >
                         <MenuTrigger asChild>
                           <IconButton
-                            aria-label={`Ações para ${shift.workShiftType}`}
+                            aria-label={`Ações para ${shift.shiftType}`}
                             variant="ghost"
                             size="sm"
                           >
@@ -516,9 +516,9 @@ export const GerenciarTurnos = () => {
                     </Text>
                     <Input
                       type="text"
-                      name="workShiftType"
+                      name="shiftType"
                       placeholder="Ex: Matutino, Diurno, Noturno ou outro"
-                      value={formData.workShiftType}
+                      value={formData.shiftType}
                       onChange={handleChange}
                       required
                     />
@@ -589,8 +589,8 @@ export const GerenciarTurnos = () => {
                       <Box flex={1}>
                         <Input
                           type="number"
-                          name="workShiftToleranceMinutes"
-                          value={formData.workShiftToleranceMinutes}
+                          name="toleranceMinutes"
+                          value={formData.toleranceMinutes}
                           onChange={handleChange}
                           min={0}
                           required
@@ -628,7 +628,7 @@ export const GerenciarTurnos = () => {
                     <Button
                       type="submit"
                       flex={2}
-                      disabled={submitting || !formData.workShiftType}
+                      disabled={submitting || !formData.shiftType}
                       h="38px"
                       borderRadius="10px"
                       fontSize="sm"
@@ -640,11 +640,11 @@ export const GerenciarTurnos = () => {
                         boxShadow: "0 4px 15px rgba(99,102,241,0.3)",
                         color: "white",
                         cursor:
-                          submitting || !formData.workShiftType
+                          submitting || !formData.shiftType
                             ? "not-allowed"
                             : "pointer",
                         opacity:
-                          submitting || !formData.workShiftType ? 0.6 : 1,
+                          submitting || !formData.shiftType ? 0.6 : 1,
                       }}
                     >
                       {submitting ? (
@@ -670,7 +670,7 @@ export const GerenciarTurnos = () => {
         isOpen={Boolean(shiftToDelete)}
         onClose={closeDeleteModal}
         onConfirm={handleConfirmDelete}
-        itemName={shiftToDelete?.workShiftType}
+        itemName={shiftToDelete?.shiftType}
         isLoading={isDeleting}
       />
     </Box>

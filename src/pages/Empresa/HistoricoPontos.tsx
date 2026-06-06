@@ -12,7 +12,7 @@ interface PunchHistoryItem {
 }
 
 interface WorkShift {
-  id: number;
+  id: string;
   shiftType: string;
   startTime: string;
   endTime: string;
@@ -129,10 +129,7 @@ const HistoricoPontos = () => {
       setLoading(true);
 
       const response = await api.get("/user/refresh-information");
-      const payload =
-        response.data?.lastUserAttendances ??
-        response.data?.lastsUserAttendances ??
-        [];
+      const payload = response.data?.lastUserAttendances ?? [];
       const normalizedHistory = normalizeHistory(payload);
       const resolvedShiftType =
         response.data?.shiftType ?? normalizedHistory[0]?.shiftType;

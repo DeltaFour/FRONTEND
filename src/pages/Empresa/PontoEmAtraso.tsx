@@ -382,7 +382,7 @@ const PontoEmAtraso = () => {
           borderRadius="full"
           minW="180px"
           h="36px"
-          isDisabled={submitting}
+          disabled={submitting}
           boxShadow="sm"
           transition="all 0.2s"
           _hover={{ boxShadow: "md", bg: "surface.subtle" }}
@@ -404,7 +404,7 @@ const PontoEmAtraso = () => {
           borderRadius="full"
           minW="200px"
           h="36px"
-          isDisabled={submitting}
+          disabled={submitting}
           boxShadow="sm"
           transition="all 0.2s"
           _hover={{

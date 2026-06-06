@@ -61,6 +61,7 @@ const PontoParaFuncionario = () => {
 
   const navigate = useNavigate();
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
+  const [shiftTypes, setShiftTypes] = useState<string[]>(["Matutino", "Diurno", "Noturno"]);
   const [formData, setFormData] = useState<PontoFormData>({
     employeeId: "",
     type: "IN",
@@ -79,14 +80,26 @@ const PontoParaFuncionario = () => {
 
   const fetchEmployees = useCallback(async () => {
     try {
-      const response = await api.get("/user/list");
-      const data = (response.data?.data ?? response.data) as Funcionario[];
-      const filtered = data.filter((f) => f.roleName === "EMPLOYEE");
+      const [empResponse, shiftResponse] = await Promise.all([
+        api.get("/user/list"),
+        api.get("/workshift/list"),
+      ]);
+
+      const empData = (empResponse.data?.data ?? empResponse.data) as Funcionario[];
+      const filtered = empData.filter((f) => f.roleName === "EMPLOYEE");
       setFuncionarios(filtered);
+
+      const shiftData = (shiftResponse.data?.data ?? shiftResponse.data ?? []) as { shiftType?: string }[];
+      const uniqueTypes = Array.from(new Set(shiftData.map((s) => s.shiftType).filter(Boolean))) as string[];
+      
+      if (uniqueTypes.length > 0) {
+        setShiftTypes(uniqueTypes);
+        setFormData((prev) => ({ ...prev, shiftType: uniqueTypes[0] }));
+      }
     } catch (err) {
       toaster.error({
-        title: "Erro ao carregar funcionários",
-        description: "Não foi possível carregar a lista de funcionários.",
+        title: "Erro ao carregar dados",
+        description: "Não foi possível carregar a lista de funcionários ou turnos.",
       });
     } finally {
       setLoading(false);
@@ -169,9 +182,8 @@ const PontoParaFuncionario = () => {
           h="34px"
           borderRadius="full"
           onClick={() => navigate(-1)}
-          leftIcon={<FaArrowLeft />}
         >
-          Voltar
+          <FaArrowLeft style={{ marginRight: '8px' }} /> Voltar
         </Button>
       </Flex>
 
@@ -245,9 +257,11 @@ const PontoParaFuncionario = () => {
                 required
                 style={selectStyle}
               >
-                <option value="Matutino">Matutino</option>
-                <option value="Diurno">Diurno</option>
-                <option value="Noturno">Noturno</option>
+                {shiftTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
               </select>
             </GridItem>
 

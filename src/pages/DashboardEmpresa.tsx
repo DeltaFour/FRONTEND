@@ -2,7 +2,7 @@ import { Outlet } from "react-router-dom";
 import { Box, Flex } from "@chakra-ui/react";
 import { FaClock, FaUserPlus, FaUsers } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
-import Sidebar, { type SidebarItem } from "../components/Sidebar";
+import Sidebar, { type SidebarItem } from "../components/SideBar/Sidebar";
 import GlobalHeader from "../components/GlobalHeader";
 
 const DashboardEmpresa = () => {

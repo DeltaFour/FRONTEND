@@ -18,6 +18,14 @@ export interface AuthUser {
   [key: string]: unknown;
 }
 
+interface RegisterCompanyPayload {
+  companyName: string;
+  cnpj: string;
+  email: string;
+  name: string;
+  password: string;
+}
+
 interface AuthContextValue {
   user: AuthUser | null;
   login: (
@@ -25,6 +33,7 @@ interface AuthContextValue {
     password: string,
     rememberMe?: boolean,
   ) => Promise<AuthUser | false>;
+  registerCompany: (payload: RegisterCompanyPayload) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
@@ -108,13 +117,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       persistUser(normalizedUser, rememberMe);
       return normalizedUser;
     } catch (error) {
-      toaster.error({
-        title: "Falha no login",
-        description:
-          "Não foi possível autenticar com as credenciais informadas.",
-      });
-      return false;
+      throw error;
     }
+  };
+
+  const registerCompany = async (
+    payload: RegisterCompanyPayload,
+  ): Promise<void> => {
+    await api.post("/subscription/register", {
+      name: payload.companyName,
+      cnpj: payload.cnpj,
+      user: {
+        email: payload.email,
+        name: payload.name,
+        password: payload.password,
+      },
+    });
   };
 
   const logout = async (): Promise<void> => {
@@ -177,6 +195,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const contextValue: AuthContextValue = {
     user,
     login,
+    registerCompany,
     logout,
     isAuthenticated: !!user,
   };
