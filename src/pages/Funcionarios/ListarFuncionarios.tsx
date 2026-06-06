@@ -80,28 +80,40 @@ const ListarFuncionarios = () => {
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchEmployees = useCallback(async () => {
+  const fetchEmployees = useCallback(async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
 
       const response = await api.get("/user/list");
       const data = (response.data?.data ?? response.data) as Funcionario[];
 
       setFuncionarios(data);
     } catch (err) {
-      const description = "Não foi possível carregar a lista de funcionários.";
+      if (showLoading) {
+        const description = "Não foi possível carregar a lista de funcionários.";
 
-      toaster.error({
-        title: "Erro ao carregar funcionários",
-        description,
-      });
+        toaster.error({
+          title: "Erro ao carregar funcionários",
+          description,
+        });
+      }
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    void fetchEmployees();
+    void fetchEmployees(true);
+
+    const interval = setInterval(() => {
+      void fetchEmployees(false);
+    }, 45000); // Poll every 45 seconds
+
+    return () => clearInterval(interval);
   }, [fetchEmployees]);
 
   const roleOptions = useMemo(

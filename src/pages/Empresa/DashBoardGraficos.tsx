@@ -299,18 +299,28 @@ export default function DashboardRH() {
   const captionText = "fg.muted";
 
   useEffect(() => {
-    const loadDashboardData = async () => {
+    const loadDashboardData = async (showLoading = true) => {
       try {
-        setLoading(true);
+        if (showLoading) {
+          setLoading(true);
+        }
         const response = await api.get("/user/attendance-dashboard");
         setDashboardData(response.data);
       } catch (err) {
         console.error("Failed to fetch dashboard data:", err);
       } finally {
-        setLoading(false);
+        if (showLoading) {
+          setLoading(false);
+        }
       }
     };
-    void loadDashboardData();
+    void loadDashboardData(true);
+
+    const interval = setInterval(() => {
+      void loadDashboardData(false);
+    }, 45000); // Poll every 45 seconds for a longer cloud-friendly refresh
+
+    return () => clearInterval(interval);
   }, []);
 
   if (loading) {

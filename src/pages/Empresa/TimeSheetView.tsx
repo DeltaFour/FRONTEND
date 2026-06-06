@@ -123,7 +123,7 @@ const TimeSheetView = () => {
       }
     } catch (err) {
       toaster.error({
-        title: "Erro ao carregar Timesheet",
+        title: "Erro ao carregar Folha de Ponto",
         description: "Não foi possível carregar as informacoes do documento.",
       });
     } finally {
@@ -225,7 +225,7 @@ const TimeSheetView = () => {
     return (
       <Flex align="center" justify="center" py={10} gap={3}>
         <Spinner />
-        <Text>Carregando Timesheet...</Text>
+        <Text>Carregando Folha de Ponto...</Text>
       </Flex>
     );
   }
@@ -249,7 +249,7 @@ const TimeSheetView = () => {
         </Box>
         <HStack gap={2}>
           <IconButton
-            aria-label="Atualizar Timesheet"
+            aria-label="Atualizar Folha de Ponto"
             variant="outline"
             borderRadius="full"
             onClick={() => void loadTimesheet()}
@@ -370,7 +370,7 @@ const TimeSheetView = () => {
               ) : pdfUrl ? (
                 <iframe
                   src={pdfUrl}
-                  title="Timesheet PDF"
+                  title="PDF da Folha de Ponto"
                   style={{ width: "100%", height: "520px", border: "none" }}
                 />
               ) : (
@@ -419,7 +419,7 @@ const TimeSheetView = () => {
                   <Flex justify="space-between" align="center">
                     <Text fontSize="sm" color="fg.muted">RH:</Text>
                     {signatureStatus.signedByHR ? (
-                      <Badge colorPalette="green" display="flex" alignItems="center" gap={1}>
+                      <Badge colorPalette="green" display="flex" alignItems="center" gap={1} p="5px" borderRadius="full">
                         <FaCheckCircle /> Assinado por {signatureStatus.hrSignerName}
                       </Badge>
                     ) : (

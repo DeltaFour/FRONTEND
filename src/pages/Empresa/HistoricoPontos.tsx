@@ -124,9 +124,11 @@ const HistoricoPontos = () => {
   const [shiftType, setShiftType] = useState<string | undefined>(undefined);
   const [workShifts, setWorkShifts] = useState<WorkShift[]>([]);
 
-  const fetchHistory = useCallback(async () => {
+  const fetchHistory = useCallback(async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
 
       const response = await api.get("/user/refresh-information");
       const payload = response.data?.lastUserAttendances ?? [];
@@ -139,18 +141,28 @@ const HistoricoPontos = () => {
       const workShiftResponse = await api.get("/workshift/list");
       setWorkShifts(normalizeWorkShifts(workShiftResponse.data));
     } catch (err) {
-      const description = "Não foi possível carregar seu histórico de pontos.";
-      toaster.error({
-        title: "Erro ao carregar histórico",
-        description,
-      });
+      if (showLoading) {
+        const description = "Não foi possível carregar seu histórico de pontos.";
+        toaster.error({
+          title: "Erro ao carregar histórico",
+          description,
+        });
+      }
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    void fetchHistory();
+    void fetchHistory(true);
+
+    const interval = setInterval(() => {
+      void fetchHistory(false);
+    }, 45000); // Poll every 45 seconds
+
+    return () => clearInterval(interval);
   }, [fetchHistory]);
 
   const groupedHistory = useMemo(() => {

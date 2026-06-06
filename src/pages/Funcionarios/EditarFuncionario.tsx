@@ -166,7 +166,27 @@ const EditarFuncionario = () => {
             ? employee.shiftDto[0]
             : undefined;
 
-        const currentShiftId = currentShift?.shiftId ?? "";
+        let currentShiftId = "";
+        if (currentShift) {
+          const empType = currentShift.workShiftType;
+          const empStart = formatTime(currentShift.workShiftStartTime);
+          const empEnd = formatTime(currentShift.workShiftEndTime);
+
+          const matched = shiftsData.find((s) => {
+            const sType = s.workShiftType ?? s.shiftType ?? "";
+            const sStart = formatTime(s.workShiftStartTime ?? s.startTime);
+            const sEnd = formatTime(s.workShiftEndTime ?? s.endTime);
+            return (
+              sType === empType &&
+              sStart === empStart &&
+              sEnd === empEnd
+            );
+          });
+
+          if (matched) {
+            currentShiftId = String(matched.id);
+          }
+        }
         const currentUserShiftId = currentShift?.id ?? "";
 
         setFormData({

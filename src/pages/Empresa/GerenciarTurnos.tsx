@@ -97,9 +97,11 @@ export const GerenciarTurnos = () => {
   );
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchShifts = useCallback(async () => {
+  const fetchShifts = useCallback(async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       const response = await api.get("/workshift/list");
       const raw = (response.data?.data ?? response.data) as unknown[];
       const formatted: ShiftListItem[] = (
@@ -113,17 +115,27 @@ export const GerenciarTurnos = () => {
       }));
       setShifts(formatted);
     } catch {
-      toaster.error({
-        title: "Erro ao carregar turnos",
-        description: "Não foi possível carregar a lista de turnos.",
-      });
+      if (showLoading) {
+        toaster.error({
+          title: "Erro ao carregar turnos",
+          description: "Não foi possível carregar a lista de turnos.",
+        });
+      }
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    void fetchShifts();
+    void fetchShifts(true);
+
+    const interval = setInterval(() => {
+      void fetchShifts(false);
+    }, 45000); // Poll every 45 seconds
+
+    return () => clearInterval(interval);
   }, [fetchShifts]);
 
   const handleChange = (

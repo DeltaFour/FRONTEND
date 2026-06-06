@@ -330,7 +330,7 @@ const TimesheetGeneratorPanel = () => {
     if (targetIds.length === 0) {
       toaster.error({
         title: "Selecione ao menos um funcionário",
-        description: "Escolha colaboradores para gerar o TimeSheet.",
+        description: "Escolha colaboradores para gerar a Folha de Ponto.",
       });
       return;
     }
@@ -382,13 +382,13 @@ const TimesheetGeneratorPanel = () => {
         });
       } else {
         toaster.success({
-          title: "TimeSheet gerado",
+          title: "Folha de Ponto gerada",
           description: "Os documentos foram processados com sucesso.",
         });
       }
     } catch (err) {
       toaster.error({
-        title: "Erro ao gerar TimeSheet",
+        title: "Erro ao gerar Folha de Ponto",
         description: "Não foi possível gerar os documentos.",
       });
     } finally {
@@ -417,7 +417,7 @@ const TimesheetGeneratorPanel = () => {
       <Flex justify="space-between" align="center" gap={4} flexWrap="wrap">
         <Box>
           <Heading size="md" color="fg">
-            TimeSheet (Folha de Ponto)
+            Folha de Ponto
           </Heading>
           <Text mt={2} fontSize="sm" color="fg.muted">
             Selecione colaboradores para gerar e assinar a folha de ponto do
@@ -434,7 +434,7 @@ const TimesheetGeneratorPanel = () => {
             disabled={selectedEmployeeIds.length === 0}
             p="10px"
           >
-            Gerar TimeSheet
+            Gerar Folha de Ponto
           </Button>
           <Button
             variant="outline"
@@ -444,7 +444,7 @@ const TimesheetGeneratorPanel = () => {
             disabled={employees.length === 0}
             p="10px"
           >
-            Gerar TimeSheet de Todos
+            Gerar Folha de Ponto de Todos
           </Button>
         </Flex>
       </Flex>
@@ -667,7 +667,7 @@ const TimesheetGeneratorPanel = () => {
                                 ? "gray"
                                 : "blue";
                           return (
-                            <Badge colorScheme={statusColor} p="5px" borderRadius="full">
+                            <Badge colorPalette={statusColor} p="5px" px="10px" borderRadius="full">
                               {statusLabel}
                             </Badge>
                           );
@@ -709,8 +709,8 @@ const TimesheetGeneratorPanel = () => {
                               : "orange";
                           return (
                             <VStack align="start" gap={1} >
-                              <Badge colorScheme={rhColor} p="5px" borderRadius="full">RH: {rhLabel}</Badge>
-                              <Badge colorScheme={employeeColor} p="5px" borderRadius="full">
+                              <Badge colorPalette={rhColor} p="5px" px="10px" borderRadius="full">RH: {rhLabel}</Badge>
+                              <Badge colorPalette={employeeColor} p="5px" px="10px" borderRadius="full">
                                 Colab: {employeeLabel}
                               </Badge>
                             </VStack>
@@ -862,7 +862,10 @@ const TimesheetGeneratorPanel = () => {
                       </Box>
                       <Flex align="center" gap={3} flexWrap="wrap">
                         <Badge
-                          colorScheme={
+                          p="5px"
+                          px="10px"
+                          borderRadius="full"
+                          colorPalette={
                             result.status === "success" ? "green" : "red"
                           }
                         >
@@ -877,7 +880,7 @@ const TimesheetGeneratorPanel = () => {
                           >
                             <Flex align="center" gap={2}>
                               <FaFilePdf />
-                              <Text>Ver TimeSheet</Text>
+                              <Text>Ver Folha de Ponto</Text>
                             </Flex>
                           </Button>
                         ) : null}
