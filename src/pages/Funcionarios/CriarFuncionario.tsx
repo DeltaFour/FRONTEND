@@ -339,6 +339,11 @@ const CriarFuncionario = () => {
     }));
   };
 
+  const handleCpfChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const masked = maskCpf(event.target.value);
+    setFormData((prev) => ({ ...prev, cpf: masked }));
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLDivElement>) => {
     event.preventDefault();
 
@@ -541,7 +546,7 @@ const CriarFuncionario = () => {
               name="cpf"
               id="cpf"
               value={formData.cpf}
-              onChange={handleChange}
+              onChange={handleCpfChange}
               maxLength={14}
               required
             />
