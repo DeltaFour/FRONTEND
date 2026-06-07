@@ -96,6 +96,18 @@ const AMBER_LIGHT = "#FEF3C7";
 const BLUE_LIGHT = "#EFF6FF";
 const BLUE = "#2563EB";
 
+// ─── estilo dos clusters (índice = rótulo do cluster, 0 = mais pontual) ─────────
+// A API Python ordena os clusters por severidade crescente, então o índice 0 é
+// sempre o grupo mais pontual e o último é o mais crítico. Tolerante a k ≠ 3.
+const CLUSTER_STYLE = [
+  { color: GREEN, name: "Grupo Pontual", status: "Excelente/Pontual" },
+  { color: AMBER, name: "Grupo em Atenção", status: "Atenção/Moderado" },
+  { color: RED, name: "Grupo Crítico", status: "Alerta/Atraso Crítico" },
+];
+
+const clusterStyle = (clusterId: number) =>
+  CLUSTER_STYLE[clusterId] ?? CLUSTER_STYLE[CLUSTER_STYLE.length - 1];
+
 const accentMapLight = {
   purple: { bg: PURPLE_LIGHT, color: PURPLE },
   green: { bg: GREEN_LIGHT, color: GREEN },
@@ -875,8 +887,8 @@ export default function DashboardRH() {
                                 Tempo Médio: {data.averageLateMinutes.toFixed(1)} min
                               </Text>
                               {!data.isCentroid && (
-                                <Text fontSize="11px" color={data.cluster === 0 ? "green.400" : data.cluster === 1 ? "amber.400" : "red.400"} fontWeight="semibold" mt={1}>
-                                  Status: {data.cluster === 0 ? "Excelente/Pontual" : data.cluster === 1 ? "Atenção/Moderado" : "Alerta/Atraso Crítico"}
+                                <Text fontSize="11px" color={clusterStyle(data.cluster ?? 0).color} fontWeight="semibold" mt={1}>
+                                  Status: {clusterStyle(data.cluster ?? 0).status}
                                 </Text>
                               )}
                             </Box>
@@ -888,28 +900,34 @@ export default function DashboardRH() {
                     <Legend verticalAlign="top" height={36} />
                     
                     {/* Renderiza as séries por cluster */}
-                    {Object.keys(pointsByCluster).map((clusterIdStr) => {
-                      const clusterId = Number(clusterIdStr);
-                      const color = clusterId === 0 ? GREEN : clusterId === 1 ? AMBER : RED;
-                      const name = clusterId === 0 ? "Grupo Pontual" : clusterId === 1 ? "Grupo em Atenção" : "Grupo Crítico";
-                      return (
-                        <Scatter
-                          key={`cluster-${clusterId}`}
-                          name={name}
-                          data={pointsByCluster[clusterId]}
-                          fill={color}
-                          line={false}
-                        />
-                      );
-                    })}
+                    {Object.keys(pointsByCluster)
+                      .map(Number)
+                      .sort((a, b) => a - b)
+                      .map((clusterId) => {
+                        const { color, name } = clusterStyle(clusterId);
+                        return (
+                          <Scatter
+                            key={`cluster-${clusterId}`}
+                            name={name}
+                            data={pointsByCluster[clusterId]}
+                            fill={color}
+                            fillOpacity={0.78}
+                            stroke={color}
+                            strokeWidth={1}
+                            line={false}
+                          />
+                        );
+                      })}
 
-                    {/* Centróides */}
+                    {/* Centróides — desenhados por último para ficarem por cima */}
                     {scatterData.centroids && (
                       <Scatter
                         name="Centróides (Centros de Perfil)"
                         data={scatterData.centroids.map((c: any) => ({ ...c, isCentroid: true }))}
                         fill={PURPLE}
                         shape="wye"
+                        stroke="#fff"
+                        strokeWidth={1.5}
                         line={false}
                         legendType="triangle"
                       />

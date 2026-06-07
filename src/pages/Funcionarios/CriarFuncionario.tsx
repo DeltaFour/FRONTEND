@@ -28,7 +28,7 @@ import api from "../../services/api";
 import { Input } from "../../components/ui/Input";
 import { toaster } from "../../components/ui/toaster";
 import { useColorModeValue } from "../../theme/colorMode";
-import { validateEmail, validatePassword } from "../../utils/validation";
+import { validateEmail } from "../../utils/validation";
 import { maskCpf, validateCpf } from "../../utils/cpf";
 
 interface Shift {
@@ -45,7 +45,6 @@ interface CreateEmployeeFormData {
   name: string;
   roleName: string;
   email: string;
-  password: string;
   cpf: string;
   cellPhone: string;
   shiftId: string;
@@ -86,7 +85,6 @@ const CriarFuncionario = () => {
     name: "",
     roleName: "",
     email: "",
-    password: "",
     cpf: "",
     cellPhone: "",
     shiftId: "",
@@ -341,6 +339,11 @@ const CriarFuncionario = () => {
     }));
   };
 
+  const handleCpfChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const masked = maskCpf(event.target.value);
+    setFormData((prev) => ({ ...prev, cpf: masked }));
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLDivElement>) => {
     event.preventDefault();
 
@@ -349,15 +352,6 @@ const CriarFuncionario = () => {
       toaster.error({
         title: "E-mail Inválido",
         description: "Por favor, insira um endereço de e-mail válido para o funcionário.",
-      });
-      return;
-    }
-
-    const passwordValidation = validatePassword(formData.password);
-    if (!passwordValidation.isValid) {
-      toaster.error({
-        title: "Senha Fraca",
-        description: "A senha inicial deve ter pelo menos: 8 caracteres, 1 maiúscula, 1 minúscula, 1 número, 1 caractere especial, e nenhum espaço.",
       });
       return;
     }
@@ -388,7 +382,6 @@ const CriarFuncionario = () => {
       name: formData.name,
       roleName: formData.roleName,
       email: sanitizedEmail,
-      password: formData.password,
       cpf: formData.cpf,
       cellPhone: formData.cellPhone,
       imageBase64: formData.imageBase64,
@@ -553,7 +546,7 @@ const CriarFuncionario = () => {
               name="cpf"
               id="cpf"
               value={formData.cpf}
-              onChange={handleChange}
+              onChange={handleCpfChange}
               maxLength={14}
               required
             />
