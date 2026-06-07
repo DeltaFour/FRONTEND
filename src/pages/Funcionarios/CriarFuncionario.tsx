@@ -28,7 +28,7 @@ import api from "../../services/api";
 import { Input } from "../../components/ui/Input";
 import { toaster } from "../../components/ui/toaster";
 import { useColorModeValue } from "../../theme/colorMode";
-import { validateEmail, validatePassword } from "../../utils/validation";
+import { validateEmail } from "../../utils/validation";
 
 interface Shift {
   id: string;
@@ -44,7 +44,6 @@ interface CreateEmployeeFormData {
   name: string;
   roleName: string;
   email: string;
-  password: string;
   cellPhone: string;
   shiftId: string;
   departmentId: string;
@@ -84,7 +83,6 @@ const CriarFuncionario = () => {
     name: "",
     roleName: "",
     email: "",
-    password: "",
     cellPhone: "",
     shiftId: "",
     departmentId: "",
@@ -346,15 +344,6 @@ const CriarFuncionario = () => {
       return;
     }
 
-    const passwordValidation = validatePassword(formData.password);
-    if (!passwordValidation.isValid) {
-      toaster.error({
-        title: "Senha Fraca",
-        description: "A senha inicial deve ter pelo menos: 8 caracteres, 1 maiúscula, 1 minúscula, 1 número, 1 caractere especial, e nenhum espaço.",
-      });
-      return;
-    }
-
     if (!formData.imageBase64) {
       const description =
         "Adicione uma foto por upload ou webcam antes de salvar.";
@@ -373,7 +362,6 @@ const CriarFuncionario = () => {
       name: formData.name,
       roleName: formData.roleName,
       email: sanitizedEmail,
-      password: formData.password,
       cellPhone: formData.cellPhone,
       imageBase64: formData.imageBase64,
       isAllowedBypassCoord: formData.isAllowedBypassCoord,
@@ -507,21 +495,6 @@ const CriarFuncionario = () => {
               name="email"
               id="email"
               value={formData.email}
-              onChange={handleChange}
-              required
-            />
-          </Box>
-
-          <Box>
-            <Text mb={1} fontWeight="medium" color="fg">
-              Senha Inicial
-            </Text>
-            <Input
-              type="password"
-              placeholder="Defina uma senha inicial para o funcionário"
-              name="password"
-              id="password"
-              value={formData.password}
               onChange={handleChange}
               required
             />
