@@ -1,5 +1,13 @@
 import { useEffect, useState, useMemo } from "react";
-import { Badge, Box, Flex, Grid, Spinner, Text, VStack } from "@chakra-ui/react";
+import {
+  Badge,
+  Box,
+  Flex,
+  Grid,
+  Spinner,
+  Text,
+  VStack,
+} from "@chakra-ui/react";
 import { useColorModeValue } from "../../theme/colorMode";
 import {
   BarChart,
@@ -66,7 +74,10 @@ const deptData = [
 
 // Mapeia a severidade vinda do backend (Info=azul, Danger=vermelho, etc.)
 // para o tipo/cor do AlertItem e o ícone correspondente.
-const severityToAlertType: Record<NotificationSeverity, AlertItemProps["type"]> = {
+const severityToAlertType: Record<
+  NotificationSeverity,
+  AlertItemProps["type"]
+> = {
   Info: "info",
   Success: "success",
   Warning: "warning",
@@ -239,6 +250,7 @@ function AlertItem({ icon, message, type }: AlertItemProps) {
   const textColor = "fg";
   return (
     <Flex
+      className="animate-fade-in"
       align="flex-start"
       gap={2.5}
       p="10px 12px"
@@ -399,22 +411,25 @@ export default function DashboardRH() {
     monthlyOvertimeHours: 0,
   };
 
-  const weeklyChartData = dashboardData?.weeklyPresence?.map((w: any) => ({
-    semana: w.weekLabel,
-    pontual: w.punctual,
-    atrasado: w.late,
-  })) || [];
+  const weeklyChartData =
+    dashboardData?.weeklyPresence?.map((w: any) => ({
+      semana: w.weekLabel,
+      pontual: w.punctual,
+      atrasado: w.late,
+    })) || [];
 
-  const topLateChartData = dashboardData?.topLateEmployees?.map((e: any) => ({
-    name: e.name,
-    dept: "Geral",
-    count: e.lateCount,
-  })) || [];
+  const topLateChartData =
+    dashboardData?.topLateEmployees?.map((e: any) => ({
+      name: e.name,
+      dept: "Geral",
+      count: e.lateCount,
+    })) || [];
 
-  const trendChartData = dashboardData?.punctualityTrend?.map((t: any) => ({
-    mes: t.month,
-    taxa: t.rate,
-  })) || [];
+  const trendChartData =
+    dashboardData?.punctualityTrend?.map((t: any) => ({
+      mes: t.month,
+      taxa: t.rate,
+    })) || [];
 
   return (
     <Box
@@ -444,7 +459,11 @@ export default function DashboardRH() {
 
       {/* cards de resumo */}
       <Grid
-        templateColumns={{ base: "1fr", sm: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }}
+        templateColumns={{
+          base: "1fr",
+          sm: "repeat(2, 1fr)",
+          md: "repeat(4, 1fr)",
+        }}
         gap={3}
         mb={5}
       >
@@ -732,65 +751,80 @@ export default function DashboardRH() {
           </Flex>
 
           {topLateChartData.length > 0 ? (
-            topLateChartData.map((f: { name: string; dept: string; count: number }, i: number) => {
-              const maxCount = topLateChartData[0]?.count || 1;
-              const pct = Math.round((f.count / maxCount) * 100);
-              const isFirst = i === 0;
-              return (
-                <Box key={f.name} mb={i < topLateChartData.length - 1 ? 3 : 0}>
-                  <Flex justify="space-between" align="center" mb={1}>
-                    <Flex align="center" gap={2}>
-                      <Box
-                        w="22px"
-                        h="22px"
-                        borderRadius="50%"
-                        bg={isFirst ? rankFirstBg : rankOtherBg}
-                        color={isFirst ? rankFirstColor : rankOtherColor}
-                        fontSize="10px"
-                        fontWeight={700}
-                        display="flex"
-                        alignItems="center"
-                        justifyContent="center"
-                        flexShrink={0}
-                      >
-                        {i + 1}
-                      </Box>
-                      <Text
-                        fontSize="12px"
-                        fontWeight={isFirst ? 600 : 400}
-                        color="fg"
-                      >
-                        {f.name}
-                      </Text>
+            topLateChartData.map(
+              (f: { name: string; dept: string; count: number }, i: number) => {
+                const maxCount = topLateChartData[0]?.count || 1;
+                const pct = Math.round((f.count / maxCount) * 100);
+                const isFirst = i === 0;
+                return (
+                  <Box
+                    key={f.name}
+                    mb={i < topLateChartData.length - 1 ? 3 : 0}
+                  >
+                    <Flex justify="space-between" align="center" mb={1}>
+                      <Flex align="center" gap={2}>
+                        <Box
+                          w="22px"
+                          h="22px"
+                          borderRadius="50%"
+                          bg={isFirst ? rankFirstBg : rankOtherBg}
+                          color={isFirst ? rankFirstColor : rankOtherColor}
+                          fontSize="10px"
+                          fontWeight={700}
+                          display="flex"
+                          alignItems="center"
+                          justifyContent="center"
+                          flexShrink={0}
+                        >
+                          {i + 1}
+                        </Box>
+                        <Text
+                          fontSize="12px"
+                          fontWeight={isFirst ? 600 : 400}
+                          color="fg"
+                        >
+                          {f.name}
+                        </Text>
+                      </Flex>
+                      <Flex align="center" gap={2}>
+                        <Text fontSize="11px" color={deptColor}>
+                          {f.dept}
+                        </Text>
+                        <Badge
+                          bg={isFirst ? badgeFirstBg : badgeOtherBg}
+                          color={isFirst ? badgeFirstColor : badgeOtherColor}
+                          fontSize="10px"
+                          px={1.5}
+                          borderRadius="4px"
+                        >
+                          {f.count}x
+                        </Badge>
+                      </Flex>
                     </Flex>
-                    <Flex align="center" gap={2}>
-                      <Text fontSize="11px" color={deptColor}>
-                        {f.dept}
-                      </Text>
-                      <Badge
-                        bg={isFirst ? badgeFirstBg : badgeOtherBg}
-                        color={isFirst ? badgeFirstColor : badgeOtherColor}
-                        fontSize="10px"
-                        px={1.5}
-                        borderRadius="4px"
-                      >
-                        {f.count}x
-                      </Badge>
-                    </Flex>
-                  </Flex>
-                  <Box bg={trackBg} borderRadius="full" h="5px" overflow="hidden">
                     <Box
-                      bg={isFirst ? RED : PURPLE_MID}
-                      h="100%"
+                      bg={trackBg}
                       borderRadius="full"
-                      style={{ width: `${pct}%`, transition: "width 0.6s ease" }}
-                    />
+                      h="5px"
+                      overflow="hidden"
+                    >
+                      <Box
+                        bg={isFirst ? RED : PURPLE_MID}
+                        h="100%"
+                        borderRadius="full"
+                        style={{
+                          width: `${pct}%`,
+                          transition: "width 0.6s ease",
+                        }}
+                      />
+                    </Box>
                   </Box>
-                </Box>
-              );
-            })
+                );
+              },
+            )
           ) : (
-            <Text fontSize="12px" color="fg.muted">Sem dados de atraso no mês.</Text>
+            <Text fontSize="12px" color="fg.muted">
+              Sem dados de atraso no mês.
+            </Text>
           )}
         </MotionBox>
 
@@ -872,21 +906,26 @@ export default function DashboardRH() {
               Agrupamento de Comportamento e Pontualidade (IA)
             </Text>
             <Text fontSize="12px" color={captionText} mt={0.5}>
-              Classificação inteligente de perfis baseada em K-Means (Eixo X: % Atraso, Eixo Y: Média de Atraso em Minutos)
+              Classificação inteligente de perfis baseada em K-Means (Eixo X: %
+              Atraso, Eixo Y: Média de Atraso em Minutos)
             </Text>
           </Box>
 
           {loadingScatter ? (
             <Flex align="center" justify="center" minH="250px" gap={3}>
               <Spinner />
-              <Text fontSize="sm" color="fg.muted">Carregando dados de inteligência...</Text>
+              <Text fontSize="sm" color="fg.muted">
+                Carregando dados de inteligência...
+              </Text>
             </Flex>
           ) : scatterData && scatterData.points?.length > 0 ? (
             <Grid templateColumns={{ base: "1fr", lg: "2fr 1fr" }} gap={6}>
               {/* Gráfico */}
               <Box height={320}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 10 }}>
+                  <ScatterChart
+                    margin={{ top: 20, right: 20, bottom: 20, left: 10 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
                     <XAxis
                       type="number"
@@ -894,7 +933,13 @@ export default function DashboardRH() {
                       name="Frequência de Atrasos"
                       unit="%"
                       tick={{ fontSize: 11, fill: axisTick }}
-                      label={{ value: 'Frequência de Atrasos (%)', position: 'insideBottom', offset: -10, fill: axisTick, fontSize: 11 }}
+                      label={{
+                        value: "Frequência de Atrasos (%)",
+                        position: "insideBottom",
+                        offset: -10,
+                        fill: axisTick,
+                        fontSize: 11,
+                      }}
                     />
                     <YAxis
                       type="number"
@@ -902,15 +947,23 @@ export default function DashboardRH() {
                       name="Tempo Médio de Atraso"
                       unit=" min"
                       tick={{ fontSize: 11, fill: axisTick }}
-                      label={{ value: 'Tempo Médio (min)', angle: -90, position: 'insideLeft', fill: axisTick, fontSize: 11 }}
+                      label={{
+                        value: "Tempo Médio (min)",
+                        angle: -90,
+                        position: "insideLeft",
+                        fill: axisTick,
+                        fontSize: 11,
+                      }}
                     />
                     <ZAxis type="number" range={[60, 60]} />
                     <Tooltip
-                      cursor={{ strokeDasharray: '3 3' }}
+                      cursor={{ strokeDasharray: "3 3" }}
                       content={({ active, payload }) => {
                         if (active && payload && payload.length) {
                           const data = payload[0].payload;
-                          const clusterName = data.isCentroid ? `Centroide do Grupo ${data.cluster + 1}` : `Grupo ${data.cluster + 1}`;
+                          const clusterName = data.isCentroid
+                            ? `Centroide do Grupo ${data.cluster + 1}`
+                            : `Grupo ${data.cluster + 1}`;
                           return (
                             <Box
                               bg={cardBg}
@@ -920,18 +973,31 @@ export default function DashboardRH() {
                               p="8px 12px"
                               boxShadow="md"
                             >
-                              <Text fontSize="12px" fontWeight="bold" color="fg" mb={1}>
+                              <Text
+                                fontSize="12px"
+                                fontWeight="bold"
+                                color="fg"
+                                mb={1}
+                              >
                                 {data.isCentroid ? clusterName : data.userName}
                               </Text>
                               <Text fontSize="11px" color="fg.muted">
-                                Frequência de Atraso: {data.latePercentage.toFixed(1)}%
+                                Frequência de Atraso:{" "}
+                                {data.latePercentage.toFixed(1)}%
                               </Text>
                               <Text fontSize="11px" color="fg.muted">
-                                Tempo Médio: {data.averageLateMinutes.toFixed(1)} min
+                                Tempo Médio:{" "}
+                                {data.averageLateMinutes.toFixed(1)} min
                               </Text>
                               {!data.isCentroid && (
-                                <Text fontSize="11px" color={clusterStyle(data.cluster ?? 0).color} fontWeight="semibold" mt={1}>
-                                  Status: {clusterStyle(data.cluster ?? 0).status}
+                                <Text
+                                  fontSize="11px"
+                                  color={clusterStyle(data.cluster ?? 0).color}
+                                  fontWeight="semibold"
+                                  mt={1}
+                                >
+                                  Status:{" "}
+                                  {clusterStyle(data.cluster ?? 0).status}
                                 </Text>
                               )}
                             </Box>
@@ -941,7 +1007,7 @@ export default function DashboardRH() {
                       }}
                     />
                     <Legend verticalAlign="top" height={36} />
-                    
+
                     {/* Renderiza as séries por cluster */}
                     {Object.keys(pointsByCluster)
                       .map(Number)
@@ -966,7 +1032,10 @@ export default function DashboardRH() {
                     {scatterData.centroids && (
                       <Scatter
                         name="Centróides (Centros de Perfil)"
-                        data={scatterData.centroids.map((c: any) => ({ ...c, isCentroid: true }))}
+                        data={scatterData.centroids.map((c: any) => ({
+                          ...c,
+                          isCentroid: true,
+                        }))}
                         fill={PURPLE}
                         shape="wye"
                         stroke="#fff"
@@ -994,35 +1063,66 @@ export default function DashboardRH() {
                   Entenda os Perfis de Classificação
                 </Text>
                 <VStack align="stretch" gap={3}>
-                  <Box p={2.5} borderRadius="md" bg="rgba(22,163,74,0.08)" borderLeft="3px solid" borderColor={GREEN}>
-                    <Text fontSize="12px" fontWeight="semibold" color="green.300">
+                  <Box
+                    p={2.5}
+                    borderRadius="md"
+                    bg="rgba(22,163,74,0.08)"
+                    borderLeft="3px solid"
+                    borderColor={GREEN}
+                  >
+                    <Text
+                      fontSize="12px"
+                      fontWeight="semibold"
+                      color="green.300"
+                    >
                       Grupo Pontual (Verde)
                     </Text>
                     <Text fontSize="11px" color="fg.muted" mt={0.5}>
-                      Colaboradores com baixa frequência de atrasos e tempo de atraso reduzido. Perfil ideal de pontualidade.
+                      Colaboradores com baixa frequência de atrasos e tempo de
+                      atraso reduzido. Perfil ideal de pontualidade.
                     </Text>
                   </Box>
-                  <Box p={2.5} borderRadius="md" bg="rgba(217,119,6,0.08)" borderLeft="3px solid" borderColor={AMBER}>
-                    <Text fontSize="12px" fontWeight="semibold" color="amber.300">
+                  <Box
+                    p={2.5}
+                    borderRadius="md"
+                    bg="rgba(217,119,6,0.08)"
+                    borderLeft="3px solid"
+                    borderColor={AMBER}
+                  >
+                    <Text
+                      fontSize="12px"
+                      fontWeight="semibold"
+                      color="amber.300"
+                    >
                       Grupo em Atenção (Amarelo)
                     </Text>
                     <Text fontSize="11px" color="fg.muted" mt={0.5}>
-                      Colaboradores com frequência de atrasos moderada ou pequenos atrasos habituais. Recomendável acompanhamento.
+                      Colaboradores com frequência de atrasos moderada ou
+                      pequenos atrasos habituais. Recomendável acompanhamento.
                     </Text>
                   </Box>
-                  <Box p={2.5} borderRadius="md" bg="rgba(220,38,38,0.08)" borderLeft="3px solid" borderColor={RED}>
+                  <Box
+                    p={2.5}
+                    borderRadius="md"
+                    bg="rgba(220,38,38,0.08)"
+                    borderLeft="3px solid"
+                    borderColor={RED}
+                  >
                     <Text fontSize="12px" fontWeight="semibold" color="red.300">
                       Grupo Crítico (Vermelho)
                     </Text>
                     <Text fontSize="11px" color="fg.muted" mt={0.5}>
-                      Colaboradores com alta recorrência de atrasos longos. Demanda atenção imediata e alinhamento do RH.
+                      Colaboradores com alta recorrência de atrasos longos.
+                      Demanda atenção imediata e alinhamento do RH.
                     </Text>
                   </Box>
                 </VStack>
               </Box>
             </Grid>
           ) : (
-            <Text fontSize="12px" color="fg.muted">Sem dados disponíveis para a classificação de IA neste período.</Text>
+            <Text fontSize="12px" color="fg.muted">
+              Sem dados disponíveis para a classificação de IA neste período.
+            </Text>
           )}
         </MotionBox>
       </Box>
