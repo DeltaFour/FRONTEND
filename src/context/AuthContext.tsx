@@ -24,6 +24,7 @@ interface RegisterCompanyPayload {
   email: string;
   name: string;
   password: string;
+  cpf: string;
 }
 
 interface AuthContextValue {
@@ -127,10 +128,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     await api.post("/subscription/register", {
       name: payload.companyName,
       cnpj: payload.cnpj,
+      cpf: payload.cpf,
       user: {
         email: payload.email,
         name: payload.name,
         password: payload.password,
+        cpf: payload.cpf,
       },
     });
   };

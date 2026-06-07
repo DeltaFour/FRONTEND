@@ -10,10 +10,12 @@ import {
   Menu,
   Portal,
 } from "@chakra-ui/react";
-import { Camera, LogOut, Trash2, User } from "lucide-react";
+import { Camera, LogOut, Trash2, User, Lock, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useColorModeValue } from "../../theme/colorMode";
 import { toaster } from "../ui/toaster";
+import api from "../../services/api";
+import { validatePassword } from "../../utils/validation";
 
 // Dark/Light mode colors
 const COLORS = {
@@ -50,6 +52,16 @@ export default function UserProfileMenu() {
   const [draftFileName, setDraftFileName] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Password change states
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordChangeLoading, setPasswordChangeLoading] = useState(false);
 
   // Dark/Light mode colors
   const menuBg = useColorModeValue(COLORS.menuBg.light, COLORS.menuBg.dark);
@@ -134,7 +146,56 @@ export default function UserProfileMenu() {
     setIsModalOpen(true);
   };
 
-  const handleCloseModal = () => setIsModalOpen(false);
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setIsChangingPassword(false);
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmNewPassword("");
+  };
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentPassword) {
+      toaster.error({ title: "Erro", description: "Senha atual é obrigatória." });
+      return;
+    }
+
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.isValid) {
+      toaster.error({
+        title: "Senha não atende aos requisitos",
+        description: "A senha precisa ter pelo menos: 8 caracteres, 1 maiúscula, 1 minúscula, 1 número, 1 caractere especial, e nenhum espaço.",
+      });
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      toaster.error({ title: "Erro", description: "As senhas não coincidem." });
+      return;
+    }
+
+    setPasswordChangeLoading(true);
+    try {
+      await api.post("/auth/change-password", {
+        currentPassword,
+        newPassword,
+      });
+      toaster.success({ title: "Senha alterada!", description: "Sua senha foi atualizada com sucesso." });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+      setIsChangingPassword(false);
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toaster.error({
+        title: "Erro ao alterar senha",
+        description: message ?? "Verifique a senha atual e tente novamente.",
+      });
+    } finally {
+      setPasswordChangeLoading(false);
+    }
+  };
 
   const processFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -722,6 +783,204 @@ export default function UserProfileMenu() {
                     onChange={handleFileChange}
                     style={{ display: "none" }}
                   />
+
+                  {/* --- Alterar Senha section --- */}
+                  <div style={{ marginTop: "20px", borderTop: `1px solid ${separator}`, paddingTop: "16px" }}>
+                    <button
+                      type="button"
+                      onClick={() => setIsChangingPassword(!isChangingPassword)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        background: "none",
+                        border: "none",
+                        color: "#7c3aed",
+                        fontWeight: 600,
+                        fontSize: "13.5px",
+                        cursor: "pointer",
+                        padding: "4px 0",
+                      }}
+                    >
+                      <Lock size={14} />
+                      {isChangingPassword ? "Ocultar alteração de senha" : "Deseja alterar sua senha?"}
+                    </button>
+
+                    {isChangingPassword && (
+                      <form onSubmit={handlePasswordSubmit} style={{ marginTop: "14px", display: "flex", flexDirection: "column", gap: "12px" }}>
+                        {/* Senha Atual */}
+                        <div>
+                          <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: textSecondary, marginBottom: "4px" }}>
+                            Senha Atual
+                          </label>
+                          <div style={{ position: "relative" }}>
+                            <input
+                              type={showCurrentPassword ? "text" : "password"}
+                              value={currentPassword}
+                              onChange={(e) => setCurrentPassword(e.target.value)}
+                              placeholder="Digite a senha atual"
+                              required
+                              style={{
+                                width: "100%",
+                                padding: "8px 36px 8px 12px",
+                                borderRadius: "8px",
+                                border: `1px solid ${dialogBorder}`,
+                                background: "transparent",
+                                color: textPrimary,
+                                fontSize: "13px",
+                                outline: "none",
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                              style={{
+                                position: "absolute",
+                                right: "8px",
+                                top: "50%",
+                                transform: "translateY(-50%)",
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                color: textSecondary,
+                                display: "flex",
+                                alignItems: "center",
+                              }}
+                            >
+                              {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Nova Senha */}
+                        <div>
+                          <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: textSecondary, marginBottom: "4px" }}>
+                            Nova Senha
+                          </label>
+                          <div style={{ position: "relative" }}>
+                            <input
+                              type={showNewPassword ? "text" : "password"}
+                              value={newPassword}
+                              onChange={(e) => setNewPassword(e.target.value)}
+                              placeholder="Nova senha"
+                              required
+                              style={{
+                                width: "100%",
+                                padding: "8px 36px 8px 12px",
+                                borderRadius: "8px",
+                                border: `1px solid ${dialogBorder}`,
+                                background: "transparent",
+                                color: textPrimary,
+                                fontSize: "13px",
+                                outline: "none",
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowNewPassword(!showNewPassword)}
+                              style={{
+                                position: "absolute",
+                                right: "8px",
+                                top: "50%",
+                                transform: "translateY(-50%)",
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                color: textSecondary,
+                                display: "flex",
+                                alignItems: "center",
+                              }}
+                            >
+                              {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                            </button>
+                          </div>
+                          
+                          {/* Requirements Feedback */}
+                          {newPassword && (() => {
+                            const criteria = validatePassword(newPassword).criteria;
+                            return (
+                              <div style={{ display: "flex", flexDirection: "column", gap: "2px", marginTop: "6px", paddingLeft: "4px" }}>
+                                <div style={{ fontSize: "11px", color: textSecondary }}>Requisitos da senha:</div>
+                                <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "11px", color: criteria.hasMinLength ? "#22c55e" : "#ef4444" }}>
+                                  Mínimo de 8 caracteres
+                                </div>
+                                <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "11px", color: criteria.hasUpper && criteria.hasLower && criteria.hasNumber && criteria.hasSpecial ? "#22c55e" : "#ef4444" }}>
+                                  Maiúscula, minúscula, número e caractere especial
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+
+                        {/* Confirmar Nova Senha */}
+                        <div>
+                          <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: textSecondary, marginBottom: "4px" }}>
+                            Confirmar Nova Senha
+                          </label>
+                          <div style={{ position: "relative" }}>
+                            <input
+                              type={showConfirmNewPassword ? "text" : "password"}
+                              value={confirmNewPassword}
+                              onChange={(e) => setConfirmNewPassword(e.target.value)}
+                              placeholder="Confirme a nova senha"
+                              required
+                              style={{
+                                width: "100%",
+                                padding: "8px 36px 8px 12px",
+                                borderRadius: "8px",
+                                border: `1px solid ${dialogBorder}`,
+                                background: "transparent",
+                                color: textPrimary,
+                                fontSize: "13px",
+                                outline: "none",
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
+                              style={{
+                                position: "absolute",
+                                right: "8px",
+                                top: "50%",
+                                transform: "translateY(-50%)",
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                color: textSecondary,
+                                display: "flex",
+                                alignItems: "center",
+                              }}
+                            >
+                              {showConfirmNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                            </button>
+                          </div>
+                        </div>
+
+                        <button
+                          type="submit"
+                          disabled={passwordChangeLoading}
+                          style={{
+                            background: "linear-gradient(135deg, #7c3aed, #5b21b6)",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "8px",
+                            padding: "8px 16px",
+                            fontSize: "12.5px",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            transition: "opacity 0.15s ease",
+                            marginTop: "4px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          {passwordChangeLoading ? "Alterando..." : "Confirmar Alteração de Senha"}
+                        </button>
+                      </form>
+                    )}
+                  </div>
                 </div>
 
                 {/* Footer */}

@@ -89,9 +89,11 @@ export const GerenciarDepartamentos = () => {
     useState<DepartmentListItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchDepartments = useCallback(async () => {
+  const fetchDepartments = useCallback(async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       const response = await api.get("/department/list");
       const data = response.data?.departments ?? response.data?.data ?? [];
       const formatted: DepartmentListItem[] = (
@@ -104,17 +106,27 @@ export const GerenciarDepartamentos = () => {
       }));
       setDepartments(formatted);
     } catch {
-      toaster.error({
-        title: "Erro ao carregar departamentos",
-        description: "Não foi possível carregar a lista de departamentos.",
-      });
+      if (showLoading) {
+        toaster.error({
+          title: "Erro ao carregar departamentos",
+          description: "Não foi possível carregar a lista de departamentos.",
+        });
+      }
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    void fetchDepartments();
+    void fetchDepartments(true);
+
+    const interval = setInterval(() => {
+      void fetchDepartments(false);
+    }, 45000); // Poll every 45 seconds
+
+    return () => clearInterval(interval);
   }, [fetchDepartments]);
 
   const handleChange = (

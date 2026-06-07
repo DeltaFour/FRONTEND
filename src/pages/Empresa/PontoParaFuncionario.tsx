@@ -62,19 +62,27 @@ const PontoParaFuncionario = () => {
   const navigate = useNavigate();
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [shiftTypes, setShiftTypes] = useState<string[]>(["Matutino", "Diurno", "Noturno"]);
-  const [formData, setFormData] = useState<PontoFormData>({
-    employeeId: "",
-    type: "IN",
-    timePunched: new Date().toISOString(),
-    shiftType: "Matutino",
+  const [formData, setFormData] = useState<PontoFormData>(() => {
+    const now = new Date();
+    const offset = now.getTimezoneOffset() * 60000;
+    return {
+      employeeId: "",
+      type: "IN",
+      timePunched: new Date(now.getTime() - offset).toISOString().slice(0, 16),
+      shiftType: "Matutino",
+    };
   });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSetNow = () => {
+  const handleSetNow = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const now = new Date();
+    const offset = now.getTimezoneOffset() * 60000;
+    const localISOTime = new Date(now.getTime() - offset).toISOString().slice(0, 16);
     setFormData((prev) => ({
       ...prev,
-      timePunched: new Date().toISOString(),
+      timePunched: localISOTime,
     }));
   };
 
@@ -91,7 +99,7 @@ const PontoParaFuncionario = () => {
 
       const shiftData = (shiftResponse.data?.data ?? shiftResponse.data ?? []) as { shiftType?: string }[];
       const uniqueTypes = Array.from(new Set(shiftData.map((s) => s.shiftType).filter(Boolean))) as string[];
-      
+
       if (uniqueTypes.length > 0) {
         setShiftTypes(uniqueTypes);
         setFormData((prev) => ({ ...prev, shiftType: uniqueTypes[0] }));
@@ -124,7 +132,7 @@ const PontoParaFuncionario = () => {
     const payload = {
       userId: formData.employeeId,
       type: formData.type,
-      timePunched: formData.timePunched,
+      timePunched: new Date(formData.timePunched).toISOString(),
       shiftType: formData.shiftType,
     };
 
@@ -200,7 +208,7 @@ const PontoParaFuncionario = () => {
         </Text>
         <Text fontSize="sm" color="fg.muted">
           Registre pontos manuais, ajustes de turno ou marcações retroativas.
-          Para registrar o ponto atual, clique em "Agora".
+          Para registrar o ponto atual, clique em "Usar horário atual".
         </Text>
       </Box>
 
@@ -271,6 +279,7 @@ const PontoParaFuncionario = () => {
                   Data e Hora
                 </Text>
                 <Button
+                  type="button"
                   size="xs"
                   variant="ghost"
                   borderRadius="full"
@@ -284,11 +293,11 @@ const PontoParaFuncionario = () => {
                 type="datetime-local"
                 name="timePunched"
                 id="timePunched"
-                value={formData.timePunched.substring(0, 16)}
+                value={formData.timePunched}
                 onChange={(event) =>
                   setFormData((prev) => ({
                     ...prev,
-                    timePunched: new Date(event.target.value).toISOString(),
+                    timePunched: event.target.value,
                   }))
                 }
                 required

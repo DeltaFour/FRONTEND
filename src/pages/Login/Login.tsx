@@ -26,11 +26,13 @@ import LogoComEscrita from "../../assets/LogoComEscrita.svg";
 import DarkVeil from "../../components/background/background";
 import { Input } from "../../components/ui/Input";
 import { toaster } from "../../components/ui/toaster";
+import api from "../../services/api";
 
 import { maskCnpj, validateCnpj } from "../../utils/cnpj";
+import { maskCpf, validateCpf } from "../../utils/cpf";
 import { validateEmail, validatePassword } from "../../utils/validation";
 
-type Mode = "login" | "register";
+type Mode = "login" | "register" | "forgot" | "reset";
 
 const Login = () => {
   const [mode, setMode] = useState<Mode>("login");
@@ -52,6 +54,19 @@ const Login = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [registerLoading, setRegisterLoading] = useState(false);
+  const [registerCpf, setRegisterCpf] = useState("");
+
+  // Forgot password state
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+
+  // Reset password state
+  const [resetCode, setResetCode] = useState("");
+  const [resetNewPassword, setResetNewPassword] = useState("");
+  const [resetConfirmPassword, setResetConfirmPassword] = useState("");
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [showResetConfirmPassword, setShowResetConfirmPassword] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -118,6 +133,15 @@ const Login = () => {
       return;
     }
 
+    if (!validateCpf(registerCpf)) {
+      toaster.error({
+        title: "Erro de Validação",
+        description: "O CPF informado é inválido.",
+      });
+      setRegisterLoading(false);
+      return;
+    }
+
     const passwordValidation = validatePassword(registerPassword);
     if (!passwordValidation.isValid) {
       toaster.error({
@@ -143,6 +167,7 @@ const Login = () => {
       email: sanitizedEmail,
       name: userName,
       password: registerPassword,
+      cpf: registerCpf,
     };
 
     try {
@@ -165,6 +190,113 @@ const Login = () => {
       });
     } finally {
       setRegisterLoading(false);
+    }
+  };
+
+  const handleForgotSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    setForgotLoading(true);
+
+    const sanitizedEmail = forgotEmail.trim().toLowerCase();
+    if (!validateEmail(sanitizedEmail)) {
+      toaster.error({
+        title: "E-mail Inválido",
+        description: "Por favor, insira um endereço de e-mail válido.",
+      });
+      setForgotLoading(false);
+      return;
+    }
+
+    try {
+      const response = await api.post("/auth/forgot-password", { email: sanitizedEmail });
+      toaster.success({
+        title: "Código Enviado",
+        description: response.data?.message || "Se o e-mail estiver cadastrado, um código de recuperação foi enviado.",
+      });
+      setMode("reset");
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } })
+        .response?.data?.message;
+      const description = message ?? "Erro ao solicitar redefinição de senha.";
+
+      toaster.error({
+        title: "Falha na Solicitação",
+        description,
+      });
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleResetSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    setResetLoading(true);
+
+    const sanitizedEmail = forgotEmail.trim().toLowerCase();
+    if (!validateEmail(sanitizedEmail)) {
+      toaster.error({
+        title: "E-mail Inválido",
+        description: "Por favor, confirme seu endereço de e-mail.",
+      });
+      setResetLoading(false);
+      return;
+    }
+
+    if (!resetCode || resetCode.length !== 6) {
+      toaster.error({
+        title: "Código Inválido",
+        description: "O código de verificação deve conter 6 dígitos.",
+      });
+      setResetLoading(false);
+      return;
+    }
+
+    const passwordValidation = validatePassword(resetNewPassword);
+    if (!passwordValidation.isValid) {
+      toaster.error({
+        title: "Senha não atende aos requisitos",
+        description: "A senha precisa ter pelo menos: 8 caracteres, 1 maiúscula, 1 minúscula, 1 número, 1 caractere especial, e nenhum espaço.",
+      });
+      setResetLoading(false);
+      return;
+    }
+
+    if (resetNewPassword !== resetConfirmPassword) {
+      toaster.error({
+        title: "Confirmação Incorreta",
+        description: "As senhas não coincidem.",
+      });
+      setResetLoading(false);
+      return;
+    }
+
+    try {
+      const response = await api.post("/auth/reset-password", {
+        email: sanitizedEmail,
+        code: resetCode,
+        newPassword: resetNewPassword,
+      });
+      toaster.success({
+        title: "Sucesso",
+        description: response.data?.message || "Senha redefinida com sucesso! Faça login.",
+      });
+      setMode("login");
+      setEmail(sanitizedEmail);
+      setPassword("");
+      setResetCode("");
+      setResetNewPassword("");
+      setResetConfirmPassword("");
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } })
+        .response?.data?.message;
+      const description = message ?? "Erro ao redefinir senha.";
+
+      toaster.error({
+        title: "Falha na Redefinição",
+        description,
+      });
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -354,6 +486,21 @@ const Login = () => {
                         Lembrar-me
                       </Text>
                     </label>
+
+                    <Text
+                      as="button"
+                      type="button"
+                      onClick={() => {
+                        setMode("forgot");
+                        setForgotEmail(email);
+                      }}
+                      fontSize="sm"
+                      color="blue.400"
+                      _hover={{ color: "blue.300", textDecoration: "underline" }}
+                      cursor="pointer"
+                    >
+                      Esqueceu a senha?
+                    </Text>
                   </Flex>
 
                   {/* Submit */}
@@ -389,6 +536,324 @@ const Login = () => {
                         </>
                       )}
                     </Flex>
+                  </Button>
+                </Flex>
+              </form>
+            )}
+
+            {/* ── FORGOT PASSWORD FORM ── */}
+            {mode === "forgot" && (
+              <form onSubmit={handleForgotSubmit} style={{ width: "100%" }}>
+                <Flex direction="column" gap={6}>
+                  <Box>
+                    <Heading as="h3" fontSize="xl" fontWeight="semibold" color="white" mb={2}>
+                      Recuperação de Senha
+                    </Heading>
+                    <Text fontSize="sm" color="whiteAlpha.700">
+                      Digite seu e-mail para receber um código de redefinição de 6 dígitos.
+                    </Text>
+                  </Box>
+
+                  {/* Email */}
+                  <Box>
+                    <Text {...fieldLabelStyle}>E-mail</Text>
+                    <Box position="relative">
+                      <Box
+                        position="absolute"
+                        insetY={0}
+                        left={0}
+                        pl={4}
+                        display="flex"
+                        alignItems="center"
+                        pointerEvents="none"
+                        zIndex={1}
+                      >
+                        <Mail size={20} color="#9CA3AF" />
+                      </Box>
+                      <Input
+                        type="email"
+                        id="forgotEmail"
+                        {...inputStyle}
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        placeholder="Insira seu e-mail"
+                        required
+                      />
+                    </Box>
+                  </Box>
+
+                  {/* Submit */}
+                  <Button
+                    type="submit"
+                    disabled={forgotLoading}
+                    w="full"
+                    py={3}
+                    borderRadius="lg"
+                    fontWeight="semibold"
+                    color="white"
+                    bg="purple.900"
+                    cursor={forgotLoading ? "not-allowed" : "pointer"}
+                    _hover={
+                      forgotLoading
+                        ? undefined
+                        : {
+                            bgGradient: "linear(to-r, black, purple.900)",
+                            boxShadow: "xl",
+                          }
+                    }
+                  >
+                    <Flex align="center" justify="center" gap={2}>
+                      {forgotLoading ? (
+                        <>
+                          <Spinner size="sm" color="white" />
+                          <Text>Enviando...</Text>
+                        </>
+                      ) : (
+                        <>
+                          <Text>Enviar Código</Text>
+                          <ArrowRight size={18} />
+                        </>
+                      )}
+                    </Flex>
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setMode("login")}
+                    color="white"
+                    _hover={{ bg: "whiteAlpha.100" }}
+                  >
+                    Voltar para o Login
+                  </Button>
+                </Flex>
+              </form>
+            )}
+
+            {/* ── RESET PASSWORD FORM ── */}
+            {mode === "reset" && (
+              <form onSubmit={handleResetSubmit} style={{ width: "100%" }}>
+                <Flex direction="column" gap={6}>
+                  <Box>
+                    <Heading as="h3" fontSize="xl" fontWeight="semibold" color="white" mb={2}>
+                      Redefinir Senha
+                    </Heading>
+                    <Text fontSize="sm" color="whiteAlpha.700">
+                      Insira o código de 6 dígitos enviado para seu e-mail e escolha uma nova senha.
+                    </Text>
+                  </Box>
+
+                  {/* Email */}
+                  <Box>
+                    <Text {...fieldLabelStyle}>E-mail</Text>
+                    <Box position="relative">
+                      <Box
+                        position="absolute"
+                        insetY={0}
+                        left={0}
+                        pl={4}
+                        display="flex"
+                        alignItems="center"
+                        pointerEvents="none"
+                        zIndex={1}
+                      >
+                        <Mail size={20} color="#9CA3AF" />
+                      </Box>
+                      <Input
+                        type="email"
+                        id="resetEmail"
+                        {...inputStyle}
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        placeholder="Confirmar e-mail"
+                        required
+                      />
+                    </Box>
+                  </Box>
+
+                  {/* Código */}
+                  <Box>
+                    <Text {...fieldLabelStyle}>Código de Verificação</Text>
+                    <Box position="relative">
+                      <Box
+                        position="absolute"
+                        insetY={0}
+                        left={0}
+                        pl={4}
+                        display="flex"
+                        alignItems="center"
+                        pointerEvents="none"
+                        zIndex={1}
+                      >
+                        <Hash size={20} color="#9CA3AF" />
+                      </Box>
+                      <Input
+                        type="text"
+                        id="resetCode"
+                        {...inputStyle}
+                        value={resetCode}
+                        onChange={(e) => setResetCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                        placeholder="000000"
+                        maxLength={6}
+                        required
+                      />
+                    </Box>
+                  </Box>
+
+                  {/* Nova Senha */}
+                  <Box>
+                    <Text {...fieldLabelStyle}>Nova Senha</Text>
+                    <Box position="relative">
+                      <Box
+                        position="absolute"
+                        insetY={0}
+                        left={0}
+                        pl={4}
+                        display="flex"
+                        alignItems="center"
+                        pointerEvents="none"
+                        zIndex={1}
+                      >
+                        <Lock size={20} color="#9CA3AF" />
+                      </Box>
+                      <Input
+                        type={showResetPassword ? "text" : "password"}
+                        id="resetNewPassword"
+                        {...inputStyle}
+                        pr={12}
+                        value={resetNewPassword}
+                        onChange={(e) => setResetNewPassword(e.target.value)}
+                        placeholder="Nova senha"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowResetPassword((v) => !v)}
+                        color="whiteAlpha.600"
+                        _hover={{ color: "white", bg: "transparent" }}
+                        position="absolute"
+                        insetY={0}
+                        right={0}
+                        minW="36px"
+                      >
+                        {showResetPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      </Button>
+                    </Box>
+
+                    {/* Requirements Feedback */}
+                    {resetNewPassword && (() => {
+                      const criteria = validatePassword(resetNewPassword).criteria;
+                      return (
+                        <Flex direction="column" gap={1} mt={2} pl={1}>
+                          <Text fontSize="xs" color="whiteAlpha.700">Requisitos da senha:</Text>
+                          <Flex align="center" gap={1.5} fontSize="xs" color={criteria.hasMinLength ? "green.300" : "red.300"}>
+                            {criteria.hasMinLength ? <Check size={12} /> : <X size={12} />} Mínimo de 8 caracteres
+                          </Flex>
+                          <Flex align="center" gap={1.5} fontSize="xs" color={criteria.hasUpper ? "green.300" : "red.300"}>
+                            {criteria.hasUpper ? <Check size={12} /> : <X size={12} />} Pelo menos 1 letra maiúscula
+                          </Flex>
+                          <Flex align="center" gap={1.5} fontSize="xs" color={criteria.hasLower ? "green.300" : "red.300"}>
+                            {criteria.hasLower ? <Check size={12} /> : <X size={12} />} Pelo menos 1 letra minúscula
+                          </Flex>
+                          <Flex align="center" gap={1.5} fontSize="xs" color={criteria.hasNumber ? "green.300" : "red.300"}>
+                            {criteria.hasNumber ? <Check size={12} /> : <X size={12} />} Pelo menos 1 número
+                          </Flex>
+                          <Flex align="center" gap={1.5} fontSize="xs" color={criteria.hasSpecial ? "green.300" : "red.300"}>
+                            {criteria.hasSpecial ? <Check size={12} /> : <X size={12} />} Pelo menos 1 caractere especial
+                          </Flex>
+                          <Flex align="center" gap={1.5} fontSize="xs" color={criteria.noSpaces ? "green.300" : "red.300"}>
+                            {criteria.noSpaces ? <Check size={12} /> : <X size={12} />} Sem espaços em branco
+                          </Flex>
+                        </Flex>
+                      );
+                    })()}
+                  </Box>
+
+                  {/* Confirmar Nova Senha */}
+                  <Box>
+                    <Text {...fieldLabelStyle}>Confirmar Nova Senha</Text>
+                    <Box position="relative">
+                      <Box
+                        position="absolute"
+                        insetY={0}
+                        left={0}
+                        pl={4}
+                        display="flex"
+                        alignItems="center"
+                        pointerEvents="none"
+                        zIndex={1}
+                      >
+                        <Lock size={20} color="#9CA3AF" />
+                      </Box>
+                      <Input
+                        type={showResetConfirmPassword ? "text" : "password"}
+                        id="resetConfirmPassword"
+                        {...inputStyle}
+                        pr={12}
+                        value={resetConfirmPassword}
+                        onChange={(e) => setResetConfirmPassword(e.target.value)}
+                        placeholder="Confirme a nova senha"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowResetConfirmPassword((v) => !v)}
+                        color="whiteAlpha.600"
+                        _hover={{ color: "white", bg: "transparent" }}
+                        position="absolute"
+                        insetY={0}
+                        right={0}
+                        minW="36px"
+                      >
+                        {showResetConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      </Button>
+                    </Box>
+                  </Box>
+
+                  {/* Submit */}
+                  <Button
+                    type="submit"
+                    disabled={resetLoading}
+                    w="full"
+                    py={3}
+                    borderRadius="lg"
+                    fontWeight="semibold"
+                    color="white"
+                    bg="purple.900"
+                    cursor={resetLoading ? "not-allowed" : "pointer"}
+                    _hover={
+                      resetLoading
+                        ? undefined
+                        : {
+                            bgGradient: "linear(to-r, black, purple.900)",
+                            boxShadow: "xl",
+                          }
+                    }
+                  >
+                    <Flex align="center" justify="center" gap={2}>
+                      {resetLoading ? (
+                        <>
+                          <Spinner size="sm" color="white" />
+                          <Text>Redefinindo...</Text>
+                        </>
+                      ) : (
+                        <Text>Redefinir Senha</Text>
+                      )}
+                    </Flex>
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setMode("login")}
+                    color="white"
+                    _hover={{ bg: "whiteAlpha.100" }}
+                  >
+                    Cancelar
                   </Button>
                 </Flex>
               </form>
@@ -452,6 +917,36 @@ const Login = () => {
                         onChange={(e) => setCnpj(maskCnpj(e.target.value))}
                         placeholder="00.000.000/0001-00 ou AA.AAA.AAA/AAAA-99"
                         maxLength={18}
+                        required
+                      />
+                    </Box>
+                  </Box>
+
+                  {/* CPF */}
+                  <Box>
+                    <Text {...fieldLabelStyle}>CPF do Administrador</Text>
+                    <Box position="relative">
+                      <Box
+                        position="absolute"
+                        insetY={0}
+                        left={0}
+                        pl={4}
+                        display="flex"
+                        alignItems="center"
+                        pointerEvents="none"
+                        zIndex={1}
+                      >
+                        <Hash size={20} color="#9CA3AF" />
+                      </Box>
+                      <Input
+                        type="text"
+                        id="registerCpf"
+                        autocomplete="off"
+                        {...inputStyle}
+                        value={registerCpf}
+                        onChange={(e) => setRegisterCpf(maskCpf(e.target.value))}
+                        placeholder="000.000.000-00"
+                        maxLength={14}
                         required
                       />
                     </Box>
@@ -688,7 +1183,7 @@ const Login = () => {
               w="full"
               flexDir="column"
             >
-              {mode === "login" ? (
+              {mode === "login" && (
                 <>
                   <Text fontSize="sm" color="white">
                     Novo por aqui?{" "}
@@ -703,7 +1198,8 @@ const Login = () => {
                     Começar agora
                   </Text>
                 </>
-              ) : (
+              )}
+              {mode === "register" && (
                 <>
                   <Text fontSize="sm" color="white">
                     Já tem uma conta?{" "}
@@ -716,6 +1212,38 @@ const Login = () => {
                     cursor="pointer"
                   >
                     Fazer login
+                  </Text>
+                </>
+              )}
+              {mode === "forgot" && (
+                <>
+                  <Text fontSize="sm" color="white">
+                    Lembrou da senha?{" "}
+                  </Text>
+                  <Text
+                    as="button"
+                    onClick={() => setMode("login")}
+                    color="blue.500"
+                    textDecoration="underline"
+                    cursor="pointer"
+                  >
+                    Fazer login
+                  </Text>
+                </>
+              )}
+              {mode === "reset" && (
+                <>
+                  <Text fontSize="sm" color="white">
+                    Não recebeu o código?{" "}
+                  </Text>
+                  <Text
+                    as="button"
+                    onClick={() => setMode("forgot")}
+                    color="blue.500"
+                    textDecoration="underline"
+                    cursor="pointer"
+                  >
+                    Reenviar código
                   </Text>
                 </>
               )}

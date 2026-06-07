@@ -173,10 +173,6 @@ const normalizeAttendances = (rawData: unknown): PunchRecord[] => {
 };
 
 const isAttendanceApproved = (attendance: PunchRecord) => {
-  if (!attendance.isLate) {
-    return true;
-  }
-
   const normalized = String(attendance.status ?? "")
     .trim()
     .toLowerCase();
@@ -297,23 +293,35 @@ const FiltrarPontoRH = () => {
   const lateCardBorder = useColorModeValue("red.100", "red.700");
   const lateTitleColor = useColorModeValue("red.700", "red.200");
 
-  const fetchAttendances = useCallback(async () => {
+  const fetchAttendances = useCallback(async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       const response = await api.get("/user/get-all-attendances");
       setPunches(normalizeAttendances(response.data));
     } catch (err) {
-      toaster.error({
-        title: "Erro ao carregar pontos",
-        description: "Não foi possível carregar os pontos registrados.",
-      });
+      if (showLoading) {
+        toaster.error({
+          title: "Erro ao carregar pontos",
+          description: "Não foi possível carregar os pontos registrados.",
+        });
+      }
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    void fetchAttendances();
+    void fetchAttendances(true);
+
+    const interval = setInterval(() => {
+      void fetchAttendances(false);
+    }, 5000); // Poll every 5 seconds for real-time updates
+
+    return () => clearInterval(interval);
   }, [fetchAttendances]);
 
   const handleValidateAttendance = useCallback(
@@ -723,7 +731,7 @@ const FiltrarPontoRH = () => {
               </Box>
             ) : (
               filteredPunches.map((punch) => (
-                <Box as="tr" key={punch.id} borderTopWidth="1px">
+                <Box as="tr" key={punch.id} borderTopWidth="1px" className="animate-punch-row">
                   <Box
                     as="td"
                     px={{ base: 3, md: 6 }}
@@ -750,7 +758,7 @@ const FiltrarPontoRH = () => {
                     <ApprovalPill isApproved={isAttendanceApproved(punch)} />
                   </Box>
                   <Box as="td" px={{ base: 3, md: 6 }} py={4}>
-                    {punch.isLate && !isAttendanceApproved(punch) ? (
+                    {!isAttendanceApproved(punch) ? (
                       <Button
                         size="xs"
                         variant="outline"

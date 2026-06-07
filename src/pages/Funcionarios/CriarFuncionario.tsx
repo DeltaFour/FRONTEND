@@ -28,7 +28,8 @@ import api from "../../services/api";
 import { Input } from "../../components/ui/Input";
 import { toaster } from "../../components/ui/toaster";
 import { useColorModeValue } from "../../theme/colorMode";
-import { validateEmail } from "../../utils/validation";
+import { validateEmail, validatePassword } from "../../utils/validation";
+import { maskCpf, validateCpf } from "../../utils/cpf";
 
 interface Shift {
   id: string;
@@ -44,6 +45,8 @@ interface CreateEmployeeFormData {
   name: string;
   roleName: string;
   email: string;
+  password: string;
+  cpf: string;
   cellPhone: string;
   shiftId: string;
   departmentId: string;
@@ -83,6 +86,8 @@ const CriarFuncionario = () => {
     name: "",
     roleName: "",
     email: "",
+    password: "",
+    cpf: "",
     cellPhone: "",
     shiftId: "",
     departmentId: "",
@@ -321,10 +326,14 @@ const CriarFuncionario = () => {
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const target = event.target;
-    const fieldValue =
+    let fieldValue =
       target instanceof HTMLInputElement && target.type === "checkbox"
         ? target.checked
         : target.value;
+
+    if (target.name === "cpf" && typeof fieldValue === "string") {
+      fieldValue = maskCpf(fieldValue);
+    }
 
     setFormData((prev) => ({
       ...prev,
@@ -340,6 +349,23 @@ const CriarFuncionario = () => {
       toaster.error({
         title: "E-mail Inválido",
         description: "Por favor, insira um endereço de e-mail válido para o funcionário.",
+      });
+      return;
+    }
+
+    const passwordValidation = validatePassword(formData.password);
+    if (!passwordValidation.isValid) {
+      toaster.error({
+        title: "Senha Fraca",
+        description: "A senha inicial deve ter pelo menos: 8 caracteres, 1 maiúscula, 1 minúscula, 1 número, 1 caractere especial, e nenhum espaço.",
+      });
+      return;
+    }
+
+    if (!validateCpf(formData.cpf)) {
+      toaster.error({
+        title: "Erro de Validação",
+        description: "O CPF informado é inválido.",
       });
       return;
     }
@@ -362,6 +388,8 @@ const CriarFuncionario = () => {
       name: formData.name,
       roleName: formData.roleName,
       email: sanitizedEmail,
+      password: formData.password,
+      cpf: formData.cpf,
       cellPhone: formData.cellPhone,
       imageBase64: formData.imageBase64,
       isAllowedBypassCoord: formData.isAllowedBypassCoord,
@@ -511,6 +539,22 @@ const CriarFuncionario = () => {
               id="cellPhone"
               value={formData.cellPhone}
               onChange={handleChange}
+              required
+            />
+          </Box>
+
+          <Box>
+            <Text mb={1} fontWeight="medium" color="fg">
+              CPF
+            </Text>
+            <Input
+              type="text"
+              placeholder="000.000.000-00"
+              name="cpf"
+              id="cpf"
+              value={formData.cpf}
+              onChange={handleChange}
+              maxLength={14}
               required
             />
           </Box>

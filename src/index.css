@@ -65,6 +65,10 @@ body {
   animation: fluidFadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+.animate-punch-row {
+  animation: fluidFadeIn 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 /* Aplica a animação fluida para todos os modais/diálogos */
 .chakra-dialog__content,
 [role="dialog"],

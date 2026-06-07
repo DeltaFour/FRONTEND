@@ -1,5 +1,4 @@
 import {
-  Box,
   Button,
   DialogBackdrop,
   DialogBody,
@@ -14,7 +13,6 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react";
-import { useColorModeValue } from "../../theme/colorMode";
 
 interface ConfirmDeleteModalProps {
   isOpen: boolean;
@@ -32,10 +30,6 @@ export const ConfirmDeleteModal = ({
   isLoading = false,
 }: ConfirmDeleteModalProps) => {
   const contentBg = "surface";
-  const headerBg = useColorModeValue("red.50", "red.900");
-  const titleColor = useColorModeValue("red.700", "red.200");
-  const textColor = "fg";
-  const subTextColor = "fg.muted";
   const borderColor = "border";
 
   const handleOpenChange = (details: { open: boolean }) => {
@@ -59,48 +53,42 @@ export const ConfirmDeleteModal = ({
           <DialogContent
             w={{ base: "92vw", md: "500px" }}
             maxH="85vh"
-            borderRadius="15px"
-            boxShadow="lg"
-            px={6}
-            py={4}
+            borderRadius="xl"
+            boxShadow="2xl"
             bg={contentBg}
             borderWidth="1px"
             borderColor={borderColor}
           >
-            <DialogHeader p={4} bg={headerBg}>
+            <DialogHeader pb={3} pt={5} px={6}>
               <DialogTitle
                 fontSize="lg"
                 fontWeight="semibold"
-                color={titleColor}
+                color="fg"
               >
                 Confirmar exclusão
               </DialogTitle>
             </DialogHeader>
 
-            <DialogBody p={4}>
-              <VStack align="start" gap={2}>
-                <Text fontSize="md" color={textColor}>
+            <DialogBody px={6} py={2}>
+              <VStack align="start" gap={1}>
+                <Text fontSize="sm" color="fg">
                   Tem certeza que deseja excluir{" "}
-                  <Text as="span" fontWeight="bold" color={textColor}>
+                  <Text as="span" fontWeight="bold">
                     {itemName || "este item"}
                   </Text>
                   ?
                 </Text>
-
-                <Text fontSize="sm" color={subTextColor}>
+                <Text fontSize="xs" color="fg.muted">
                   Essa ação não poderá ser desfeita.
                 </Text>
               </VStack>
             </DialogBody>
 
-            <DialogFooter pt={4} justifyContent="center">
+            <DialogFooter px={6} pb={5} pt={4} justifyContent="flex-end">
               <HStack gap={3}>
                 <Button
                   variant="outline"
-                  w="96px"
-                  h="24px"
-                  p="15px"
-                  borderRadius="full"
+                  size="sm"
                   onClick={onClose}
                   disabled={isLoading}
                 >
@@ -108,10 +96,7 @@ export const ConfirmDeleteModal = ({
                 </Button>
 
                 <Button
-                  w="140px"
-                  borderRadius="full"
-                  h="24px"
-                  p="15px"
+                  size="sm"
                   colorPalette="red"
                   onClick={onConfirm}
                   loading={isLoading}

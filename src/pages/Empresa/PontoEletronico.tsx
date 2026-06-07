@@ -208,6 +208,12 @@ const PontoEletronico = () => {
 
   useEffect(() => {
     void fetchAllowedPunch(true);
+
+    const interval = setInterval(() => {
+      void fetchAllowedPunch(false);
+    }, 45000); // Poll every 45 seconds
+
+    return () => clearInterval(interval);
   }, [fetchAllowedPunch]);
 
   // Automated facial recognition check loop on camera active

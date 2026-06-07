@@ -30,7 +30,6 @@ interface CompanySettings {
   nomeFantasia: string;
   cnpj: string;
   email: string;
-  telefone: string;
 
   cep: string;
   rua: string;
@@ -50,7 +49,6 @@ const DEFAULT_SETTINGS: CompanySettings = {
   nomeFantasia: "DeltaFour",
   cnpj: "12.ABC.345/01DE-35",
   email: "contato@deltafour.com.br",
-  telefone: "(11) 99999-9999",
 
   cep: "01310-100",
   rua: "Avenida Paulista",
@@ -137,19 +135,6 @@ export default function ConfiguracoesEmpresa() {
   const handleCnpjChange = (e: ChangeEvent<HTMLInputElement>) => {
     const masked = maskCnpj(e.target.value);
     setSettings((prev) => ({ ...prev, cnpj: masked }));
-  };
-
-  const handlePhoneChange = (e: ChangeEvent<HTMLInputElement>) => {
-    let val = e.target.value.replace(/\D/g, "");
-    if (val.length > 11) val = val.slice(0, 11);
-    let formatted = val;
-    if (val.length > 2) {
-      formatted = `(${val.slice(0, 2)}) ${val.slice(2)}`;
-    }
-    if (val.length > 7) {
-      formatted = `(${val.slice(0, 2)}) ${val.slice(2, 7)}-${val.slice(7)}`;
-    }
-    setSettings((prev) => ({ ...prev, telefone: formatted }));
   };
 
   const handleCepBlur = async () => {
@@ -340,236 +325,234 @@ export default function ConfiguracoesEmpresa() {
   return (
     <Box w="full" h="fit-content">
       <Box as="form" onSubmit={handleSaveSettings}>
-        <VStack spaceY={6} align="stretch">
+        <VStack spaceY={8} align="stretch">
 
           {/* Setor: Informações da Empresa */}
-          <Box p={6} bg={cardBg} borderRadius="lg" border={cardBorder} borderColor={cardBorderColor} boxShadow="md">
-            <Heading size="md" color="fg" mb={5} pb={2} borderBottomWidth="1px" borderColor="border">
+          <Box>
+            <Heading size="lg" color="fg" mb={3}>
               Informações da Empresa
             </Heading>
-            <Grid templateColumns={{ base: "1fr", md: "repeat(2, minmax(0, 1fr))" }} gap={5}>
-              <Box>
-                <Text mb={1} fontWeight="medium" color="fg">Razão Social *</Text>
-                <Input
-                  name="razaoSocial"
-                  value={settings.razaoSocial}
-                  onChange={handleInputChange}
-                  placeholder="Razão Social"
-                  required
-                />
-              </Box>
+            <Box p={6} bg={cardBg} borderRadius="lg" border={cardBorder} borderColor={cardBorderColor} boxShadow="md">
+              <Grid templateColumns={{ base: "1fr", md: "repeat(2, minmax(0, 1fr))" }} gap={5}>
+                <Box>
+                  <Text mb={1} fontWeight="medium" color="fg">Razão Social *</Text>
+                  <Input
+                    name="razaoSocial"
+                    value={settings.razaoSocial}
+                    onChange={handleInputChange}
+                    placeholder="Razão Social"
+                    required
+                  />
+                </Box>
 
-              <Box>
-                <Text mb={1} fontWeight="medium" color="fg">Nome Fantasia *</Text>
-                <Input
-                  name="nomeFantasia"
-                  value={settings.nomeFantasia}
-                  onChange={handleInputChange}
-                  placeholder="Nome Fantasia"
-                  required
-                />
-              </Box>
+                <Box>
+                  <Text mb={1} fontWeight="medium" color="fg">Nome Fantasia *</Text>
+                  <Input
+                    name="nomeFantasia"
+                    value={settings.nomeFantasia}
+                    onChange={handleInputChange}
+                    placeholder="Nome Fantasia"
+                    required
+                  />
+                </Box>
 
-              <Box>
-                <Text mb={1} fontWeight="medium" color="fg">CNPJ</Text>
-                <Input
-                  name="cnpj"
-                  value={settings.cnpj}
-                  onChange={handleCnpjChange}
-                  placeholder="AA.AAA.AAA/AAAA-99"
-                />
-              </Box>
+                <Box>
+                  <Text mb={1} fontWeight="medium" color="fg">CNPJ</Text>
+                  <Input
+                    name="cnpj"
+                    value={settings.cnpj}
+                    onChange={handleCnpjChange}
+                    placeholder="AA.AAA.AAA/AAAA-99"
+                  />
+                </Box>
 
-              <Box>
-                <Text mb={1} fontWeight="medium" color="fg">Telefone</Text>
-                <Input
-                  name="telefone"
-                  value={settings.telefone}
-                  onChange={handlePhoneChange}
-                  placeholder="(11) 99999-9999"
-                />
-              </Box>
-
-              <Box>
-                <Text mb={1} fontWeight="medium" color="fg">E-mail Corporativo *</Text>
-                <Input
-                  type="email"
-                  name="email"
-                  value={settings.email}
-                  onChange={handleInputChange}
-                  placeholder="contato@empresa.com"
-                  required
-                />
-              </Box>
-            </Grid>
+                <Box>
+                  <Text mb={1} fontWeight="medium" color="fg">E-mail Corporativo *</Text>
+                  <Input
+                    type="email"
+                    name="email"
+                    value={settings.email}
+                    onChange={handleInputChange}
+                    placeholder="contato@empresa.com"
+                    required
+                  />
+                </Box>
+              </Grid>
+            </Box>
           </Box>
 
           {/* Setor: Localização */}
-          <Box p={6} bg={cardBg} borderRadius="lg" border={cardBorder} borderColor={cardBorderColor} boxShadow="md">
-            <Heading size="md" color="fg" mb={5} pb={2} borderBottomWidth="1px" borderColor="border">
+          <Box>
+            <Heading size="lg" color="fg" mb={3}>
               Localização da Empresa
             </Heading>
-            <Grid templateColumns={{ base: "1fr", md: "repeat(2, minmax(0, 1fr))" }} gap={5}>
-              <Box>
-                <Text mb={1} fontWeight="medium" color="fg">CEP</Text>
-                <Flex align="center" gap={2}>
-                  <Input
-                    name="cep"
-                    value={settings.cep}
-                    onChange={(e) => setSettings((prev) => ({ ...prev, cep: e.target.value }))}
-                    onBlur={handleCepBlur}
-                    placeholder="00000-000"
-                  />
-                  {fetchingCep && <Spinner size="sm" />}
-                </Flex>
-              </Box>
-
-              <Box>
-                <Text mb={1} fontWeight="medium" color="fg">Rua</Text>
-                <Input
-                  name="rua"
-                  value={settings.rua}
-                  onChange={handleInputChange}
-                  placeholder="Logradouro"
-                />
-              </Box>
-
-              <Box>
-                <Text mb={1} fontWeight="medium" color="fg">Número</Text>
-                <Input
-                  name="numero"
-                  value={settings.numero}
-                  onChange={handleInputChange}
-                  placeholder="Número"
-                />
-              </Box>
-
-              <Box>
-                <Text mb={1} fontWeight="medium" color="fg">Complemento</Text>
-                <Input
-                  name="complemento"
-                  value={settings.complemento}
-                  onChange={handleInputChange}
-                  placeholder="Complemento"
-                />
-              </Box>
-
-              <Box>
-                <Text mb={1} fontWeight="medium" color="fg">Bairro</Text>
-                <Input
-                  name="bairro"
-                  value={settings.bairro}
-                  onChange={handleInputChange}
-                  placeholder="Bairro"
-                />
-              </Box>
-
-              <Box>
-                <Text mb={1} fontWeight="medium" color="fg">Cidade</Text>
-                <Input
-                  name="cidade"
-                  value={settings.cidade}
-                  onChange={handleInputChange}
-                  placeholder="Cidade"
-                />
-              </Box>
-
-              <Box>
-                <Text mb={1} fontWeight="medium" color="fg">Estado (UF)</Text>
-                <Input
-                  name="estado"
-                  value={settings.estado}
-                  onChange={handleInputChange}
-                  placeholder="UF"
-                  maxLength={2}
-                />
-              </Box>
-
-              <Box>
-                <Text mb={1} fontWeight="medium" color="fg">Coordenadas de Referência</Text>
-                <Flex align="center" gap={2} h="40px">
-                  <Text fontSize="sm" fontFamily="mono" color="fg.muted">
-                    {fetchingCoords ? "Buscando coordenadas..." : `Lat: ${settings.latitude || "---"} / Lon: ${settings.longitude || "---"}`}
-                  </Text>
-                </Flex>
-              </Box>
-            </Grid>
-          </Box>
-
-          {/* Setor: Geolocalização */}
-          <Box p={6} bg={cardBg} borderRadius="lg" border={cardBorder} borderColor={cardBorderColor} boxShadow="md">
-            <Heading size="md" color="fg" mb={5} pb={2} borderBottomWidth="1px" borderColor="border">
-              Regras de Geolocalização
-            </Heading>
-            <Grid templateColumns={{ base: "1fr", md: "repeat(2, minmax(0, 1fr))" }} gap={5}>
-              <Box>
-                <Text mb={1} fontWeight="medium" color="fg">Raio Permitido (metros)</Text>
-                <Input
-                  type="number"
-                  name="raioMetros"
-                  value={settings.raioMetros}
-                  onChange={(e) => setSettings((prev) => ({ ...prev, raioMetros: Number(e.target.value) }))}
-                  min={10}
-                  placeholder="100"
-                />
-              </Box>
-            </Grid>
-          </Box>
-
-          {/* Setor: Assinatura e Cobrança */}
-          <Box p={6} bg={cardBg} borderRadius="lg" border={cardBorder} borderColor={cardBorderColor} boxShadow="md">
-            <Heading size="md" color="fg" mb={5} pb={2} borderBottomWidth="1px" borderColor="border">
-              Assinatura e Cobrança
-            </Heading>
-
-            {isSoon && billingInfo && (
-              <Box p={4} mb={4} bg="red.muted" borderWidth="1px" borderColor="red.border" borderRadius="md">
-                <Text color="red.fg" fontWeight="semibold" fontSize="sm">
-                  Sua assinatura renovará em {billingInfo.diffDays} {billingInfo.diffDays === 1 ? "dia" : "dias"} (em {billingInfo.nextDate.toLocaleDateString("pt-BR")}).
-                </Text>
-              </Box>
-            )}
-
-            {loadingSub ? (
-              <Spinner size="sm" />
-            ) : subscription ? (
+            <Box p={6} bg={cardBg} borderRadius="lg" border={cardBorder} borderColor={cardBorderColor} boxShadow="md">
               <Grid templateColumns={{ base: "1fr", md: "repeat(2, minmax(0, 1fr))" }} gap={5}>
                 <Box>
-                  <Text fontSize="sm" color="fg.muted">Plano Atual</Text>
-                  <Text fontSize="md" fontWeight="bold" color="fg">{subscription.planName}</Text>
+                  <Text mb={1} fontWeight="medium" color="fg">CEP</Text>
+                  <Flex align="center" gap={2}>
+                    <Input
+                      name="cep"
+                      value={settings.cep}
+                      onChange={(e) => setSettings((prev) => ({ ...prev, cep: e.target.value }))}
+                      onBlur={handleCepBlur}
+                      placeholder="00000-000"
+                    />
+                    {fetchingCep && <Spinner size="sm" />}
+                  </Flex>
                 </Box>
+
                 <Box>
-                  <Text fontSize="sm" color="fg.muted">Status da Assinatura</Text>
-                  <Text fontSize="md" fontWeight="semibold" color={subscription.status === "active" ? "green.500" : "red.500"}>
-                    {subscription.status === "active" ? "Ativa" : "Inativa"}
-                  </Text>
+                  <Text mb={1} fontWeight="medium" color="fg">Rua</Text>
+                  <Input
+                    name="rua"
+                    value={settings.rua}
+                    onChange={handleInputChange}
+                    placeholder="Logradouro"
+                  />
                 </Box>
+
                 <Box>
-                  <Text fontSize="sm" color="fg.muted">Início do Ciclo</Text>
-                  <Text fontSize="md" color="fg">{new Date(subscription.startDate).toLocaleDateString("pt-BR")}</Text>
+                  <Text mb={1} fontWeight="medium" color="fg">Número</Text>
+                  <Input
+                    name="numero"
+                    value={settings.numero}
+                    onChange={handleInputChange}
+                    placeholder="Número"
+                  />
                 </Box>
+
                 <Box>
-                  <Text fontSize="sm" color="fg.muted">Próximo Faturamento (Renovação)</Text>
-                  <Text fontSize="md" fontWeight="bold" color="fg">
-                    {billingInfo ? billingInfo.nextDate.toLocaleDateString("pt-BR") : "Não disponível"}
-                  </Text>
+                  <Text mb={1} fontWeight="medium" color="fg">Complemento</Text>
+                  <Input
+                    name="complemento"
+                    value={settings.complemento}
+                    onChange={handleInputChange}
+                    placeholder="Complemento"
+                  />
                 </Box>
+
                 <Box>
-                  <Flex gap={3} pt={2}>
-                    <Button type="button" variant="outline" size="sm" onClick={handleManageBilling} p="10px">
-                      Portal Financeiro
-                    </Button>
-                    {subscription.status === "active" && (
-                      <Button type="button" variant="outline" colorPalette="red" size="sm" onClick={() => setShowCancelModal(true)}>
-                        Cancelar Plano
-                      </Button>
-                    )}
+                  <Text mb={1} fontWeight="medium" color="fg">Bairro</Text>
+                  <Input
+                    name="bairro"
+                    value={settings.bairro}
+                    onChange={handleInputChange}
+                    placeholder="Bairro"
+                  />
+                </Box>
+
+                <Box>
+                  <Text mb={1} fontWeight="medium" color="fg">Cidade</Text>
+                  <Input
+                    name="cidade"
+                    value={settings.cidade}
+                    onChange={handleInputChange}
+                    placeholder="Cidade"
+                  />
+                </Box>
+
+                <Box>
+                  <Text mb={1} fontWeight="medium" color="fg">Estado (UF)</Text>
+                  <Input
+                    name="estado"
+                    value={settings.estado}
+                    onChange={handleInputChange}
+                    placeholder="UF"
+                    maxLength={2}
+                  />
+                </Box>
+
+                <Box>
+                  <Text mb={1} fontWeight="medium" color="fg">Coordenadas de Referência</Text>
+                  <Flex align="center" gap={2} h="40px">
+                    <Text fontSize="sm" fontFamily="mono" color="fg.muted">
+                      {fetchingCoords ? "Buscando coordenadas..." : `Lat: ${settings.latitude || "---"} / Lon: ${settings.longitude || "---"}`}
+                    </Text>
                   </Flex>
                 </Box>
               </Grid>
-            ) : (
-              <Text fontSize="sm" color="fg.muted">Dados de assinatura não disponíveis.</Text>
-            )}
+            </Box>
+          </Box>
+
+          {/* Setor: Geolocalização */}
+          <Box>
+            <Heading size="lg" color="fg" mb={3}>
+              Regras de Geolocalização
+            </Heading>
+            <Box p={6} bg={cardBg} borderRadius="lg" border={cardBorder} borderColor={cardBorderColor} boxShadow="md">
+              <Grid templateColumns={{ base: "1fr", md: "repeat(2, minmax(0, 1fr))" }} gap={5}>
+                <Box>
+                  <Text mb={1} fontWeight="medium" color="fg">Raio Permitido (metros)</Text>
+                  <Input
+                    type="number"
+                    name="raioMetros"
+                    value={settings.raioMetros}
+                    onChange={(e) => setSettings((prev) => ({ ...prev, raioMetros: Number(e.target.value) }))}
+                    min={10}
+                    placeholder="100"
+                  />
+                </Box>
+              </Grid>
+            </Box>
+          </Box>
+
+          {/* Setor: Assinatura e Cobrança */}
+          <Box>
+            <Heading size="lg" color="fg" mb={3}>
+              Assinatura e Cobrança
+            </Heading>
+            <Box p={6} bg={cardBg} borderRadius="lg" border={cardBorder} borderColor={cardBorderColor} boxShadow="md">
+
+              {isSoon && billingInfo && (
+                <Box p={4} mb={4} bg="red.muted" borderWidth="1px" borderColor="red.border" borderRadius="md">
+                  <Text color="red.fg" fontWeight="semibold" fontSize="sm">
+                    Sua assinatura renovará em {billingInfo.diffDays} {billingInfo.diffDays === 1 ? "dia" : "dias"} (em {billingInfo.nextDate.toLocaleDateString("pt-BR")}).
+                  </Text>
+                </Box>
+              )}
+
+              {loadingSub ? (
+                <Spinner size="sm" />
+              ) : subscription ? (
+                <Grid templateColumns={{ base: "1fr", md: "repeat(2, minmax(0, 1fr))" }} gap={5}>
+                  <Box>
+                    <Text fontSize="sm" color="fg.muted">Plano Atual</Text>
+                    <Text fontSize="md" fontWeight="bold" color="fg">{subscription.planName}</Text>
+                  </Box>
+                  <Box>
+                    <Text fontSize="sm" color="fg.muted">Status da Assinatura</Text>
+                    <Text fontSize="md" fontWeight="semibold" color={subscription.status === "ACTIVE" ? "green.500" : "red.500"}>
+                      {subscription.status === "ACTIVE" ? "Ativa" : "Inativa"}
+                    </Text>
+                  </Box>
+                  <Box>
+                    <Text fontSize="sm" color="fg.muted">Início do Ciclo</Text>
+                    <Text fontSize="md" color="fg">{new Date(subscription.startDate).toLocaleDateString("pt-BR")}</Text>
+                  </Box>
+                  <Box>
+                    <Text fontSize="sm" color="fg.muted">Próximo Faturamento (Renovação)</Text>
+                    <Text fontSize="md" fontWeight="bold" color="fg">
+                      {billingInfo ? billingInfo.nextDate.toLocaleDateString("pt-BR") : "Não disponível"}
+                    </Text>
+                  </Box>
+                  <Box>
+                    <Flex gap={3} pt={2}>
+                      <Button type="button" variant="outline" size="sm" onClick={handleManageBilling} p="10px">
+                        Portal Financeiro
+                      </Button>
+                      {subscription.status === "active" && (
+                        <Button type="button" variant="outline" colorPalette="red" size="sm" onClick={() => setShowCancelModal(true)}>
+                          Cancelar Plano
+                        </Button>
+                      )}
+                    </Flex>
+                  </Box>
+                </Grid>
+              ) : (
+                <Text fontSize="sm" color="fg.muted">Dados de assinatura não disponíveis.</Text>
+              )}
+            </Box>
           </Box>
 
           {/* Rodapé de Ações */}

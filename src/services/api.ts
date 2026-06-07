@@ -159,6 +159,25 @@ const createMockApi = () => {
       return delay(buildResponse({ data: users } as T, config));
     }
 
+    if (normalizedUrl === "/user/get-all-attendances") {
+      const allAttendances = punches.map((punch) => {
+        const employee = users.find((u) => u.id === punch.userId);
+        return {
+          attendanceId: punch.id,
+          name: employee?.name || "Funcionário Desconhecido",
+          timePunched: punch.timePunched,
+          isLate: false,
+          type: punch.type,
+          shiftType: punch.shiftType || employee?.shiftType,
+          status: "APROVADO",
+          justification: "",
+          observation: "",
+          filePath: "",
+        };
+      });
+      return delay(buildResponse(allAttendances as T, config));
+    }
+
     if (normalizedUrl === "/workshift/list" || normalizedUrl === "/workshift") {
       return delay(buildResponse({ data: shifts } as T, config));
     }
@@ -199,6 +218,35 @@ const createMockApi = () => {
       return delay(
         buildResponse(buildTimesheetData(currentUser?.id) as T, config),
       );
+    }
+
+    if (normalizedUrl === "/punctuality-metrics/scatter-plot") {
+      const mockScatterData = {
+        points: [
+          { userId: "employee-1", userName: "João Funcionário", latePercentage: 15, averageLateMinutes: 12, cluster: 0 },
+          { userId: "employee-2", userName: "Carlos Funcionário", latePercentage: 45, averageLateMinutes: 28, cluster: 1 },
+          { userId: "employee-3", userName: "Ana RH", latePercentage: 5, averageLateMinutes: 8, cluster: 0 },
+          { userId: "employee-4", userName: "Marcos Oliveira", latePercentage: 80, averageLateMinutes: 45, cluster: 2 },
+          { userId: "employee-5", userName: "Juliana Costa", latePercentage: 90, averageLateMinutes: 60, cluster: 2 },
+          { userId: "employee-6", userName: "Amanda Lima", latePercentage: 8, averageLateMinutes: 5, cluster: 0 },
+          { userId: "employee-7", userName: "Bruno Silva", latePercentage: 12, averageLateMinutes: 9, cluster: 0 },
+          { userId: "employee-8", userName: "Camila Souza", latePercentage: 4, averageLateMinutes: 4, cluster: 0 },
+          { userId: "employee-9", userName: "Daniel Alves", latePercentage: 10, averageLateMinutes: 11, cluster: 0 },
+          { userId: "employee-10", userName: "Eduardo Santos", latePercentage: 35, averageLateMinutes: 20, cluster: 1 },
+          { userId: "employee-11", userName: "Fernanda Oliveira", latePercentage: 40, averageLateMinutes: 25, cluster: 1 },
+          { userId: "employee-12", userName: "Gabriel Costa", latePercentage: 50, averageLateMinutes: 32, cluster: 1 },
+          { userId: "employee-13", userName: "Helena Rodrigues", latePercentage: 30, averageLateMinutes: 18, cluster: 1 },
+          { userId: "employee-14", userName: "Igor Pereira", latePercentage: 75, averageLateMinutes: 50, cluster: 2 },
+          { userId: "employee-15", userName: "Larissa Santos", latePercentage: 85, averageLateMinutes: 55, cluster: 2 },
+          { userId: "employee-16", userName: "Mateus Ferreira", latePercentage: 95, averageLateMinutes: 65, cluster: 2 },
+        ],
+        centroids: [
+          { cluster: 0, latePercentage: 9, averageLateMinutes: 8.2 },
+          { cluster: 1, latePercentage: 40, averageLateMinutes: 24.6 },
+          { cluster: 2, latePercentage: 85, averageLateMinutes: 55.5 },
+        ]
+      };
+      return delay(buildResponse(mockScatterData as T, config));
     }
 
     const timesheetDataMatch = normalizedUrl.match(/^\/timesheet\/data\/(.+)$/);
@@ -278,6 +326,18 @@ const createMockApi = () => {
 
     if (normalizedUrl === "/auth/logout") {
       currentUserId = "company-admin-1";
+      return delay(buildResponse({} as T, config));
+    }
+
+    if (normalizedUrl === "/auth/forgot-password") {
+      return delay(buildResponse({ message: "Se o e-mail estiver cadastrado, um código de recuperação foi enviado." } as unknown as T, config));
+    }
+
+    if (normalizedUrl === "/auth/reset-password") {
+      return delay(buildResponse({ message: "Senha redefinida com sucesso." } as unknown as T, config));
+    }
+
+    if (normalizedUrl === "/auth/change-password") {
       return delay(buildResponse({} as T, config));
     }
 
@@ -427,6 +487,14 @@ const createMockApi = () => {
       shifts = [...shifts, newShift];
 
       return delay(buildResponse(newShift as unknown as T, config));
+    }
+
+    if (normalizedUrl.endsWith("/sign/employee") || normalizedUrl.endsWith("/sign/hr")) {
+      return delay(buildResponse({ message: "Código de confirmação enviado." } as unknown as T, config));
+    }
+
+    if (normalizedUrl === "/timesheet/sign/confirm") {
+      return delay(buildResponse({ message: "Assinatura confirmada com sucesso." } as unknown as T, config));
     }
 
     return delay(buildResponse({} as T, config));
