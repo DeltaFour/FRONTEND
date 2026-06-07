@@ -25,10 +25,14 @@ import {
   CheckCircle2,
   XCircle,
   CalendarClock,
-  FileWarning,
   ChevronRight,
 } from "lucide-react";
 import api from "../../services/api";
+import { useNotifications } from "../../hooks/useNotifications";
+import type {
+  NotificationItem,
+  NotificationSeverity,
+} from "../../services/notifications";
 
 // ─── tipos ────────────────────────────────────────────────────────────────────
 interface StatCardProps {
@@ -60,28 +64,33 @@ const deptData = [
   { dept: "Operações", presenca: 78 },
 ];
 
-const alerts: AlertItemProps[] = [
-  {
-    icon: <AlertTriangle size={14} />,
-    message: "Juliana Costa — sem registro desde segunda-feira",
-    type: "danger",
-  },
-  {
-    icon: <Clock size={14} />,
-    message: "Marcos Oliveira — limite de horas extras atingido",
-    type: "warning",
-  },
-  {
-    icon: <CalendarClock size={14} />,
-    message: "5 funcionários com férias vencendo em 30 dias",
-    type: "info",
-  },
-  {
-    icon: <FileWarning size={14} />,
-    message: "12 atestados médicos pendentes de validação",
-    type: "info",
-  },
-];
+// Mapeia a severidade vinda do backend (Info=azul, Danger=vermelho, etc.)
+// para o tipo/cor do AlertItem e o ícone correspondente.
+const severityToAlertType: Record<NotificationSeverity, AlertItemProps["type"]> = {
+  Info: "info",
+  Success: "success",
+  Warning: "warning",
+  Danger: "danger",
+};
+
+const iconForSeverity = (severity: NotificationSeverity) => {
+  switch (severity) {
+    case "Danger":
+      return <AlertTriangle size={14} />;
+    case "Success":
+      return <CheckCircle2 size={14} />;
+    case "Warning":
+      return <CalendarClock size={14} />;
+    default:
+      return <Clock size={14} />;
+  }
+};
+
+const notificationToAlert = (n: NotificationItem): AlertItemProps => ({
+  icon: iconForSeverity(n.severity),
+  message: n.message,
+  type: severityToAlertType[n.severity] ?? "info",
+});
 
 // ─── paleta ───────────────────────────────────────────────────────────────────
 const PURPLE = "#7C3AED";
@@ -285,6 +294,9 @@ export default function DashboardRH() {
   const [scatterData, setScatterData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [loadingScatter, setLoadingScatter] = useState(true);
+
+  // Notificações de batida de ponto em tempo real (+ persistidas no banco).
+  const { notifications, isConnected } = useNotifications();
 
   const pointsByCluster = useMemo(() => {
     if (!scatterData?.points) return {};
@@ -632,9 +644,23 @@ export default function DashboardRH() {
               <Text fontSize="14px" fontWeight={600} color="fg">
                 Alertas do dia
               </Text>
-              <Text fontSize="12px" color={captionText} mt={0.5}>
-                Requer atenção
-              </Text>
+              <Flex align="center" gap={1.5} mt={0.5}>
+                <Box
+                  w="7px"
+                  h="7px"
+                  borderRadius="full"
+                  bg={isConnected ? GREEN : "fg.muted"}
+                  flexShrink={0}
+                  style={
+                    isConnected
+                      ? { boxShadow: `0 0 0 3px ${GREEN}33` }
+                      : undefined
+                  }
+                />
+                <Text fontSize="12px" color={captionText}>
+                  {isConnected ? "Ao vivo · batidas de ponto" : "Conectando…"}
+                </Text>
+              </Flex>
             </Box>
             <Badge
               bg={alertBadgeBg}
@@ -644,12 +670,29 @@ export default function DashboardRH() {
               py={0.5}
               borderRadius="6px"
             >
-              {alerts.length} novos
+              {notifications.length} novos
             </Badge>
           </Flex>
-          {alerts.map((a, i) => (
-            <AlertItem key={i} {...a} />
-          ))}
+          {notifications.length > 0 ? (
+            <Box maxH="280px" overflowY="auto" pr={1}>
+              {notifications.map((n) => (
+                <AlertItem key={n.id} {...notificationToAlert(n)} />
+              ))}
+            </Box>
+          ) : (
+            <Flex
+              direction="column"
+              align="center"
+              justify="center"
+              py={8}
+              gap={2}
+            >
+              <Clock size={22} color="var(--chakra-colors-fg-muted)" />
+              <Text fontSize="12px" color="fg.muted" textAlign="center">
+                Nenhuma batida de ponto registrada ainda hoje.
+              </Text>
+            </Flex>
+          )}
         </MotionBox>
       </Grid>
 
@@ -689,7 +732,7 @@ export default function DashboardRH() {
           </Flex>
 
           {topLateChartData.length > 0 ? (
-            topLateChartData.map((f, i) => {
+            topLateChartData.map((f: { name: string; dept: string; count: number }, i: number) => {
               const maxCount = topLateChartData[0]?.count || 1;
               const pct = Math.round((f.count / maxCount) * 100);
               const isFirst = i === 0;
