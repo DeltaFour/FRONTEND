@@ -19,6 +19,7 @@ import {
 import {
   FaArrowLeft,
   FaClock,
+  FaEnvelope,
   FaSave,
   FaTimes,
   FaUserPlus,
@@ -95,7 +96,10 @@ const CriarFuncionario = () => {
   });
   const [loading, setLoading] = useState(false);
   const [loadingShifts, setLoadingShifts] = useState(true);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [createdEmployee, setCreatedEmployee] = useState<{
+    name: string;
+    email: string;
+  } | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const warningBg = useColorModeValue("yellow.50", "yellow.900");
@@ -376,7 +380,6 @@ const CriarFuncionario = () => {
     }
 
     setLoading(true);
-    setSuccess(null);
 
     const payload: Record<string, unknown> = {
       name: formData.name,
@@ -402,15 +405,11 @@ const CriarFuncionario = () => {
 
     try {
       await api.post("/user/create", payload);
-      setSuccess(`Funcionário "${formData.name}" cadastrado com sucesso!`);
+      setCreatedEmployee({ name: formData.name, email: formData.email });
       toaster.success({
         title: "Funcionário cadastrado",
         description: `Funcionário "${formData.name}" cadastrado com sucesso!`,
       });
-
-      setTimeout(() => {
-        navigate("/dashboard-empresa/funcionarios");
-      }, 1500);
     } catch (err: unknown) {
       const responseData = (
         err as {
@@ -473,19 +472,6 @@ const CriarFuncionario = () => {
       w="full"
       h="fit-content"
     >
-      {success && (
-        <Box
-          bg={successBg}
-          borderWidth="1px"
-          borderColor={successBorder}
-          color={successText}
-          p={3}
-          borderRadius="md"
-          mb={4}
-        >
-          {success}
-        </Box>
-      )}
       <Box as="form" onSubmit={handleSubmit}>
         <Grid
           templateColumns={{ base: "1fr", md: "repeat(2, minmax(0, 1fr))" }}
@@ -834,6 +820,95 @@ const CriarFuncionario = () => {
           </GridItem>
         </Grid>
       </Box>
+
+      {createdEmployee && (
+        <Flex
+          position="fixed"
+          inset={0}
+          bg="blackAlpha.700"
+          align="center"
+          justify="center"
+          zIndex={2000}
+          p={4}
+          onClick={() => navigate("/dashboard-empresa/funcionarios")}
+        >
+          <Box
+            bg="surface"
+            borderRadius="2xl"
+            boxShadow="2xl"
+            maxW="440px"
+            w="full"
+            p={8}
+            textAlign="center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Flex
+              align="center"
+              justify="center"
+              w="64px"
+              h="64px"
+              borderRadius="full"
+              bg={successBg}
+              color={successText}
+              mx="auto"
+              mb={5}
+            >
+              <FaEnvelope size={26} />
+            </Flex>
+
+            <Heading as="h3" fontSize="xl" fontWeight="bold" mb={3}>
+              Funcionário cadastrado!
+            </Heading>
+
+            <Text fontSize="sm" color="gray.500" mb={2}>
+              <Text as="span" fontWeight="semibold">
+                {createdEmployee.name}
+              </Text>{" "}
+              foi cadastrado com sucesso.
+            </Text>
+
+            <Text fontSize="sm" color="gray.500" mb={1}>
+              Uma senha temporária foi enviada para o e-mail:
+            </Text>
+            <Text
+              fontSize="sm"
+              fontWeight="semibold"
+              color={successText}
+              mb={4}
+              wordBreak="break-all"
+            >
+              {createdEmployee.email}
+            </Text>
+
+            <Box
+              bg={successBg}
+              borderWidth="1px"
+              borderColor={successBorder}
+              borderRadius="lg"
+              p={3}
+              mb={6}
+            >
+              <Text fontSize="xs" color={successText}>
+                No primeiro acesso, o funcionário deverá criar uma nova senha
+                pessoal.
+              </Text>
+            </Box>
+
+            <Button
+              onClick={() => navigate("/dashboard-empresa/funcionarios")}
+              w="full"
+              p="10px"
+              borderRadius="lg"
+              fontWeight="semibold"
+              color="white"
+              bg="purple.900"
+              _hover={{ bgGradient: "linear(to-r, black, purple.900)" }}
+            >
+              Ir para funcionários
+            </Button>
+          </Box>
+        </Flex>
+      )}
     </Box>
   );
 };
