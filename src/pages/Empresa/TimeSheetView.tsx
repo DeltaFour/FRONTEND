@@ -13,6 +13,15 @@ import {
   Text,
   VStack,
   Badge,
+  DialogRoot,
+  DialogBackdrop,
+  DialogPositioner,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogBody,
+  DialogFooter,
+  Portal,
 } from "@chakra-ui/react";
 import { FaArrowLeft, FaFilePdf, FaRedo, FaCheckCircle, FaPen } from "react-icons/fa";
 import { useColorModeValue } from "../../theme/colorMode";
@@ -24,9 +33,15 @@ import {
   getTimeSheetStatus,
   signTimeSheetByEmployee,
   signTimeSheetByHR,
+  confirmTimeSheetSignature,
+  fetchTimesheetSignatures,
+  fetchTimesheetAudits,
   type TimesheetData,
   type TimeSheetStatusResponse,
+  type TimeSheetSignatureHistoryDto,
+  type TimeSheetAuditDto,
 } from "../../services/timesheet";
+import { useAuth } from "../../context/AuthContext";
 
 const formatDateTime = (value?: string) => {
   if (!value) return "--";
@@ -59,6 +74,17 @@ const TimeSheetView = () => {
   const [loading, setLoading] = useState(true);
   const [loadingPdf, setLoadingPdf] = useState(true);
   const [signing, setSigning] = useState(false);
+
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmationToken, setConfirmationToken] = useState("");
+  const [confirmLoading, setConfirmLoading] = useState(false);
+
+  const { user } = useAuth();
+  const [signaturesHistory, setSignaturesHistory] = useState<TimeSheetSignatureHistoryDto | null>(null);
+  const [auditLogs, setAuditLogs] = useState<TimeSheetAuditDto[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  const isAdminOrRH = user?.role === "RH" || user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
 
   const now = useMemo(() => new Date(), []);
   const defaultMonth = now.getMonth() + 1;
@@ -114,6 +140,25 @@ const TimeSheetView = () => {
       try {
         const statusResult = await getTimeSheetStatus(userId, { month: appliedMonth, year: appliedYear });
         setSignatureStatus(statusResult);
+
+        if (statusResult.exists && statusResult.timeSheetId && isAdminOrRH) {
+          try {
+            setLoadingHistory(true);
+            const [signaturesRes, auditsRes] = await Promise.all([
+              fetchTimesheetSignatures(statusResult.timeSheetId),
+              fetchTimesheetAudits(statusResult.timeSheetId),
+            ]);
+            setSignaturesHistory(signaturesRes);
+            setAuditLogs(auditsRes);
+          } catch (historyErr) {
+            console.error("Erro ao carregar histórico da folha", historyErr);
+          } finally {
+            setLoadingHistory(false);
+          }
+        } else {
+          setSignaturesHistory(null);
+          setAuditLogs([]);
+        }
       } catch (err) {
         console.error("Erro ao carregar status da assinatura", err);
         toaster.error({
@@ -130,7 +175,7 @@ const TimeSheetView = () => {
       setLoading(false);
       setLoadingPdf(false);
     }
-  }, [userId, appliedMonth, appliedYear]);
+  }, [userId, appliedMonth, appliedYear, isAdminOrRH]);
 
   useEffect(() => {
     void loadTimesheet();
@@ -201,13 +246,15 @@ const TimeSheetView = () => {
       if (userId) {
         // Se tem userId na URL, estamos vendo a folha de outra pessoa, logo somos RH/Admin
         await signTimeSheetByHR(signatureStatus.timeSheetId);
-        toaster.success({ title: "Sucesso", description: "Folha assinada pelo RH." });
       } else {
         // Sem userId, somos o próprio funcionário
         await signTimeSheetByEmployee(signatureStatus.timeSheetId);
-        toaster.success({ title: "Sucesso", description: "Folha assinada com sucesso!" });
       }
-      void loadTimesheet(); // Recarrega o status após assinar
+      toaster.success({
+        title: "Código enviado",
+        description: "Um código de confirmação foi enviado para o seu e-mail registrado.",
+      });
+      setShowConfirmModal(true);
     } catch (err: any) {
       toaster.error({
         title: "Erro ao assinar",
@@ -215,6 +262,25 @@ const TimeSheetView = () => {
       });
     } finally {
       setSigning(false);
+    }
+  };
+
+  const handleConfirmSignature = async () => {
+    if (!signatureStatus?.timeSheetId || !confirmationToken) return;
+    setConfirmLoading(true);
+    try {
+      await confirmTimeSheetSignature(signatureStatus.timeSheetId, confirmationToken);
+      toaster.success({ title: "Sucesso", description: "Assinatura confirmada com sucesso!" });
+      setShowConfirmModal(false);
+      setConfirmationToken("");
+      void loadTimesheet();
+    } catch (err: any) {
+      toaster.error({
+        title: "Erro na confirmação",
+        description: err.response?.data?.message || "Código inválido ou expirado.",
+      });
+    } finally {
+      setConfirmLoading(false);
     }
   };
 
@@ -482,9 +548,193 @@ const TimeSheetView = () => {
                 />
               </VStack>
             </Box>
+
+            {/* HISTÓRICO DE ASSINATURAS (RH/Admin Only) */}
+            {isAdminOrRH && signatureStatus?.exists && (
+              <Box
+                borderWidth="1px"
+                borderColor={panelBorder}
+                borderRadius="lg"
+                p={5}
+                bg="surface.subtle"
+              >
+                <Heading size="sm" color="fg" mb={4}>
+                  Histórico de Assinaturas e Envios
+                </Heading>
+                {loadingHistory ? (
+                  <Flex align="center" gap={2}>
+                    <Spinner size="xs" />
+                    <Text fontSize="xs" color="fg.muted">Carregando histórico...</Text>
+                  </Flex>
+                ) : (
+                  <VStack align="stretch" gap={3}>
+                    {signaturesHistory?.signatures && signaturesHistory.signatures.length > 0 ? (
+                      signaturesHistory.signatures.map((sig, idx) => (
+                        <Box key={idx} borderBottomWidth={idx < signaturesHistory.signatures.length - 1 ? "1px" : "0"} pb={2} borderColor="whiteAlpha.100">
+                          <Text fontSize="xs" fontWeight="bold" color="blue.300">
+                            {sig.signerType === "HR" ? "Assinado por RH" : "Assinado por Colaborador"}
+                          </Text>
+                          <Text fontSize="xs" color="fg" mt={0.5}>
+                            {sig.signerName} ({sig.signerEmail})
+                          </Text>
+                          <Text fontSize="2xs" color="fg.muted">
+                            CPF: {sig.signerCpf} | IP: {sig.signerIp}
+                          </Text>
+                          <Text fontSize="2xs" color="fg.muted">
+                            Data: {formatDateTime(sig.signedAtUtc)}
+                          </Text>
+                          <Text fontSize="3xs" color="whiteAlpha.400" wordBreak="break-all">
+                            Hash: {sig.timeSheetHash}
+                          </Text>
+                        </Box>
+                      ))
+                    ) : (
+                      <Text fontSize="xs" color="fg.muted">Nenhuma assinatura realizada ainda.</Text>
+                    )}
+
+                    {signaturesHistory?.requests && signaturesHistory.requests.length > 0 && (
+                      <>
+                        <Text fontSize="xs" fontWeight="semibold" color="fg" mt={2} borderTopWidth="1px" pt={2} borderColor="whiteAlpha.100">
+                          Solicitações de Código Enviadas:
+                        </Text>
+                        {signaturesHistory.requests.map((req, idx) => (
+                          <Box key={idx} fontSize="2xs" color="fg.muted">
+                            <Text fontWeight="medium" color="orange.300">
+                              Tipo: {req.signerType === "HR" ? "RH" : "Colaborador"} para {req.email}
+                            </Text>
+                            <Text>Solicitado em: {formatDateTime(req.createdAt)}</Text>
+                            <Text>Expira em: {formatDateTime(req.expiresAtUtc)}</Text>
+                            {req.usedAtUtc ? (
+                              <Text color="green.300">Usado em: {formatDateTime(req.usedAtUtc)}</Text>
+                            ) : (
+                              <Text color="red.300">Pendente / Não utilizado</Text>
+                            )}
+                          </Box>
+                        ))}
+                      </>
+                    )}
+                  </VStack>
+                )}
+              </Box>
+            )}
+
+            {/* HISTÓRICO DE AUDITORIA (RH/Admin Only) */}
+            {isAdminOrRH && signatureStatus?.exists && (
+              <Box
+                borderWidth="1px"
+                borderColor={panelBorder}
+                borderRadius="lg"
+                p={5}
+                bg="surface.subtle"
+              >
+                <Heading size="sm" color="fg" mb={4}>
+                  Histórico de Alterações (Auditoria)
+                </Heading>
+                {loadingHistory ? (
+                  <Flex align="center" gap={2}>
+                    <Spinner size="xs" />
+                    <Text fontSize="xs" color="fg.muted">Carregando auditorias...</Text>
+                  </Flex>
+                ) : (
+                  <VStack align="stretch" gap={3} maxH="250px" overflowY="auto">
+                    {auditLogs && auditLogs.length > 0 ? (
+                      auditLogs.map((log, idx) => (
+                        <Box key={idx} borderBottomWidth={idx < auditLogs.length - 1 ? "1px" : "0"} pb={2} borderColor="whiteAlpha.100">
+                          <Text fontSize="xs" fontWeight="bold" color="purple.300">
+                            {log.operation}
+                          </Text>
+                          <Text fontSize="xs" color="fg" mt={0.5}>
+                            Por: {log.userName}
+                          </Text>
+                          <Text fontSize="2xs" color="fg.muted">
+                            Data: {formatDateTime(log.createdAt)}
+                          </Text>
+                          {log.oldValues && (
+                            <Text fontSize="2xs" color="red.300">
+                              Antes: {log.oldValues}
+                            </Text>
+                          )}
+                          {log.newValues && (
+                            <Text fontSize="2xs" color="green.300">
+                              Depois: {log.newValues}
+                            </Text>
+                          )}
+                        </Box>
+                      ))
+                    ) : (
+                      <Text fontSize="xs" color="fg.muted">Nenhuma alteração registrada.</Text>
+                    )}
+                  </VStack>
+                )}
+              </Box>
+            )}
           </VStack>
         </GridItem>
       </Grid>
+
+      <DialogRoot
+        open={showConfirmModal}
+        onOpenChange={(details) => {
+          if (!details.open) {
+            setShowConfirmModal(false);
+            setConfirmationToken("");
+          }
+        }}
+        placement="center"
+      >
+        <Portal>
+          <DialogBackdrop bg="blackAlpha.600" />
+          <DialogPositioner>
+            <DialogContent borderRadius="xl" boxShadow="2xl" bg="surface" borderWidth="1px" borderColor="border">
+              <DialogHeader pb={3} pt={5} px={6}>
+                <DialogTitle fontSize="lg" fontWeight="bold" color="fg" display="flex" alignItems="center" gap={2}>
+                  Confirmar Assinatura da Folha
+                </DialogTitle>
+              </DialogHeader>
+              <DialogBody px={6} py={4}>
+                <Text color="fg.muted" fontSize="sm" mb={4}>
+                  Insira o código de verificação enviado para o seu e-mail para confirmar a assinatura eletrônica deste documento.
+                </Text>
+                <VStack align="stretch" gap={2}>
+                  <Text fontSize="sm" fontWeight="medium" color="fg">
+                    Código de Confirmação
+                  </Text>
+                  <Input
+                    type="text"
+                    placeholder="Digite o código enviado por e-mail"
+                    value={confirmationToken}
+                    onChange={(e) => setConfirmationToken(e.target.value)}
+                    required
+                  />
+                </VStack>
+              </DialogBody>
+              <DialogFooter px={6} pb={5} pt={3} gap={3}>
+                <Button
+                  variant="outline"
+                  borderRadius="full"
+                  p="10px"
+                  onClick={() => {
+                    setShowConfirmModal(false);
+                    setConfirmationToken("");
+                  }}
+                  disabled={confirmLoading}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  colorPalette="blue"
+                  borderRadius="full"
+                  p="10px"
+                  onClick={handleConfirmSignature}
+                  disabled={confirmLoading || !confirmationToken}
+                >
+                  {confirmLoading ? <Spinner size="xs" /> : "Confirmar"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </DialogPositioner>
+        </Portal>
+      </DialogRoot>
     </Box>
   );
 };

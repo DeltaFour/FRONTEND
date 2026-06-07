@@ -32,13 +32,15 @@ import {
   HStack,
   VStack,
   Badge,
+  DialogFooter,
 } from "@chakra-ui/react";
-import { FaEdit, FaEllipsisV, FaPlus, FaTrash, FaEye, FaTimes, FaClock, FaCalendarAlt, FaUser } from "react-icons/fa";
+import { FaEdit, FaEllipsisV, FaPlus, FaTrash, FaEye, FaTimes, FaClock, FaCalendarAlt, FaUser, FaLock } from "react-icons/fa";
 import api from "../../services/api";
 import { ConfirmDeleteModal } from "../../components/Modal/ConfirmDeleteModal";
 import { Input } from "../../components/ui/Input";
 import { toaster } from "../../components/ui/toaster";
 import { useColorModeValue } from "../../theme/colorMode";
+import { useAuth } from "../../context/AuthContext";
 
 const parseTimeToMinutes = (value: string) => {
   if (!value) return null;
@@ -101,6 +103,8 @@ interface Funcionario {
   roleName: string;
   cellphone?: string;
   departmentName?: string;
+  isAllowedBypassCoord?: boolean;
+  shiftDto?: any[];
 }
 
 interface FiltersState {
@@ -135,6 +139,7 @@ const ListarFuncionarios = () => {
   };
 
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [filters, setFilters] = useState<FiltersState>(initialFilters);
   const [loading, setLoading] = useState(true);
@@ -144,11 +149,39 @@ const ListarFuncionarios = () => {
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const [employeeToResetPassword, setEmployeeToResetPassword] = useState<{
+    id: string;
+    name: string;
+    email: string;
+  } | null>(null);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+
   const [selectedEmployeeForDetails, setSelectedEmployeeForDetails] = useState<Funcionario | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [employeeDetails, setEmployeeDetails] = useState<any | null>(null);
   const [employeePunches, setEmployeePunches] = useState<any[]>([]);
   const [allShifts, setAllShifts] = useState<any[]>([]);
+
+  const handleResetPasswordConfirm = async () => {
+    if (!employeeToResetPassword) return;
+    setIsResettingPassword(true);
+    try {
+      await api.post("/auth/forgot-password", { email: employeeToResetPassword.email });
+      toaster.success({
+        title: "Reset solicitado",
+        description: `Um e-mail de recuperação de senha foi enviado para ${employeeToResetPassword.name}.`,
+      });
+      setEmployeeToResetPassword(null);
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toaster.error({
+        title: "Erro ao resetar senha",
+        description: message ?? "Não foi possível solicitar a redefinição de senha.",
+      });
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
 
   const fetchEmployees = useCallback(async (showLoading = true) => {
     try {
@@ -273,17 +306,15 @@ const ListarFuncionarios = () => {
     setEmployeeDetails(null);
     setEmployeePunches([]);
     try {
-      const [userRes, shiftsRes, punchesRes] = await Promise.all([
-        api.get(`/user/${employee.id}`),
+      const [shiftsRes, punchesRes] = await Promise.all([
         api.get("/workshift/list"),
         api.get("/user/get-all-attendances"),
       ]);
 
-      const userData = userRes.data?.data ?? userRes.data;
       const shiftsData = shiftsRes.data?.data ?? shiftsRes.data ?? [];
       const punchesData = punchesRes.data?.data ?? punchesRes.data ?? [];
 
-      setEmployeeDetails(userData);
+      setEmployeeDetails(employee);
       setAllShifts(shiftsData);
 
       const employeeNameLower = employee.name.toLowerCase().trim();
@@ -711,6 +742,21 @@ const ListarFuncionarios = () => {
                               >
                                 <FaEdit style={{ marginRight: 8 }} /> Editar
                               </MenuItem>
+                              {user?.role === "RH" && (
+                                <MenuItem
+                                  p="10px"
+                                  value={`reset-password-${funcionario.id}`}
+                                  onSelect={() =>
+                                    setEmployeeToResetPassword({
+                                      id: funcionario.id,
+                                      name: funcionario.name,
+                                      email: funcionario.email,
+                                    })
+                                  }
+                                >
+                                  <FaLock style={{ marginRight: 8 }} /> Resetar Senha
+                                </MenuItem>
+                              )}
                               <MenuItem
                                 p="10px"
                                 value={`excluir-${funcionario.id}`}
@@ -758,6 +804,56 @@ const ListarFuncionarios = () => {
       />
 
       <DialogRoot
+        open={Boolean(employeeToResetPassword)}
+        onOpenChange={(details) => {
+          if (!details.open) setEmployeeToResetPassword(null);
+        }}
+        placement="center"
+      >
+        <Portal>
+          <DialogBackdrop bg="blackAlpha.600" />
+          <DialogPositioner>
+            <DialogContent borderRadius="xl" boxShadow="2xl" bg="surface" borderWidth="1px" borderColor="border">
+              <DialogHeader pb={3} pt={5} px={6}>
+                <DialogTitle fontSize="lg" fontWeight="bold" color="fg" display="flex" alignItems="center" gap={2}> Confirmar Redefinição de Senha
+                </DialogTitle>
+              </DialogHeader>
+              <DialogBody px={6} py={4}>
+                <Text color="fg.muted" fontSize="sm">
+                  Tem certeza que deseja solicitar a redefinição de senha para o funcionário{" "}
+                  <strong>{employeeToResetPassword?.name}</strong>?
+                </Text>
+                <Text color="fg.muted" fontSize="sm" mt={2}>
+                  Um e-mail contendo o código de recuperação será enviado para o endereço:{" "}
+                  <strong>{employeeToResetPassword?.email}</strong>.
+                </Text>
+              </DialogBody>
+              <DialogFooter px={6} pb={5} pt={3} gap={3}>
+                <Button
+                  variant="outline"
+                  borderRadius="full"
+                  p="10px"
+                  onClick={() => setEmployeeToResetPassword(null)}
+                  disabled={isResettingPassword}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  colorPalette="purple"
+                  borderRadius="full"
+                  p="10px"
+                  onClick={handleResetPasswordConfirm}
+                  disabled={isResettingPassword}
+                >
+                  {isResettingPassword ? <Spinner size="xs" /> : "Enviar Código"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </DialogPositioner>
+        </Portal>
+      </DialogRoot>
+
+      <DialogRoot
         open={Boolean(selectedEmployeeForDetails)}
         onOpenChange={(details) => {
           if (!details.open) {
@@ -783,7 +879,7 @@ const ListarFuncionarios = () => {
               <DialogHeader pb={3} pt={5} px={6} borderBottomWidth="1px" borderColor="border">
                 <Flex justify="space-between" align="center">
                   <DialogTitle fontSize="xl" fontWeight="bold" color="fg" display="flex" alignItems="center" gap={2}>
-                    <FaUser color="#4F46E5" /> Detalhes do Funcionário
+                     Detalhes do Funcionário
                   </DialogTitle>
                   <IconButton
                     variant="ghost"
@@ -968,10 +1064,12 @@ const ListarFuncionarios = () => {
                 )}
               </DialogBody>
 
-              <DialogFooter px={6} pb={5} pt={4} borderTopWidth="1px" borderColor="border">
+              <DialogFooter px={6} pb={5} pt={4} borderTopWidth="1px" borderColor="border" justifyContent="flex-end">
                 <Button
                   variant="outline"
-                  size="sm"
+                  borderRadius="full"
+                  h="34px"
+                  px={6}
                   onClick={() => {
                     setSelectedEmployeeForDetails(null);
                     setEmployeeDetails(null);

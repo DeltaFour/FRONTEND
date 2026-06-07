@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Badge, Box, Flex, Grid, Spinner, Text } from "@chakra-ui/react";
+import { useEffect, useState, useMemo } from "react";
+import { Badge, Box, Flex, Grid, Spinner, Text, VStack } from "@chakra-ui/react";
 import { useColorModeValue } from "../../theme/colorMode";
 import {
   BarChart,
@@ -11,6 +11,10 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
+  ScatterChart,
+  Scatter,
+  ZAxis,
+  Legend,
 } from "recharts";
 import { motion } from "framer-motion";
 import {
@@ -266,7 +270,19 @@ export default function DashboardRH() {
     "semana",
   );
   const [dashboardData, setDashboardData] = useState<any>(null);
+  const [scatterData, setScatterData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingScatter, setLoadingScatter] = useState(true);
+
+  const pointsByCluster = useMemo(() => {
+    if (!scatterData?.points) return {};
+    return scatterData.points.reduce((acc: any, point: any) => {
+      const clusterId = point.cluster ?? 0;
+      if (!acc[clusterId]) acc[clusterId] = [];
+      acc[clusterId].push(point);
+      return acc;
+    }, {});
+  }, [scatterData]);
 
   const today = new Date().toLocaleDateString("pt-BR", {
     weekday: "long",
@@ -314,10 +330,29 @@ export default function DashboardRH() {
         }
       }
     };
+
+    const loadScatterData = async (showLoading = true) => {
+      try {
+        if (showLoading) {
+          setLoadingScatter(true);
+        }
+        const response = await api.get("/punctuality-metrics/scatter-plot");
+        setScatterData(response.data);
+      } catch (err) {
+        console.error("Failed to fetch scatter plot data:", err);
+      } finally {
+        if (showLoading) {
+          setLoadingScatter(false);
+        }
+      }
+    };
+
     void loadDashboardData(true);
+    void loadScatterData(true);
 
     const interval = setInterval(() => {
       void loadDashboardData(false);
+      void loadScatterData(false);
     }, 45000); // Poll every 45 seconds for a longer cloud-friendly refresh
 
     return () => clearInterval(interval);
@@ -764,6 +799,172 @@ export default function DashboardRH() {
           </ResponsiveContainer>
         </MotionBox>
       </Grid>
+
+      {/* linha 4: Análise de Agrupamento IA (K-Means) */}
+      <Box mt={6} pb={6}>
+        <MotionBox
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.45 }}
+          bg={cardBg}
+          borderRadius="12px"
+          border="1px solid"
+          borderColor={cardBorder}
+          p={5}
+        >
+          <Box mb={4}>
+            <Text fontSize="16px" fontWeight={600} color="fg">
+              Agrupamento de Comportamento e Pontualidade (IA)
+            </Text>
+            <Text fontSize="12px" color={captionText} mt={0.5}>
+              Classificação inteligente de perfis baseada em K-Means (Eixo X: % Atraso, Eixo Y: Média de Atraso em Minutos)
+            </Text>
+          </Box>
+
+          {loadingScatter ? (
+            <Flex align="center" justify="center" minH="250px" gap={3}>
+              <Spinner />
+              <Text fontSize="sm" color="fg.muted">Carregando dados de inteligência...</Text>
+            </Flex>
+          ) : scatterData && scatterData.points?.length > 0 ? (
+            <Grid templateColumns={{ base: "1fr", lg: "2fr 1fr" }} gap={6}>
+              {/* Gráfico */}
+              <Box height={320}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+                    <XAxis
+                      type="number"
+                      dataKey="latePercentage"
+                      name="Frequência de Atrasos"
+                      unit="%"
+                      tick={{ fontSize: 11, fill: axisTick }}
+                      label={{ value: 'Frequência de Atrasos (%)', position: 'insideBottom', offset: -10, fill: axisTick, fontSize: 11 }}
+                    />
+                    <YAxis
+                      type="number"
+                      dataKey="averageLateMinutes"
+                      name="Tempo Médio de Atraso"
+                      unit=" min"
+                      tick={{ fontSize: 11, fill: axisTick }}
+                      label={{ value: 'Tempo Médio (min)', angle: -90, position: 'insideLeft', fill: axisTick, fontSize: 11 }}
+                    />
+                    <ZAxis type="number" range={[60, 60]} />
+                    <Tooltip
+                      cursor={{ strokeDasharray: '3 3' }}
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          const clusterName = data.isCentroid ? `Centroide do Grupo ${data.cluster + 1}` : `Grupo ${data.cluster + 1}`;
+                          return (
+                            <Box
+                              bg={cardBg}
+                              border="1px solid"
+                              borderColor={cardBorder}
+                              borderRadius="8px"
+                              p="8px 12px"
+                              boxShadow="md"
+                            >
+                              <Text fontSize="12px" fontWeight="bold" color="fg" mb={1}>
+                                {data.isCentroid ? clusterName : data.userName}
+                              </Text>
+                              <Text fontSize="11px" color="fg.muted">
+                                Frequência de Atraso: {data.latePercentage.toFixed(1)}%
+                              </Text>
+                              <Text fontSize="11px" color="fg.muted">
+                                Tempo Médio: {data.averageLateMinutes.toFixed(1)} min
+                              </Text>
+                              {!data.isCentroid && (
+                                <Text fontSize="11px" color={data.cluster === 0 ? "green.400" : data.cluster === 1 ? "amber.400" : "red.400"} fontWeight="semibold" mt={1}>
+                                  Status: {data.cluster === 0 ? "Excelente/Pontual" : data.cluster === 1 ? "Atenção/Moderado" : "Alerta/Atraso Crítico"}
+                                </Text>
+                              )}
+                            </Box>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Legend verticalAlign="top" height={36} />
+                    
+                    {/* Renderiza as séries por cluster */}
+                    {Object.keys(pointsByCluster).map((clusterIdStr) => {
+                      const clusterId = Number(clusterIdStr);
+                      const color = clusterId === 0 ? GREEN : clusterId === 1 ? AMBER : RED;
+                      const name = clusterId === 0 ? "Grupo Pontual" : clusterId === 1 ? "Grupo em Atenção" : "Grupo Crítico";
+                      return (
+                        <Scatter
+                          key={`cluster-${clusterId}`}
+                          name={name}
+                          data={pointsByCluster[clusterId]}
+                          fill={color}
+                          line={false}
+                        />
+                      );
+                    })}
+
+                    {/* Centróides */}
+                    {scatterData.centroids && (
+                      <Scatter
+                        name="Centróides (Centros de Perfil)"
+                        data={scatterData.centroids.map((c: any) => ({ ...c, isCentroid: true }))}
+                        fill={PURPLE}
+                        shape="wye"
+                        line={false}
+                        legendType="triangle"
+                      />
+                    )}
+                  </ScatterChart>
+                </ResponsiveContainer>
+              </Box>
+
+              {/* Informações dos Grupos */}
+              <Box
+                borderWidth="1px"
+                borderColor={cardBorder}
+                borderRadius="lg"
+                p={4}
+                bg="surface.subtle"
+                display="flex"
+                flexDirection="column"
+                justifyContent="center"
+              >
+                <Text fontSize="14px" fontWeight="semibold" color="fg" mb={3}>
+                  Entenda os Perfis de Classificação
+                </Text>
+                <VStack align="stretch" gap={3}>
+                  <Box p={2.5} borderRadius="md" bg="rgba(22,163,74,0.08)" borderLeft="3px solid" borderColor={GREEN}>
+                    <Text fontSize="12px" fontWeight="semibold" color="green.300">
+                      Grupo Pontual (Verde)
+                    </Text>
+                    <Text fontSize="11px" color="fg.muted" mt={0.5}>
+                      Colaboradores com baixa frequência de atrasos e tempo de atraso reduzido. Perfil ideal de pontualidade.
+                    </Text>
+                  </Box>
+                  <Box p={2.5} borderRadius="md" bg="rgba(217,119,6,0.08)" borderLeft="3px solid" borderColor={AMBER}>
+                    <Text fontSize="12px" fontWeight="semibold" color="amber.300">
+                      Grupo em Atenção (Amarelo)
+                    </Text>
+                    <Text fontSize="11px" color="fg.muted" mt={0.5}>
+                      Colaboradores com frequência de atrasos moderada ou pequenos atrasos habituais. Recomendável acompanhamento.
+                    </Text>
+                  </Box>
+                  <Box p={2.5} borderRadius="md" bg="rgba(220,38,38,0.08)" borderLeft="3px solid" borderColor={RED}>
+                    <Text fontSize="12px" fontWeight="semibold" color="red.300">
+                      Grupo Crítico (Vermelho)
+                    </Text>
+                    <Text fontSize="11px" color="fg.muted" mt={0.5}>
+                      Colaboradores com alta recorrência de atrasos longos. Demanda atenção imediata e alinhamento do RH.
+                    </Text>
+                  </Box>
+                </VStack>
+              </Box>
+            </Grid>
+          ) : (
+            <Text fontSize="12px" color="fg.muted">Sem dados disponíveis para a classificação de IA neste período.</Text>
+          )}
+        </MotionBox>
+      </Box>
     </Box>
   );
 }

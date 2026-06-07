@@ -173,10 +173,6 @@ const normalizeAttendances = (rawData: unknown): PunchRecord[] => {
 };
 
 const isAttendanceApproved = (attendance: PunchRecord) => {
-  if (!attendance.isLate) {
-    return true;
-  }
-
   const normalized = String(attendance.status ?? "")
     .trim()
     .toLowerCase();
@@ -762,7 +758,7 @@ const FiltrarPontoRH = () => {
                     <ApprovalPill isApproved={isAttendanceApproved(punch)} />
                   </Box>
                   <Box as="td" px={{ base: 3, md: 6 }} py={4}>
-                    {punch.isLate && !isAttendanceApproved(punch) ? (
+                    {!isAttendanceApproved(punch) ? (
                       <Button
                         size="xs"
                         variant="outline"

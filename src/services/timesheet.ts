@@ -337,6 +337,10 @@ export const signTimeSheetByHR = async (timeSheetId: string) => {
   await api.post(`/timesheet/${timeSheetId}/sign/hr`);
 };
 
+export const confirmTimeSheetSignature = async (timeSheetId: string, token: string) => {
+  await api.post("/timesheet/sign/confirm", { timeSheetId, token });
+};
+
 export const listTimeSheets = async (
   userId?: string,
   period?: TimesheetPeriod,
@@ -348,4 +352,45 @@ export const listTimeSheets = async (
 
   const response = await api.get("/timesheet/list", { params });
   return response.data as TimeSheetListItemDto[];
+};
+
+export interface TimeSheetSignatureItemDto {
+  signerType: string;
+  signerName: string;
+  signerCpf: string;
+  signerEmail: string;
+  signedAtUtc: string;
+  signerIp: string;
+  timeSheetHash: string;
+}
+
+export interface TimeSheetSignatureRequestItemDto {
+  signerType: string;
+  email: string;
+  createdAt: string;
+  expiresAtUtc: string;
+  usedAtUtc?: string;
+}
+
+export interface TimeSheetSignatureHistoryDto {
+  signatures: TimeSheetSignatureItemDto[];
+  requests: TimeSheetSignatureRequestItemDto[];
+}
+
+export interface TimeSheetAuditDto {
+  operation: string;
+  userName: string;
+  oldValues: string;
+  newValues: string;
+  createdAt: string;
+}
+
+export const fetchTimesheetSignatures = async (timeSheetId: string): Promise<TimeSheetSignatureHistoryDto> => {
+  const response = await api.get(`/timesheet/${timeSheetId}/signatures`);
+  return response.data as TimeSheetSignatureHistoryDto;
+};
+
+export const fetchTimesheetAudits = async (timeSheetId: string): Promise<TimeSheetAuditDto[]> => {
+  const response = await api.get(`/timesheet/${timeSheetId}/audits`);
+  return response.data as TimeSheetAuditDto[];
 };

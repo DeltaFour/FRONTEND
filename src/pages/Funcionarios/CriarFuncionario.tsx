@@ -29,6 +29,7 @@ import { Input } from "../../components/ui/Input";
 import { toaster } from "../../components/ui/toaster";
 import { useColorModeValue } from "../../theme/colorMode";
 import { validateEmail, validatePassword } from "../../utils/validation";
+import { maskCpf, validateCpf } from "../../utils/cpf";
 
 interface Shift {
   id: string;
@@ -45,6 +46,7 @@ interface CreateEmployeeFormData {
   roleName: string;
   email: string;
   password: string;
+  cpf: string;
   cellPhone: string;
   shiftId: string;
   departmentId: string;
@@ -85,6 +87,7 @@ const CriarFuncionario = () => {
     roleName: "",
     email: "",
     password: "",
+    cpf: "",
     cellPhone: "",
     shiftId: "",
     departmentId: "",
@@ -323,10 +326,14 @@ const CriarFuncionario = () => {
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const target = event.target;
-    const fieldValue =
+    let fieldValue =
       target instanceof HTMLInputElement && target.type === "checkbox"
         ? target.checked
         : target.value;
+
+    if (target.name === "cpf" && typeof fieldValue === "string") {
+      fieldValue = maskCpf(fieldValue);
+    }
 
     setFormData((prev) => ({
       ...prev,
@@ -355,6 +362,14 @@ const CriarFuncionario = () => {
       return;
     }
 
+    if (!validateCpf(formData.cpf)) {
+      toaster.error({
+        title: "Erro de Validação",
+        description: "O CPF informado é inválido.",
+      });
+      return;
+    }
+
     if (!formData.imageBase64) {
       const description =
         "Adicione uma foto por upload ou webcam antes de salvar.";
@@ -374,6 +389,7 @@ const CriarFuncionario = () => {
       roleName: formData.roleName,
       email: sanitizedEmail,
       password: formData.password,
+      cpf: formData.cpf,
       cellPhone: formData.cellPhone,
       imageBase64: formData.imageBase64,
       isAllowedBypassCoord: formData.isAllowedBypassCoord,
@@ -538,6 +554,22 @@ const CriarFuncionario = () => {
               id="cellPhone"
               value={formData.cellPhone}
               onChange={handleChange}
+              required
+            />
+          </Box>
+
+          <Box>
+            <Text mb={1} fontWeight="medium" color="fg">
+              CPF
+            </Text>
+            <Input
+              type="text"
+              placeholder="000.000.000-00"
+              name="cpf"
+              id="cpf"
+              value={formData.cpf}
+              onChange={handleChange}
+              maxLength={14}
               required
             />
           </Box>
