@@ -510,7 +510,7 @@ const FiltrarPontoRH = () => {
           onClick={clearFilters}
           display="flex"
           alignItems="center"
-          p="15px"
+          p="10px"
           gap={2}
         >
           <FaTimes /> Limpar filtros
@@ -765,6 +765,7 @@ const FiltrarPontoRH = () => {
                         borderRadius="full"
                         borderColor={validateBorder}
                         color={validateColor}
+                        p="5px"
                         loading={validatingIds.includes(punch.id)}
                         loadingText="Validando"
                         onClick={() => handleValidateAttendance(punch.id)}
@@ -907,6 +908,7 @@ const FiltrarPontoRH = () => {
                                   size="sm"
                                   variant="outline"
                                   borderRadius="full"
+                                  p="5px"
                                   {...({
                                     href: activePunch.lateAttachmentUrl,
                                     target: "_blank",

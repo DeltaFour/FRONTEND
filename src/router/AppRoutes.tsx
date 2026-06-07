@@ -35,6 +35,10 @@ const ProtectedRoute = ({ allowedRoles = [] }: ProtectedRouteProps) => {
     return <Navigate to="/v1/login" replace />;
   }
 
+  if (user?.mustChangePassword) {
+    return <Navigate to="/v1/login" replace />;
+  }
+
   if (allowedRoles.length > 0 && user && !allowedRoles.includes(user.role)) {
     const fallbackPath =
       user.role === "EMPLOYEE"

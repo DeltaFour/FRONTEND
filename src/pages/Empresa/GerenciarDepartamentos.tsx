@@ -546,6 +546,7 @@ export const GerenciarDepartamentos = () => {
                       h="38px"
                       borderRadius="10px"
                       fontSize="sm"
+                      px="10px"
                       color={textMuted}
                       _hover={{ color: textColor, bg: cancelBtnHoverBg }}
                     >
@@ -559,6 +560,7 @@ export const GerenciarDepartamentos = () => {
                       borderRadius="10px"
                       fontSize="sm"
                       fontWeight="600"
+                      px="10px"
                       style={{
                         background:
                           "linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)",

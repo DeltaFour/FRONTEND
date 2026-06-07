@@ -1068,8 +1068,7 @@ const ListarFuncionarios = () => {
                 <Button
                   variant="outline"
                   borderRadius="full"
-                  h="34px"
-                  px={6}
+                  p="10px"
                   onClick={() => {
                     setSelectedEmployeeForDetails(null);
                     setEmployeeDetails(null);

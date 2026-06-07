@@ -89,6 +89,7 @@ export const ConfirmDeleteModal = ({
                 <Button
                   variant="outline"
                   size="sm"
+                  p="5px"
                   onClick={onClose}
                   disabled={isLoading}
                 >
@@ -98,6 +99,7 @@ export const ConfirmDeleteModal = ({
                 <Button
                   size="sm"
                   colorPalette="red"
+                  p="5px"
                   onClick={onConfirm}
                   loading={isLoading}
                 >

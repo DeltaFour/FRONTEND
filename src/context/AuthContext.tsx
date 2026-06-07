@@ -15,6 +15,7 @@ export interface AuthUser {
   name?: string;
   email?: string;
   role: string;
+  mustChangePassword?: boolean;
   [key: string]: unknown;
 }
 
@@ -36,6 +37,7 @@ interface AuthContextValue {
   ) => Promise<AuthUser | false>;
   registerCompany: (payload: RegisterCompanyPayload) => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (patch: Partial<AuthUser>) => void;
   isAuthenticated: boolean;
 }
 
@@ -138,6 +140,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     });
   };
 
+  const updateUser = (patch: Partial<AuthUser>): void => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...patch };
+      const mode = localStorage.getItem(AUTH_STORAGE_MODE_KEY);
+      const storage = mode === "local" ? localStorage : sessionStorage;
+      storage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const logout = async (): Promise<void> => {
     try {
       await api.post("/auth/logout", {}, { withCredentials: true });
@@ -200,6 +213,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     login,
     registerCompany,
     logout,
+    updateUser,
     isAuthenticated: !!user,
   };
 

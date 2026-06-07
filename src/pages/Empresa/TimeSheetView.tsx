@@ -325,9 +325,10 @@ const TimeSheetView = () => {
           <Button
             variant="outline"
             borderRadius="full"
+            p="10px"
             onClick={() => navigate(-1)}
           >
-            <Flex p="10px" align="center" gap={2}>
+            <Flex align="center" gap={2}>
               <FaArrowLeft />
               <Text>Voltar</Text>
             </Flex>
@@ -497,11 +498,12 @@ const TimeSheetView = () => {
                   {(!isHRView && !signatureStatus.signedByEmployee) && (
                     <Button
                       colorPalette="blue"
+                      p="10px"
                       onClick={handleSign}
                       loading={signing}
                       mt={2}
                     >
-                      <Flex align="center" gap={2} p="10px">
+                      <Flex align="center" gap={2}>
                         <FaPen />
                         <Text>Assinar como Colaborador</Text>
                       </Flex>
@@ -511,11 +513,12 @@ const TimeSheetView = () => {
                   {(isHRView && !signatureStatus.signedByHR) && (
                     <Button
                       colorPalette="purple"
+                      p="10px"
                       onClick={handleSign}
                       loading={signing}
                       mt={2}
                     >
-                      <Flex align="center" gap={2} p="10px">
+                      <Flex align="center" gap={2}>
                         <FaPen />
                         <Text>Assinar como RH</Text>
                       </Flex>

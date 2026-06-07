@@ -32,7 +32,7 @@ import { maskCnpj, validateCnpj } from "../../utils/cnpj";
 import { maskCpf, validateCpf } from "../../utils/cpf";
 import { validateEmail, validatePassword } from "../../utils/validation";
 
-type Mode = "login" | "register" | "forgot" | "reset";
+type Mode = "login" | "register" | "forgot" | "reset" | "firstAccess";
 
 const Login = () => {
   const [mode, setMode] = useState<Mode>("login");
@@ -68,9 +68,22 @@ const Login = () => {
   const [showResetConfirmPassword, setShowResetConfirmPassword] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
 
+  // First access (primeiro acesso) state
+  const [firstPassword, setFirstPassword] = useState("");
+  const [firstConfirmPassword, setFirstConfirmPassword] = useState("");
+  const [showFirstPassword, setShowFirstPassword] = useState(false);
+  const [showFirstConfirmPassword, setShowFirstConfirmPassword] = useState(false);
+  const [firstAccessLoading, setFirstAccessLoading] = useState(false);
+
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, registerCompany } = useAuth();
+  const { login, registerCompany, user, updateUser } = useAuth();
+
+  useEffect(() => {
+    if (user?.mustChangePassword) {
+      setMode("firstAccess");
+    }
+  }, [user]);
 
   const handleLoginSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -87,7 +100,19 @@ const Login = () => {
     }
 
     try {
-      await login(sanitizedEmail, password);
+      const loggedUser = await login(sanitizedEmail, password);
+
+      if (loggedUser && loggedUser.mustChangePassword) {
+        setMode("firstAccess");
+        setFirstPassword("");
+        setFirstConfirmPassword("");
+        toaster.info({
+          title: "Primeiro acesso",
+          description: "Crie uma nova senha pessoal para continuar.",
+        });
+        return;
+      }
+
       toaster.success({
         title: "Sucesso",
         description: "Login realizado com sucesso!",
@@ -300,6 +325,64 @@ const Login = () => {
     }
   };
 
+  const handleFirstAccessSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    setFirstAccessLoading(true);
+
+    const passwordValidation = validatePassword(firstPassword);
+    if (!passwordValidation.isValid) {
+      toaster.error({
+        title: "Senha não atende aos requisitos",
+        description:
+          "A senha precisa ter pelo menos: 8 caracteres, 1 maiúscula, 1 minúscula, 1 número, 1 caractere especial, e nenhum espaço.",
+      });
+      setFirstAccessLoading(false);
+      return;
+    }
+
+    if (firstPassword !== firstConfirmPassword) {
+      toaster.error({
+        title: "Confirmação Incorreta",
+        description: "As senhas não coincidem.",
+      });
+      setFirstAccessLoading(false);
+      return;
+    }
+
+    try {
+      await api.post(
+        "/auth/set-initial-password",
+        { newPassword: firstPassword },
+        { withCredentials: true },
+      );
+
+      updateUser({ mustChangePassword: false });
+
+      toaster.success({
+        title: "Senha criada",
+        description: "Bem-vindo! Sua senha foi definida com sucesso.",
+      });
+
+      const destination =
+        user?.role === "EMPLOYEE"
+          ? "/dashboard-funcionario"
+          : "/dashboard-empresa";
+      navigate(destination, { replace: true });
+    } catch (err: unknown) {
+      const data = (err as { response?: { data?: unknown } })?.response?.data;
+      const message =
+        typeof data === "string"
+          ? data
+          : (data as { message?: string })?.message;
+      toaster.error({
+        title: "Erro ao criar senha",
+        description: message ?? "Tente novamente.",
+      });
+    } finally {
+      setFirstAccessLoading(false);
+    }
+  };
+
   const fieldLabelStyle = {
     fontSize: "sm",
     fontWeight: "semibold",
@@ -508,7 +591,7 @@ const Login = () => {
                     type="submit"
                     disabled={loading}
                     w="full"
-                    py={3}
+                    py="10px"
                     borderRadius="lg"
                     fontWeight="semibold"
                     color="white"
@@ -534,6 +617,184 @@ const Login = () => {
                         <>
                           <Text>Entrar</Text>
                         </>
+                      )}
+                    </Flex>
+                  </Button>
+                </Flex>
+              </form>
+            )}
+
+            {/* ── FIRST ACCESS (PRIMEIRO ACESSO) FORM ── */}
+            {mode === "firstAccess" && (
+              <form onSubmit={handleFirstAccessSubmit} style={{ width: "100%" }}>
+                <Flex direction="column" gap={6}>
+                  <Box>
+                    <Heading
+                      as="h3"
+                      fontSize="xl"
+                      fontWeight="semibold"
+                      color="white"
+                      mb={2}
+                    >
+                      Bem-vindo{user?.name ? `, ${user.name.split(" ")[0]}` : ""}!
+                    </Heading>
+                    <Text fontSize="sm" color="whiteAlpha.700">
+                      Você entrou com uma senha temporária. Crie uma nova senha
+                      pessoal para continuar.
+                    </Text>
+                  </Box>
+
+                  {/* Nova Senha */}
+                  <Box>
+                    <Text {...fieldLabelStyle}>Nova Senha</Text>
+                    <Box position="relative">
+                      <Box
+                        position="absolute"
+                        insetY={0}
+                        left={0}
+                        pl={4}
+                        display="flex"
+                        alignItems="center"
+                        pointerEvents="none"
+                        zIndex={1}
+                      >
+                        <Lock size={20} color="#9CA3AF" />
+                      </Box>
+                      <Input
+                        type={showFirstPassword ? "text" : "password"}
+                        id="firstPassword"
+                        autocomplete="new-password"
+                        {...inputStyle}
+                        pr={12}
+                        value={firstPassword}
+                        onChange={(e) => setFirstPassword(e.target.value)}
+                        placeholder="Crie uma senha forte"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowFirstPassword((v) => !v)}
+                        color="whiteAlpha.600"
+                        _hover={{ color: "white", bg: "transparent" }}
+                        position="absolute"
+                        insetY={0}
+                        right={0}
+                        minW="36px"
+                      >
+                        {showFirstPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      </Button>
+                    </Box>
+
+                    {/* Requirements Feedback */}
+                    {firstPassword && (() => {
+                      const criteria = validatePassword(firstPassword).criteria;
+                      return (
+                        <Flex direction="column" gap={1} mt={2} pl={1}>
+                          <Text fontSize="xs" color="whiteAlpha.700">Requisitos da senha:</Text>
+                          <Flex align="center" gap={1.5} fontSize="xs" color={criteria.hasMinLength ? "green.300" : "red.300"}>
+                            {criteria.hasMinLength ? <Check size={12} /> : <X size={12} />} Mínimo de 8 caracteres
+                          </Flex>
+                          <Flex align="center" gap={1.5} fontSize="xs" color={criteria.hasUpper ? "green.300" : "red.300"}>
+                            {criteria.hasUpper ? <Check size={12} /> : <X size={12} />} Pelo menos 1 letra maiúscula
+                          </Flex>
+                          <Flex align="center" gap={1.5} fontSize="xs" color={criteria.hasLower ? "green.300" : "red.300"}>
+                            {criteria.hasLower ? <Check size={12} /> : <X size={12} />} Pelo menos 1 letra minúscula
+                          </Flex>
+                          <Flex align="center" gap={1.5} fontSize="xs" color={criteria.hasNumber ? "green.300" : "red.300"}>
+                            {criteria.hasNumber ? <Check size={12} /> : <X size={12} />} Pelo menos 1 número
+                          </Flex>
+                          <Flex align="center" gap={1.5} fontSize="xs" color={criteria.hasSpecial ? "green.300" : "red.300"}>
+                            {criteria.hasSpecial ? <Check size={12} /> : <X size={12} />} Pelo menos 1 caractere especial
+                          </Flex>
+                          <Flex align="center" gap={1.5} fontSize="xs" color={criteria.noSpaces ? "green.300" : "red.300"}>
+                            {criteria.noSpaces ? <Check size={12} /> : <X size={12} />} Sem espaços em branco
+                          </Flex>
+                        </Flex>
+                      );
+                    })()}
+                  </Box>
+
+                  {/* Confirmar Nova Senha */}
+                  <Box>
+                    <Text {...fieldLabelStyle}>Confirmar Nova Senha</Text>
+                    <Box position="relative">
+                      <Box
+                        position="absolute"
+                        insetY={0}
+                        left={0}
+                        pl={4}
+                        display="flex"
+                        alignItems="center"
+                        pointerEvents="none"
+                        zIndex={1}
+                      >
+                        <Lock size={20} color="#9CA3AF" />
+                      </Box>
+                      <Input
+                        type={showFirstConfirmPassword ? "text" : "password"}
+                        id="firstConfirmPassword"
+                        autocomplete="new-password"
+                        {...inputStyle}
+                        pr={12}
+                        value={firstConfirmPassword}
+                        onChange={(e) => setFirstConfirmPassword(e.target.value)}
+                        placeholder="Confirme a nova senha"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowFirstConfirmPassword((v) => !v)}
+                        color="whiteAlpha.600"
+                        _hover={{ color: "white", bg: "transparent" }}
+                        position="absolute"
+                        insetY={0}
+                        right={0}
+                        minW="36px"
+                      >
+                        {showFirstConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      </Button>
+                    </Box>
+                    {firstConfirmPassword.length > 0 &&
+                      firstPassword !== firstConfirmPassword && (
+                        <Text fontSize="xs" color="red.300" mt={1}>
+                          As senhas não coincidem.
+                        </Text>
+                      )}
+                  </Box>
+
+                  {/* Submit */}
+                  <Button
+                    type="submit"
+                    disabled={firstAccessLoading}
+                    w="full"
+                    py="10px"
+                    borderRadius="lg"
+                    fontWeight="semibold"
+                    color="white"
+                    bg="purple.900"
+                    cursor={firstAccessLoading ? "not-allowed" : "pointer"}
+                    boxShadow={firstAccessLoading ? undefined : "lg"}
+                    _hover={
+                      firstAccessLoading
+                        ? undefined
+                        : {
+                            bgGradient: "linear(to-r, black, purple.900)",
+                            boxShadow: "xl",
+                          }
+                    }
+                  >
+                    <Flex align="center" justify="center" gap={2}>
+                      {firstAccessLoading ? (
+                        <>
+                          <Spinner size="sm" color="white" />
+                          <Text>Salvando...</Text>
+                        </>
+                      ) : (
+                        <Text>Criar senha e entrar</Text>
                       )}
                     </Flex>
                   </Button>
@@ -587,7 +848,7 @@ const Login = () => {
                     type="submit"
                     disabled={forgotLoading}
                     w="full"
-                    py={3}
+                    py="10px"
                     borderRadius="lg"
                     fontWeight="semibold"
                     color="white"
@@ -819,7 +1080,7 @@ const Login = () => {
                     type="submit"
                     disabled={resetLoading}
                     w="full"
-                    py={3}
+                    py="10px"
                     borderRadius="lg"
                     fontWeight="semibold"
                     color="white"
@@ -1140,7 +1401,7 @@ const Login = () => {
                     type="submit"
                     disabled={registerLoading}
                     w="full"
-                    py={3}
+                    py="10px"
                     borderRadius="lg"
                     fontWeight="semibold"
                     color="white"

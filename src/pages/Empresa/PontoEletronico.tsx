@@ -657,6 +657,7 @@ const PontoEletronico = () => {
                     flex={1}
                     onClick={capturePhoto}
                     fontSize="13px"
+                    p="5px"
                     disabled={isScanning}
                   >
                     Capturar Foto Manualmente
@@ -667,6 +668,7 @@ const PontoEletronico = () => {
                     color="fg.muted"
                     onClick={stopCamera}
                     fontSize="13px"
+                    p="5px"
                     _hover={{ bg: "surface.subtle", color: "fg" }}
                   >
                     Fechar Câmera
