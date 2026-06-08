@@ -68,7 +68,9 @@ const LOCAL_STORAGE_KEY = "deltafour.company.settings";
 export default function ConfiguracoesEmpresa() {
   const navigate = useNavigate();
   const [settings, setSettings] = useState<CompanySettings>(DEFAULT_SETTINGS);
-  const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
+  const [subscription, setSubscription] = useState<SubscriptionInfo | null>(
+    null,
+  );
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [loadingSub, setLoadingSub] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -88,7 +90,10 @@ export default function ConfiguracoesEmpresa() {
         const response = await api.get<CompanySettings>("/company/settings");
         setSettings(response.data);
       } catch (error: any) {
-        console.warn("Backend settings endpoint returned error, falling back to LocalStorage:", error);
+        console.warn(
+          "Backend settings endpoint returned error, falling back to LocalStorage:",
+          error,
+        );
         const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
         if (saved) {
           try {
@@ -179,7 +184,11 @@ export default function ConfiguracoesEmpresa() {
     }
   };
 
-  const fetchGeocodingCoords = async (street?: string, city?: string, state?: string) => {
+  const fetchGeocodingCoords = async (
+    street?: string,
+    city?: string,
+    state?: string,
+  ) => {
     const qStreet = street || settings.rua;
     const qCity = city || settings.cidade;
     const qState = state || settings.estado;
@@ -207,7 +216,10 @@ export default function ConfiguracoesEmpresa() {
         }));
       }
     } catch (err) {
-      console.warn("Could not retrieve geocoded coordinates from Nominatim:", err);
+      console.warn(
+        "Could not retrieve geocoded coordinates from Nominatim:",
+        err,
+      );
     } finally {
       setFetchingCoords(false);
     }
@@ -249,7 +261,8 @@ export default function ConfiguracoesEmpresa() {
     } catch (error) {
       toaster.error({
         title: "Erro ao salvar",
-        description: "Ocorreu um problema inesperado ao salvar as configurações.",
+        description:
+          "Ocorreu um problema inesperado ao salvar as configurações.",
       });
     } finally {
       setSaving(false);
@@ -258,7 +271,9 @@ export default function ConfiguracoesEmpresa() {
 
   const handleManageBilling = async () => {
     try {
-      const response = await api.get<{ url: string }>("/subscription/billing-portal");
+      const response = await api.get<{ url: string }>(
+        "/subscription/billing-portal",
+      );
       if (response.data?.url) {
         window.location.href = response.data.url;
       } else {
@@ -268,7 +283,8 @@ export default function ConfiguracoesEmpresa() {
       console.error(error);
       toaster.error({
         title: "Portal Stripe indisponível",
-        description: "Não foi possível carregar a página de pagamentos no momento.",
+        description:
+          "Não foi possível carregar a página de pagamentos no momento.",
       });
     }
   };
@@ -277,7 +293,9 @@ export default function ConfiguracoesEmpresa() {
     try {
       setCancellingSub(true);
       await api.post("/subscription/cancel");
-      setSubscription((prev) => prev ? { ...prev, status: "canceled" } : null);
+      setSubscription((prev) =>
+        prev ? { ...prev, status: "canceled" } : null,
+      );
       setShowCancelModal(false);
       toaster.success({
         title: "Assinatura cancelada",
@@ -310,7 +328,9 @@ export default function ConfiguracoesEmpresa() {
     return { nextDate, diffDays };
   };
 
-  const billingInfo = subscription?.startDate ? getNextBillingInfo(subscription.startDate) : null;
+  const billingInfo = subscription?.startDate
+    ? getNextBillingInfo(subscription.startDate)
+    : null;
   const isSoon = billingInfo ? billingInfo.diffDays <= 5 : false;
 
   if (loadingSettings) {
@@ -326,16 +346,30 @@ export default function ConfiguracoesEmpresa() {
     <Box w="full" h="fit-content">
       <Box as="form" onSubmit={handleSaveSettings}>
         <VStack spaceY={8} align="stretch">
-
           {/* Setor: Informações da Empresa */}
           <Box>
             <Heading size="lg" color="fg" mb={3}>
               Informações da Empresa
             </Heading>
-            <Box p={6} bg={cardBg} borderRadius="lg" border={cardBorder} borderColor={cardBorderColor} boxShadow="md">
-              <Grid templateColumns={{ base: "1fr", md: "repeat(2, minmax(0, 1fr))" }} gap={5}>
+            <Box
+              p={6}
+              bg={cardBg}
+              borderRadius="lg"
+              border={cardBorder}
+              borderColor={cardBorderColor}
+              boxShadow="md"
+            >
+              <Grid
+                templateColumns={{
+                  base: "1fr",
+                  md: "repeat(2, minmax(0, 1fr))",
+                }}
+                gap={5}
+              >
                 <Box>
-                  <Text mb={1} fontWeight="medium" color="fg">Razão Social *</Text>
+                  <Text mb={1} fontWeight="medium" color="fg">
+                    Razão Social *
+                  </Text>
                   <Input
                     name="razaoSocial"
                     value={settings.razaoSocial}
@@ -346,7 +380,9 @@ export default function ConfiguracoesEmpresa() {
                 </Box>
 
                 <Box>
-                  <Text mb={1} fontWeight="medium" color="fg">Nome Fantasia *</Text>
+                  <Text mb={1} fontWeight="medium" color="fg">
+                    Nome Fantasia *
+                  </Text>
                   <Input
                     name="nomeFantasia"
                     value={settings.nomeFantasia}
@@ -357,7 +393,9 @@ export default function ConfiguracoesEmpresa() {
                 </Box>
 
                 <Box>
-                  <Text mb={1} fontWeight="medium" color="fg">CNPJ</Text>
+                  <Text mb={1} fontWeight="medium" color="fg">
+                    CNPJ
+                  </Text>
                   <Input
                     name="cnpj"
                     value={settings.cnpj}
@@ -367,7 +405,9 @@ export default function ConfiguracoesEmpresa() {
                 </Box>
 
                 <Box>
-                  <Text mb={1} fontWeight="medium" color="fg">E-mail Corporativo *</Text>
+                  <Text mb={1} fontWeight="medium" color="fg">
+                    E-mail Corporativo *
+                  </Text>
                   <Input
                     type="email"
                     name="email"
@@ -386,15 +426,35 @@ export default function ConfiguracoesEmpresa() {
             <Heading size="lg" color="fg" mb={3}>
               Localização da Empresa
             </Heading>
-            <Box p={6} bg={cardBg} borderRadius="lg" border={cardBorder} borderColor={cardBorderColor} boxShadow="md">
-              <Grid templateColumns={{ base: "1fr", md: "repeat(2, minmax(0, 1fr))" }} gap={5}>
+            <Box
+              p={6}
+              bg={cardBg}
+              borderRadius="lg"
+              border={cardBorder}
+              borderColor={cardBorderColor}
+              boxShadow="md"
+            >
+              <Grid
+                templateColumns={{
+                  base: "1fr",
+                  md: "repeat(2, minmax(0, 1fr))",
+                }}
+                gap={5}
+              >
                 <Box>
-                  <Text mb={1} fontWeight="medium" color="fg">CEP</Text>
+                  <Text mb={1} fontWeight="medium" color="fg">
+                    CEP
+                  </Text>
                   <Flex align="center" gap={2}>
                     <Input
                       name="cep"
                       value={settings.cep}
-                      onChange={(e) => setSettings((prev) => ({ ...prev, cep: e.target.value }))}
+                      onChange={(e) =>
+                        setSettings((prev) => ({
+                          ...prev,
+                          cep: e.target.value,
+                        }))
+                      }
                       onBlur={handleCepBlur}
                       placeholder="00000-000"
                     />
@@ -403,7 +463,9 @@ export default function ConfiguracoesEmpresa() {
                 </Box>
 
                 <Box>
-                  <Text mb={1} fontWeight="medium" color="fg">Rua</Text>
+                  <Text mb={1} fontWeight="medium" color="fg">
+                    Rua
+                  </Text>
                   <Input
                     name="rua"
                     value={settings.rua}
@@ -413,7 +475,9 @@ export default function ConfiguracoesEmpresa() {
                 </Box>
 
                 <Box>
-                  <Text mb={1} fontWeight="medium" color="fg">Número</Text>
+                  <Text mb={1} fontWeight="medium" color="fg">
+                    Número
+                  </Text>
                   <Input
                     name="numero"
                     value={settings.numero}
@@ -423,7 +487,9 @@ export default function ConfiguracoesEmpresa() {
                 </Box>
 
                 <Box>
-                  <Text mb={1} fontWeight="medium" color="fg">Complemento</Text>
+                  <Text mb={1} fontWeight="medium" color="fg">
+                    Complemento
+                  </Text>
                   <Input
                     name="complemento"
                     value={settings.complemento}
@@ -433,7 +499,9 @@ export default function ConfiguracoesEmpresa() {
                 </Box>
 
                 <Box>
-                  <Text mb={1} fontWeight="medium" color="fg">Bairro</Text>
+                  <Text mb={1} fontWeight="medium" color="fg">
+                    Bairro
+                  </Text>
                   <Input
                     name="bairro"
                     value={settings.bairro}
@@ -443,7 +511,9 @@ export default function ConfiguracoesEmpresa() {
                 </Box>
 
                 <Box>
-                  <Text mb={1} fontWeight="medium" color="fg">Cidade</Text>
+                  <Text mb={1} fontWeight="medium" color="fg">
+                    Cidade
+                  </Text>
                   <Input
                     name="cidade"
                     value={settings.cidade}
@@ -453,7 +523,9 @@ export default function ConfiguracoesEmpresa() {
                 </Box>
 
                 <Box>
-                  <Text mb={1} fontWeight="medium" color="fg">Estado (UF)</Text>
+                  <Text mb={1} fontWeight="medium" color="fg">
+                    Estado (UF)
+                  </Text>
                   <Input
                     name="estado"
                     value={settings.estado}
@@ -464,10 +536,14 @@ export default function ConfiguracoesEmpresa() {
                 </Box>
 
                 <Box>
-                  <Text mb={1} fontWeight="medium" color="fg">Coordenadas de Referência</Text>
+                  <Text mb={1} fontWeight="medium" color="fg">
+                    Coordenadas de Referência
+                  </Text>
                   <Flex align="center" gap={2} h="40px">
                     <Text fontSize="sm" fontFamily="mono" color="fg.muted">
-                      {fetchingCoords ? "Buscando coordenadas..." : `Lat: ${settings.latitude || "---"} / Lon: ${settings.longitude || "---"}`}
+                      {fetchingCoords
+                        ? "Buscando coordenadas..."
+                        : `Lat: ${settings.latitude || "---"} / Lon: ${settings.longitude || "---"}`}
                     </Text>
                   </Flex>
                 </Box>
@@ -480,15 +556,35 @@ export default function ConfiguracoesEmpresa() {
             <Heading size="lg" color="fg" mb={3}>
               Regras de Geolocalização
             </Heading>
-            <Box p={6} bg={cardBg} borderRadius="lg" border={cardBorder} borderColor={cardBorderColor} boxShadow="md">
-              <Grid templateColumns={{ base: "1fr", md: "repeat(2, minmax(0, 1fr))" }} gap={5}>
+            <Box
+              p={6}
+              bg={cardBg}
+              borderRadius="lg"
+              border={cardBorder}
+              borderColor={cardBorderColor}
+              boxShadow="md"
+            >
+              <Grid
+                templateColumns={{
+                  base: "1fr",
+                  md: "repeat(2, minmax(0, 1fr))",
+                }}
+                gap={5}
+              >
                 <Box>
-                  <Text mb={1} fontWeight="medium" color="fg">Raio Permitido (metros)</Text>
+                  <Text mb={1} fontWeight="medium" color="fg">
+                    Raio Permitido (metros)
+                  </Text>
                   <Input
                     type="number"
                     name="raioMetros"
                     value={settings.raioMetros}
-                    onChange={(e) => setSettings((prev) => ({ ...prev, raioMetros: Number(e.target.value) }))}
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        raioMetros: Number(e.target.value),
+                      }))
+                    }
                     min={10}
                     placeholder="100"
                   />
@@ -502,12 +598,27 @@ export default function ConfiguracoesEmpresa() {
             <Heading size="lg" color="fg" mb={3}>
               Assinatura e Cobrança
             </Heading>
-            <Box p={6} bg={cardBg} borderRadius="lg" border={cardBorder} borderColor={cardBorderColor} boxShadow="md">
-
+            <Box
+              p={6}
+              bg={cardBg}
+              borderRadius="lg"
+              border={cardBorder}
+              borderColor={cardBorderColor}
+              boxShadow="md"
+            >
               {isSoon && billingInfo && (
-                <Box p={4} mb={4} bg="red.muted" borderWidth="1px" borderColor="red.border" borderRadius="md">
+                <Box
+                  p={4}
+                  mb={4}
+                  bg="red.muted"
+                  borderWidth="1px"
+                  borderColor="red.border"
+                  borderRadius="md"
+                >
                   <Text color="red.fg" fontWeight="semibold" fontSize="sm">
-                    Sua assinatura renovará em {billingInfo.diffDays} {billingInfo.diffDays === 1 ? "dia" : "dias"} (em {billingInfo.nextDate.toLocaleDateString("pt-BR")}).
+                    Sua assinatura renovará em {billingInfo.diffDays}{" "}
+                    {billingInfo.diffDays === 1 ? "dia" : "dias"} (em{" "}
+                    {billingInfo.nextDate.toLocaleDateString("pt-BR")}).
                   </Text>
                 </Box>
               )}
@@ -515,34 +626,77 @@ export default function ConfiguracoesEmpresa() {
               {loadingSub ? (
                 <Spinner size="sm" />
               ) : subscription ? (
-                <Grid templateColumns={{ base: "1fr", md: "repeat(2, minmax(0, 1fr))" }} gap={5}>
+                <Grid
+                  templateColumns={{
+                    base: "1fr",
+                    md: "repeat(2, minmax(0, 1fr))",
+                  }}
+                  gap={5}
+                >
                   <Box>
-                    <Text fontSize="sm" color="fg.muted">Plano Atual</Text>
-                    <Text fontSize="md" fontWeight="bold" color="fg">{subscription.planName}</Text>
+                    <Text fontSize="sm" color="fg.muted">
+                      Plano Atual
+                    </Text>
+                    <Text fontSize="md" fontWeight="bold" color="fg">
+                      {subscription.planName}
+                    </Text>
                   </Box>
                   <Box>
-                    <Text fontSize="sm" color="fg.muted">Status da Assinatura</Text>
-                    <Text fontSize="md" fontWeight="semibold" color={subscription.status === "ACTIVE" ? "green.500" : "red.500"}>
+                    <Text fontSize="sm" color="fg.muted">
+                      Status da Assinatura
+                    </Text>
+                    <Text
+                      fontSize="md"
+                      fontWeight="semibold"
+                      color={
+                        subscription.status === "ACTIVE"
+                          ? "green.500"
+                          : "red.500"
+                      }
+                    >
                       {subscription.status === "ACTIVE" ? "Ativa" : "Inativa"}
                     </Text>
                   </Box>
                   <Box>
-                    <Text fontSize="sm" color="fg.muted">Início do Ciclo</Text>
-                    <Text fontSize="md" color="fg">{new Date(subscription.startDate).toLocaleDateString("pt-BR")}</Text>
+                    <Text fontSize="sm" color="fg.muted">
+                      Início do Ciclo
+                    </Text>
+                    <Text fontSize="md" color="fg">
+                      {new Date(subscription.startDate).toLocaleDateString(
+                        "pt-BR",
+                      )}
+                    </Text>
                   </Box>
                   <Box>
-                    <Text fontSize="sm" color="fg.muted">Próximo Faturamento (Renovação)</Text>
+                    <Text fontSize="sm" color="fg.muted">
+                      Próximo Faturamento (Renovação)
+                    </Text>
                     <Text fontSize="md" fontWeight="bold" color="fg">
-                      {billingInfo ? billingInfo.nextDate.toLocaleDateString("pt-BR") : "Não disponível"}
+                      {billingInfo
+                        ? billingInfo.nextDate.toLocaleDateString("pt-BR")
+                        : "Não disponível"}
                     </Text>
                   </Box>
                   <Box>
                     <Flex gap={3} pt={2}>
-                      <Button type="button" variant="outline" size="sm" onClick={handleManageBilling} p="10px">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleManageBilling}
+                        p="10px"
+                      >
                         Portal Financeiro
                       </Button>
                       {subscription.status === "active" && (
-                        <Button type="button" variant="outline" colorPalette="red" size="sm" onClick={() => setShowCancelModal(true)}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          p="10px"
+                          colorPalette="red"
+                          size="sm"
+                          onClick={() => setShowCancelModal(true)}
+                        >
                           Cancelar Plano
                         </Button>
                       )}
@@ -550,13 +704,22 @@ export default function ConfiguracoesEmpresa() {
                   </Box>
                 </Grid>
               ) : (
-                <Text fontSize="sm" color="fg.muted">Dados de assinatura não disponíveis.</Text>
+                <Text fontSize="sm" color="fg.muted">
+                  Dados de assinatura não disponíveis.
+                </Text>
               )}
             </Box>
           </Box>
 
           {/* Rodapé de Ações */}
-          <Flex justify="center" gap="14px" w="100%" flexDir={{ base: "column", sm: "row" }} align="center" pt={4}>
+          <Flex
+            justify="center"
+            gap="14px"
+            w="100%"
+            flexDir={{ base: "column", sm: "row" }}
+            align="center"
+            pt={4}
+          >
             <Button
               type="button"
               onClick={() => navigate(-1)}
@@ -587,25 +750,56 @@ export default function ConfiguracoesEmpresa() {
               )}
             </Button>
           </Flex>
-
         </VStack>
       </Box>
 
       {/* Confirmation Modal */}
       {showCancelModal && (
-        <Box position="fixed" top="0" left="0" w="100%" h="100%" bg="rgba(0,0,0,0.6)" zIndex="9999" display="flex" alignItems="center" justifyContent="center">
-          <Box maxW="500px" w="90%" p={6} bg="surface" borderWidth="1px" borderColor="border" borderRadius="xl" boxShadow="2xl">
+        <Box
+          position="fixed"
+          top="0"
+          left="0"
+          w="100%"
+          h="100%"
+          bg="rgba(0,0,0,0.6)"
+          zIndex="9999"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+        >
+          <Box
+            maxW="500px"
+            w="90%"
+            p={6}
+            bg="surface"
+            borderWidth="1px"
+            borderColor="border"
+            borderRadius="xl"
+            boxShadow="2xl"
+          >
             <Heading size="md" color="fg" mb={4}>
               Confirmar Cancelamento
             </Heading>
             <Text fontSize="sm" color="fg" mb={6}>
-              Tem certeza que deseja cancelar sua assinatura? O acesso continuará ativo até o final do período vigente.
+              Tem certeza que deseja cancelar sua assinatura? O acesso
+              continuará ativo até o final do período vigente.
             </Text>
             <Flex justify="flex-end" gap={3}>
-              <Button size="sm" variant="outline" onClick={() => setShowCancelModal(false)}>
+              <Button
+                size="sm"
+                variant="outline"
+                p="10px"
+                onClick={() => setShowCancelModal(false)}
+              >
                 Manter Assinatura
               </Button>
-              <Button size="sm" colorPalette="red" loading={cancellingSub} onClick={handleCancelSubscription}>
+              <Button
+                size="sm"
+                p="10px"
+                colorPalette="red"
+                loading={cancellingSub}
+                onClick={handleCancelSubscription}
+              >
                 Confirmar Cancelamento
               </Button>
             </Flex>

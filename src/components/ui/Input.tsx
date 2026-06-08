@@ -14,6 +14,9 @@ export const Input = (props: InputProps) => {
       bg={bg}
       borderColor={borderColor}
       color={color}
+      // Garante seleção de texto mesmo se algum ancestral herdar user-select: none
+      userSelect="text"
+      css={{ WebkitUserSelect: "text" }}
       _focusVisible={{ borderColor: focusBorder }}
       _placeholder={{ color: placeholderColor }}
       {...props}
