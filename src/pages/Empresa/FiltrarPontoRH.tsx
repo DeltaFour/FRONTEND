@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ChangeEvent,
   type CSSProperties,
@@ -30,6 +31,7 @@ import {
 import { FaInfoCircle, FaTimes } from "react-icons/fa";
 import api from "../../services/api";
 import { Input } from "../../components/ui/Input";
+import { Pagination } from "../../components/ui/Pagination";
 import { toaster } from "../../components/ui/toaster";
 import { useColorModeValue } from "../../theme/colorMode";
 
@@ -75,42 +77,28 @@ const initialFilters: FilterState = {
   sort: "recent",
 };
 
+
 const formatDateTime = (value: string) => {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "Data inválida";
-  }
-
+  if (Number.isNaN(date.getTime())) return "Data inválida";
   return date.toLocaleString("pt-BR");
 };
 
 const formatDateOnly = (value: string) => {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "Data inválida";
-  }
-
+  if (Number.isNaN(date.getTime())) return "Data inválida";
   return date.toLocaleDateString("pt-BR");
 };
 
 const formatTimeOnly = (value: string) => {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "--:--";
-  }
-
-  return date.toLocaleTimeString("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  if (Number.isNaN(date.getTime())) return "--:--";
+  return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 };
 
 const getLocalDateKey = (value: string) => {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-
+  if (Number.isNaN(date.getTime())) return "";
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
@@ -121,10 +109,7 @@ const resolvePunchTypeLabel = (type: PunchType) =>
   type === "IN" ? "Entrada" : "Saída";
 
 const resolveAttachmentName = (filePath?: string) => {
-  if (!filePath) {
-    return undefined;
-  }
-
+  if (!filePath) return undefined;
   const sanitized = filePath.split("?")[0];
   const parts = sanitized.split("/");
   return parts[parts.length - 1] || undefined;
@@ -135,9 +120,7 @@ const normalizeAttendances = (rawData: unknown): PunchRecord[] => {
     ? rawData
     : (rawData as { data?: unknown })?.data;
 
-  if (!Array.isArray(list)) {
-    return [];
-  }
+  if (!Array.isArray(list)) return [];
 
   return list.map((item, index) => {
     const raw = (item || {}) as Record<string, unknown>;
@@ -173,85 +156,51 @@ const normalizeAttendances = (rawData: unknown): PunchRecord[] => {
 };
 
 const isAttendanceApproved = (attendance: PunchRecord) => {
-  const normalized = String(attendance.status ?? "")
-    .trim()
-    .toLowerCase();
-
-  return [
-    "valid",
-    "valido",
-    "validado",
-    "approved",
-    "aprovado",
-    "authorized",
-    "autorizado",
-    "true",
-    "1",
-  ].includes(normalized);
+  const normalized = String(attendance.status ?? "").trim().toLowerCase();
+  return ["valid", "valido", "validado", "approved", "aprovado", "authorized", "autorizado"].includes(normalized);
 };
+
+const isAttendanceRejected = (attendance: PunchRecord) => {
+  const normalized = String(attendance.status ?? "").trim().toLowerCase();
+  return ["negado", "rejected", "recusado"].includes(normalized);
+};
+
+const isAttendancePending = (attendance: PunchRecord) =>
+  !isAttendanceApproved(attendance) && !isAttendanceRejected(attendance);
 
 const InfoRow = ({ label, value }: { label: string; value: ReactNode }) => (
   <Flex justify="space-between" align="center" gap={4} flexWrap="wrap">
-    <Text fontSize="sm" color="fg.muted">
-      {label}
-    </Text>
-    <Box fontSize="sm" fontWeight="medium" color="fg" textAlign="right">
-      {value}
-    </Box>
+    <Text fontSize="sm" color="fg.muted">{label}</Text>
+    <Box fontSize="sm" fontWeight="medium" color="fg" textAlign="right">{value}</Box>
   </Flex>
 );
 
 const StatusPill = ({ isLate }: { isLate: boolean }) => {
-  const bg = useColorModeValue(
-    isLate ? "red.100" : "green.100",
-    isLate ? "red.900" : "green.900",
-  );
-  const color = useColorModeValue(
-    isLate ? "red.700" : "green.700",
-    isLate ? "red.200" : "green.200",
-  );
-
+  const bg = useColorModeValue(isLate ? "red.100" : "green.100", isLate ? "red.900" : "green.900");
+  const color = useColorModeValue(isLate ? "red.700" : "green.700", isLate ? "red.200" : "green.200");
   return (
-    <Box
-      px={3}
-      py={1}
-      borderRadius="full"
-      fontSize="xs"
-      fontWeight="semibold"
-      bg={bg}
-      color={color}
-      display="inline-flex"
-      alignItems="center"
-    >
+    <Box px={3} py={1} borderRadius="full" fontSize="xs" fontWeight="semibold" bg={bg} color={color} display="inline-flex" alignItems="center">
       {isLate ? "Em atraso" : "No horário"}
     </Box>
   );
 };
 
-const ApprovalPill = ({ isApproved }: { isApproved: boolean }) => {
+const ApprovalPill = ({ punch }: { punch: PunchRecord }) => {
+  const approved = isAttendanceApproved(punch);
+  const rejected = isAttendanceRejected(punch);
+
   const bg = useColorModeValue(
-    isApproved ? "blue.100" : "orange.100",
-    isApproved ? "blue.900" : "orange.900",
+    approved ? "blue.100" : rejected ? "red.100" : "orange.100",
+    approved ? "blue.900" : rejected ? "red.900" : "orange.900",
   );
   const color = useColorModeValue(
-    isApproved ? "blue.700" : "orange.700",
-    isApproved ? "blue.200" : "orange.200",
+    approved ? "blue.700" : rejected ? "red.700" : "orange.700",
+    approved ? "blue.200" : rejected ? "red.200" : "orange.200",
   );
 
   return (
-    <Box
-      px={3}
-      py={1}
-      borderRadius="full"
-      fontSize="xs"
-      fontWeight="semibold"
-      bg={bg}
-      color={color}
-      display="inline-flex"
-      alignItems="center"
-
-    >
-      {isApproved ? "Válido" : "Pendente"}
+    <Box px={3} py={1} borderRadius="full" fontSize="xs" fontWeight="semibold" bg={bg} color={color} display="inline-flex" alignItems="center">
+      {approved ? "Válido" : rejected ? "Negado" : "Pendente"}
     </Box>
   );
 };
@@ -259,10 +208,7 @@ const ApprovalPill = ({ isApproved }: { isApproved: boolean }) => {
 const FiltrarPontoRH = () => {
   const selectBg = useColorModeValue("#FFFFFF", "#1A1A1F");
   const selectColor = useColorModeValue("#1A202C", "#E2E8F0");
-  const selectBorder = useColorModeValue(
-    "1px solid #E2E8F0",
-    "1px solid rgba(255, 255, 255, 0.1)",
-  );
+  const selectBorder = useColorModeValue("1px solid #E2E8F0", "1px solid rgba(255, 255, 255, 0.1)");
   const selectColorScheme = useColorModeValue("light", "dark");
 
   const selectBaseStyle: CSSProperties = {
@@ -276,30 +222,66 @@ const FiltrarPontoRH = () => {
   };
 
   const [filters, setFilters] = useState<FilterState>(initialFilters);
+  const [searchInput, setSearchInput] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [punches, setPunches] = useState<PunchRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [validatingIds, setValidatingIds] = useState<string[]>([]);
-  const [selectedPunch, setSelectedPunch] =
-    useState<EnrichedPunchRecord | null>(null);
-  const filterGradient = useColorModeValue(
-    "linear(to-r, #F8FAFC, #EFF6FF)",
-    "linear(to-r, #1F2937, #111827)",
-  );
+  const [actingIds, setActingIds] = useState<string[]>([]);
+  const [selectedPunch, setSelectedPunch] = useState<EnrichedPunchRecord | null>(null);
+
+  const filterGradient = useColorModeValue("linear(to-r, #F8FAFC, #EFF6FF)", "linear(to-r, #1F2937, #111827)");
   const validateBorder = useColorModeValue("orange.200", "orange.400");
   const validateColor = useColorModeValue("orange.600", "orange.300");
+  const rejectBorder = useColorModeValue("red.200", "red.400");
+  const rejectColor = useColorModeValue("red.600", "red.300");
   const dialogBg = "surface";
   const dialogBorder = "border";
   const lateCardBg = useColorModeValue("red.50", "red.900");
   const lateCardBorder = useColorModeValue("red.100", "red.700");
   const lateTitleColor = useColorModeValue("red.700", "red.200");
 
+  // Debounce search input — only triggers fetch after 400ms idle
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1);
+      setFilters((prev) => ({ ...prev, search: searchInput }));
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  const pageRef = useRef(page);
+  const pageSizeRef = useRef(pageSize);
+  const filtersRef = useRef(filters);
+  useEffect(() => { pageRef.current = page; }, [page]);
+  useEffect(() => { pageSizeRef.current = pageSize; }, [pageSize]);
+  useEffect(() => { filtersRef.current = filters; }, [filters]);
+
   const fetchAttendances = useCallback(async (showLoading = true) => {
     try {
-      if (showLoading) {
-        setLoading(true);
-      }
-      const response = await api.get("/user/get-all-attendances");
-      setPunches(normalizeAttendances(response.data));
+      if (showLoading) setLoading(true);
+
+      const f = filtersRef.current;
+      const p = pageRef.current;
+
+      const params: Record<string, string | number> = {
+        page: p,
+        pageSize: pageSizeRef.current,
+        sort: f.sort,
+      };
+      if (f.search.trim()) params.search = f.search.trim();
+      if (f.date) params.date = f.date;
+      if (f.punchType !== "all") params.punchType = f.punchType;
+      if (f.lateStatus !== "all") params.lateStatus = f.lateStatus;
+
+      const response = await api.get("/user/get-all-attendances", { params });
+      const result = response.data as { data: unknown[]; total: number; totalPages: number };
+
+      setPunches(normalizeAttendances(result.data));
+      setTotalRecords(result.total ?? 0);
+      setTotalPages(result.totalPages ?? 1);
     } catch (err) {
       if (showLoading) {
         toaster.error({
@@ -308,83 +290,70 @@ const FiltrarPontoRH = () => {
         });
       }
     } finally {
-      if (showLoading) {
-        setLoading(false);
-      }
+      if (showLoading) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     void fetchAttendances(true);
+  }, [page, pageSize, filters, fetchAttendances]);
 
-    const interval = setInterval(() => {
-      void fetchAttendances(false);
-    }, 5000); // Poll every 5 seconds for real-time updates
-
+  // Silent poll every 30s to pick up new punches
+  useEffect(() => {
+    const interval = setInterval(() => void fetchAttendances(false), 30000);
     return () => clearInterval(interval);
   }, [fetchAttendances]);
 
-  const handleValidateAttendance = useCallback(
-    async (attendanceId: string) => {
-      if (!attendanceId || validatingIds.includes(attendanceId)) {
-        return;
-      }
+  const handleUpdateStatus = useCallback(
+    async (attendanceId: string, status: "aprovado" | "negado") => {
+      if (!attendanceId || actingIds.includes(attendanceId)) return;
 
-      setValidatingIds((prev) => [...prev, attendanceId]);
-
+      setActingIds((prev) => [...prev, attendanceId]);
       try {
-        await api.patch(`/user/update-status-attendance/${attendanceId}`);
+        await api.patch(`/user/update-status-attendance/${attendanceId}`, { status });
+
         setPunches((prev) =>
           prev.map((punch) =>
-            punch.id === attendanceId
-              ? { ...punch, status: "VALIDADO" }
-              : punch,
+            punch.id === attendanceId ? { ...punch, status } : punch,
           ),
         );
         setSelectedPunch((prev) =>
-          prev?.id === attendanceId ? { ...prev, status: "VALIDADO" } : prev,
+          prev?.id === attendanceId ? { ...prev, status } : prev,
         );
+
         toaster.success({
-          title: "Ponto validado",
-          description: "O ponto em atraso foi validado com sucesso.",
+          title: status === "aprovado" ? "Ponto validado" : "Ponto recusado",
+          description:
+            status === "aprovado"
+              ? "O ponto em atraso foi validado com sucesso."
+              : "O ponto em atraso foi recusado.",
         });
       } catch (err: unknown) {
         const description =
-          (err as { response?: { data?: { message?: string } } })?.response
-            ?.data?.message || "Não foi possível validar o ponto em atraso.";
-
-        toaster.error({
-          title: "Erro ao validar ponto",
-          description,
-        });
+          (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+          "Não foi possível atualizar o ponto.";
+        toaster.error({ title: "Erro ao atualizar ponto", description });
       } finally {
-        setValidatingIds((prev) => prev.filter((id) => id !== attendanceId));
+        setActingIds((prev) => prev.filter((id) => id !== attendanceId));
       }
     },
-    [validatingIds],
+    [actingIds],
   );
 
+  // Compute first/last-of-day flags on the current page's data (client-side)
   const enrichedPunches = useMemo<EnrichedPunchRecord[]>(() => {
-    const withMeta = punches.map((punch) => {
-      const timeMs = new Date(punch.timePunched).getTime();
-      const dateKey = getLocalDateKey(punch.timePunched);
-
-      return {
-        ...punch,
-        timeMs,
-        dateKey,
-        isFirstOfDay: false,
-        isLastOfDay: false,
-      };
-    });
+    const withMeta = punches.map((punch) => ({
+      ...punch,
+      timeMs: new Date(punch.timePunched).getTime(),
+      dateKey: getLocalDateKey(punch.timePunched),
+      isFirstOfDay: false,
+      isLastOfDay: false,
+    }));
 
     const grouped = new Map<string, EnrichedPunchRecord[]>();
-
     withMeta.forEach((punch) => {
       const key = `${punch.employeeKey}-${punch.dateKey}`;
-      if (!grouped.has(key)) {
-        grouped.set(key, []);
-      }
+      if (!grouped.has(key)) grouped.set(key, []);
       grouped.get(key)?.push(punch);
     });
 
@@ -399,75 +368,30 @@ const FiltrarPontoRH = () => {
     return withMeta;
   }, [punches]);
 
-  const filteredPunches = useMemo(() => {
-    const normalizedSearch = filters.search.trim().toLowerCase();
-
-    const filtered = enrichedPunches.filter((punch) => {
-      if (
-        normalizedSearch &&
-        !punch.employeeName.toLowerCase().includes(normalizedSearch)
-      ) {
-        return false;
-      }
-
-      if (filters.date && punch.dateKey !== filters.date) {
-        return false;
-      }
-
-      if (
-        filters.punchType !== "all" &&
-        punch.punchType !== filters.punchType
-      ) {
-        return false;
-      }
-
-      if (filters.lateStatus === "late" && !punch.isLate) {
-        return false;
-      }
-
-      if (filters.lateStatus === "on-time" && punch.isLate) {
-        return false;
-      }
-
-      if (filters.punchPosition === "first" && !punch.isFirstOfDay) {
-        return false;
-      }
-
-      if (filters.punchPosition === "last" && !punch.isLastOfDay) {
-        return false;
-      }
-
-      return true;
-    });
-
-    const sorted = filtered.sort((a, b) =>
-      filters.sort === "recent" ? b.timeMs - a.timeMs : a.timeMs - b.timeMs,
+  // punchPosition is the only remaining client-side filter (within current page)
+  const displayedPunches = useMemo(() => {
+    if (filters.punchPosition === "all") return enrichedPunches;
+    return enrichedPunches.filter((p) =>
+      filters.punchPosition === "first" ? p.isFirstOfDay : p.isLastOfDay,
     );
-
-    return sorted;
-  }, [enrichedPunches, filters]);
+  }, [enrichedPunches, filters.punchPosition]);
 
   const summary = useMemo(() => {
-    const lateCount = filteredPunches.filter((punch) => punch.isLate).length;
-    return {
-      total: filteredPunches.length,
-      late: lateCount,
-      onTime: filteredPunches.length - lateCount,
-    };
-  }, [filteredPunches]);
+    const late = displayedPunches.filter((p) => p.isLate).length;
+    return { total: displayedPunches.length, late, onTime: displayedPunches.length - late };
+  }, [displayedPunches]);
 
-  const handleFilterChange = (
-    event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
+  const handleSelectFilterChange = (event: ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = event.target;
-
-    setFilters((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setPage(1);
+    setFilters((prev) => ({ ...prev, [name]: value }));
   };
 
-  const clearFilters = () => setFilters(initialFilters);
+  const clearFilters = () => {
+    setSearchInput("");
+    setPage(1);
+    setFilters(initialFilters);
+  };
 
   const activePunch = selectedPunch;
 
@@ -481,92 +405,44 @@ const FiltrarPontoRH = () => {
   }
 
   return (
-    <Box
-      bg="surface"
-      p={{ base: 3, md: 6 }}
-      borderRadius="lg"
-      boxShadow="xl"
-      className="animate-fade-in"
-    >
+    <Box bg="surface" p={{ base: 3, md: 6 }} borderRadius="lg" boxShadow="xl" className="animate-fade-in">
       <Flex justify="space-between" align="center" gap={4} flexWrap="wrap">
         <Box>
-          <Heading
-            size="lg"
-            color="fg"
-            display="flex"
-            alignItems="center"
-            gap={3}
-          >
+          <Heading size="lg" color="fg" display="flex" alignItems="center" gap={3}>
             Pontos por colaborador
           </Heading>
           <Text mt={2} fontSize="sm" color="fg.muted">
             Filtre pontos individuais por colaborador, data e status de atraso.
           </Text>
         </Box>
-
-        <Button
-          variant="outline"
-          borderRadius="full"
-          onClick={clearFilters}
-          display="flex"
-          alignItems="center"
-          p="10px"
-          gap={2}
-        >
+        <Button variant="outline" borderRadius="full" onClick={clearFilters} display="flex" alignItems="center" p="10px" gap={2}>
           <FaTimes /> Limpar filtros
         </Button>
       </Flex>
 
-      <Box
-        mt={6}
-        p={4}
-        borderWidth="1px"
-        borderRadius="lg"
-        borderColor="border"
-        bgGradient={filterGradient}
-      >
+      <Box mt={6} p={4} borderWidth="1px" borderRadius="lg" borderColor="border" bgGradient={filterGradient}>
         <Grid
-          templateColumns={{
-            base: "1fr",
-            md: "repeat(2, minmax(0, 1fr))",
-            xl: "repeat(6, minmax(0, 1fr))",
-          }}
+          templateColumns={{ base: "1fr", md: "repeat(2, minmax(0, 1fr))", xl: "repeat(6, minmax(0, 1fr))" }}
           gap={4}
         >
           <GridItem colSpan={{ base: 1, xl: 2 }}>
-            <Text mb={1} fontSize="sm" fontWeight="medium" color="fg">
-              Nome
-            </Text>
+            <Text mb={1} fontSize="sm" fontWeight="medium" color="fg">Nome</Text>
             <Input
               name="search"
-              value={filters.search}
-              onChange={handleFilterChange}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Buscar colaborador"
             />
           </GridItem>
 
           <GridItem>
-            <Text mb={1} fontSize="sm" fontWeight="medium" color="fg">
-              Data
-            </Text>
-            <Input
-              name="date"
-              type="date"
-              value={filters.date}
-              onChange={handleFilterChange}
-            />
+            <Text mb={1} fontSize="sm" fontWeight="medium" color="fg">Data</Text>
+            <Input name="date" type="date" value={filters.date} onChange={(e) => handleSelectFilterChange(e as any)} />
           </GridItem>
 
           <GridItem>
-            <Text mb={1} fontSize="sm" fontWeight="medium" color="fg">
-              Batida
-            </Text>
-            <select
-              name="punchPosition"
-              value={filters.punchPosition}
-              onChange={handleFilterChange}
-              style={selectBaseStyle}
-            >
+            <Text mb={1} fontSize="sm" fontWeight="medium" color="fg">Batida</Text>
+            <select name="punchPosition" value={filters.punchPosition} onChange={handleSelectFilterChange} style={selectBaseStyle}>
               <option value="all">Todas</option>
               <option value="first">Primeiro batido</option>
               <option value="last">Último batido</option>
@@ -574,15 +450,8 @@ const FiltrarPontoRH = () => {
           </GridItem>
 
           <GridItem>
-            <Text mb={1} fontSize="sm" fontWeight="medium" color="fg">
-              Tipo
-            </Text>
-            <select
-              name="punchType"
-              value={filters.punchType}
-              onChange={handleFilterChange}
-              style={selectBaseStyle}
-            >
+            <Text mb={1} fontSize="sm" fontWeight="medium" color="fg">Tipo</Text>
+            <select name="punchType" value={filters.punchType} onChange={handleSelectFilterChange} style={selectBaseStyle}>
               <option value="all">Todos</option>
               <option value="IN">Entrada</option>
               <option value="OUT">Saída</option>
@@ -590,15 +459,8 @@ const FiltrarPontoRH = () => {
           </GridItem>
 
           <GridItem>
-            <Text mb={1} fontSize="sm" fontWeight="medium" color="fg">
-              Atraso
-            </Text>
-            <select
-              name="lateStatus"
-              value={filters.lateStatus}
-              onChange={handleFilterChange}
-              style={selectBaseStyle}
-            >
+            <Text mb={1} fontSize="sm" fontWeight="medium" color="fg">Atraso</Text>
+            <select name="lateStatus" value={filters.lateStatus} onChange={handleSelectFilterChange} style={selectBaseStyle}>
               <option value="all">Todos</option>
               <option value="late">Em atraso</option>
               <option value="on-time">No horário</option>
@@ -606,15 +468,8 @@ const FiltrarPontoRH = () => {
           </GridItem>
 
           <GridItem>
-            <Text mb={1} fontSize="sm" fontWeight="medium" color="fg">
-              Ordenação
-            </Text>
-            <select
-              name="sort"
-              value={filters.sort}
-              onChange={handleFilterChange}
-              style={selectBaseStyle}
-            >
+            <Text mb={1} fontSize="sm" fontWeight="medium" color="fg">Ordenação</Text>
+            <select name="sort" value={filters.sort} onChange={handleSelectFilterChange} style={selectBaseStyle}>
               <option value="recent">Mais recente</option>
               <option value="oldest">Mais antiga</option>
             </select>
@@ -622,169 +477,81 @@ const FiltrarPontoRH = () => {
         </Grid>
       </Box>
 
-      <Flex
-        mt={4}
-        mb={4}
-        align="center"
-        justify="space-between"
-        flexWrap="wrap"
-        gap={3}
-      >
+      <Flex mt={4} mb={4} align="center" justify="space-between" flexWrap="wrap" gap={3}>
         <Text fontSize="sm" color="fg.muted">
-          Resultados: {summary.total} | Em atraso: {summary.late} | No horário:{" "}
-          {summary.onTime}
+          Total: {totalRecords} registros | Nesta página: {summary.total} | Em atraso: {summary.late} | No horário: {summary.onTime}
         </Text>
       </Flex>
 
-      <Box
-        overflowX="auto"
-        borderWidth="1px"
-        borderRadius="md"
-        borderColor="border"
-      >
+      <Box overflowX="auto" borderWidth="1px" borderRadius="md" borderColor="border">
         <Box as="table" width="100%" minW="800px" borderCollapse="collapse">
           <Box as="thead" bg="surface.subtle">
             <Box as="tr">
-              <Box
-                as="th"
-                px={{ base: 3, md: 6 }}
-                py={3}
-                textAlign="left"
-                fontSize="xs"
-                color="fg.muted"
-                textTransform="uppercase"
-              >
-                Nome
-              </Box>
-              <Box
-                as="th"
-                px={{ base: 3, md: 6 }}
-                py={3}
-                textAlign="left"
-                fontSize="xs"
-                color="fg.muted"
-                textTransform="uppercase"
-              >
-                Horário do ponto
-              </Box>
-              <Box
-                as="th"
-                px={{ base: 3, md: 6 }}
-                py={3}
-                textAlign="left"
-                fontSize="xs"
-                color="fg.muted"
-                textTransform="uppercase"
-              >
-                Ponto em atraso
-              </Box>
-              <Box
-                as="th"
-                px={{ base: 3, md: 6 }}
-                py={3}
-                textAlign="left"
-                fontSize="xs"
-                color="fg.muted"
-                textTransform="uppercase"
-              >
-                Status
-              </Box>
-              <Box
-                as="th"
-                px={{ base: 3, md: 6 }}
-                py={3}
-                textAlign="left"
-                fontSize="xs"
-                color="fg.muted"
-                textTransform="uppercase"
-              >
-                Ação
-              </Box>
-
-              <Box
-                as="th"
-                px={{ base: 3, md: 6 }}
-                py={3}
-                textAlign="right"
-                fontSize="xs"
-                color="fg.muted"
-                textTransform="uppercase"
-              >
-                Detalhes
-              </Box>
+              {["Nome", "Horário do ponto", "Ponto em atraso", "Status", "Ação", ""].map((h, i) => (
+                <Box key={i} as="th" px={{ base: 3, md: 6 }} py={3} textAlign={i === 5 ? "right" : "left"} fontSize="xs" color="fg.muted" textTransform="uppercase">
+                  {h}
+                </Box>
+              ))}
             </Box>
           </Box>
 
           <Box as="tbody">
-            {filteredPunches.length === 0 ? (
+            {displayedPunches.length === 0 ? (
               <Box as="tr">
-                <td
-                  colSpan={6}
-                  style={{
-                    padding: "24px",
-                    textAlign: "center",
-                    color: "var(--chakra-colors-fg-muted)",
-                  }}
-                >
+                <td colSpan={6} style={{ padding: "24px", textAlign: "center", color: "var(--chakra-colors-fg-muted)" }}>
                   Nenhum ponto encontrado com os filtros atuais.
                 </td>
               </Box>
             ) : (
-              filteredPunches.map((punch) => (
+              displayedPunches.map((punch) => (
                 <Box as="tr" key={punch.id} borderTopWidth="1px" className="animate-punch-row">
-                  <Box
-                    as="td"
-                    px={{ base: 3, md: 6 }}
-                    py={4}
-                    whiteSpace="nowrap"
-                    fontSize="sm"
-                    fontWeight="semibold"
-                    color="fg"
-                  >
+                  <Box as="td" px={{ base: 3, md: 6 }} py={4} whiteSpace="nowrap" fontSize="sm" fontWeight="semibold" color="fg">
                     {punch.employeeName}
                   </Box>
                   <Box as="td" px={{ base: 3, md: 6 }} py={4} color="fg.muted">
-                    <Text fontWeight="semibold" color="fg">
-                      {formatTimeOnly(punch.timePunched)}
-                    </Text>
-                    <Text fontSize="xs" color="fg.muted">
-                      {formatDateOnly(punch.timePunched)}
-                    </Text>
+                    <Text fontWeight="semibold" color="fg">{formatTimeOnly(punch.timePunched)}</Text>
+                    <Text fontSize="xs" color="fg.muted">{formatDateOnly(punch.timePunched)}</Text>
                   </Box>
                   <Box as="td" px={{ base: 3, md: 6 }} py={4}>
                     <StatusPill isLate={punch.isLate} />
                   </Box>
                   <Box as="td" px={{ base: 3, md: 6 }} py={4}>
-                    <ApprovalPill isApproved={isAttendanceApproved(punch)} />
+                    <ApprovalPill punch={punch} />
                   </Box>
                   <Box as="td" px={{ base: 3, md: 6 }} py={4}>
-                    {!isAttendanceApproved(punch) ? (
-                      <Button
-                        size="xs"
-                        variant="outline"
-                        borderRadius="full"
-                        borderColor={validateBorder}
-                        color={validateColor}
-                        p="5px"
-                        loading={validatingIds.includes(punch.id)}
-                        loadingText="Validando"
-                        onClick={() => handleValidateAttendance(punch.id)}
-                      >
-                        Validar
-                      </Button>
+                    {punch.isLate && isAttendancePending(punch) ? (
+                      <Flex gap={2} wrap="wrap">
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          borderRadius="full"
+                          borderColor={validateBorder}
+                          color={validateColor}
+                          p="5px"
+                          loading={actingIds.includes(punch.id)}
+                          onClick={() => handleUpdateStatus(punch.id, "aprovado")}
+                        >
+                          Validar
+                        </Button>
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          borderRadius="full"
+                          borderColor={rejectBorder}
+                          color={rejectColor}
+                          p="5px"
+                          loading={actingIds.includes(punch.id)}
+                          onClick={() => handleUpdateStatus(punch.id, "negado")}
+                        >
+                          Rejeitar
+                        </Button>
+                      </Flex>
                     ) : (
-                      <Text fontSize="xs" color="fg.muted">
-                        --
-                      </Text>
+                      <Text fontSize="xs" color="fg.muted">--</Text>
                     )}
                   </Box>
                   <Box as="td" px={{ base: 3, md: 6 }} py={4} textAlign="right">
-                    <IconButton
-                      aria-label={`Ver detalhes do ponto de ${punch.employeeName}`}
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedPunch(punch)}
-                    >
+                    <IconButton aria-label={`Ver detalhes do ponto de ${punch.employeeName}`} variant="ghost" size="sm" onClick={() => setSelectedPunch(punch)}>
                       <FaInfoCircle />
                     </IconButton>
                   </Box>
@@ -795,13 +562,19 @@ const FiltrarPontoRH = () => {
         </Box>
       </Box>
 
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        totalRecords={totalRecords}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+      />
+
+      {/* Detail dialog */}
       <DialogRoot
         open={Boolean(selectedPunch)}
-        onOpenChange={(details) => {
-          if (!details.open) {
-            setSelectedPunch(null);
-          }
-        }}
+        onOpenChange={(details) => { if (!details.open) setSelectedPunch(null); }}
         placement="center"
       >
         <Portal>
@@ -817,17 +590,8 @@ const FiltrarPontoRH = () => {
               borderColor={dialogBorder}
             >
               <DialogHeader px={6} pt={5} pb={3}>
-                <DialogTitle fontSize="lg" fontWeight="semibold" color="fg">
-                  Detalhes do ponto
-                </DialogTitle>
-                <IconButton
-                  aria-label="Fechar detalhes do ponto"
-                  variant="ghost"
-                  onClick={() => setSelectedPunch(null)}
-                  position="absolute"
-                  top={3}
-                  right={3}
-                >
+                <DialogTitle fontSize="lg" fontWeight="semibold" color="fg">Detalhes do ponto</DialogTitle>
+                <IconButton aria-label="Fechar detalhes do ponto" variant="ghost" onClick={() => setSelectedPunch(null)} position="absolute" top={3} right={3}>
                   <FaTimes />
                 </IconButton>
               </DialogHeader>
@@ -835,93 +599,68 @@ const FiltrarPontoRH = () => {
               <DialogBody px={6} pb={4} overflowY="auto">
                 {activePunch && (
                   <VStack align="stretch" gap={4}>
-                    <InfoRow
-                      label="Colaborador"
-                      value={activePunch.employeeName}
-                    />
-                    <InfoRow
-                      label="Registro"
-                      value={formatDateTime(activePunch.timePunched)}
-                    />
-                    <InfoRow
-                      label="Tipo de ponto"
-                      value={resolvePunchTypeLabel(activePunch.punchType)}
-                    />
+                    <InfoRow label="Colaborador" value={activePunch.employeeName} />
+                    <InfoRow label="Registro" value={formatDateTime(activePunch.timePunched)} />
+                    <InfoRow label="Tipo de ponto" value={resolvePunchTypeLabel(activePunch.punchType)} />
                     <InfoRow label="Turno" value={activePunch.shiftType} />
-                    <InfoRow
-                      label="Status"
-                      value={<StatusPill isLate={activePunch.isLate} />}
-                    />
-                    <InfoRow
-                      label="Validação"
-                      value={
-                        <ApprovalPill
-                          isApproved={isAttendanceApproved(activePunch)}
-                        />
-                      }
-                    />
+                    <InfoRow label="Status" value={<StatusPill isLate={activePunch.isLate} />} />
+                    <InfoRow label="Validação" value={<ApprovalPill punch={activePunch} />} />
+
+                    {activePunch.isLate && isAttendancePending(activePunch) && (
+                      <Flex gap={3} justify="flex-end">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          borderRadius="full"
+                          borderColor={validateBorder}
+                          color={validateColor}
+                          loading={actingIds.includes(activePunch.id)}
+                          onClick={() => handleUpdateStatus(activePunch.id, "aprovado")}
+                        >
+                          Validar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          borderRadius="full"
+                          borderColor={rejectBorder}
+                          color={rejectColor}
+                          loading={actingIds.includes(activePunch.id)}
+                          onClick={() => handleUpdateStatus(activePunch.id, "negado")}
+                        >
+                          Rejeitar
+                        </Button>
+                      </Flex>
+                    )}
 
                     {activePunch.isLate && (
-                      <Box
-                        mt={2}
-                        p={4}
-                        borderRadius="md"
-                        bg={lateCardBg}
-                        borderWidth="1px"
-                        borderColor={lateCardBorder}
-                      >
-                        <Text
-                          fontSize="sm"
-                          fontWeight="semibold"
-                          color={lateTitleColor}
-                          mb={3}
-                        >
+                      <Box mt={2} p={4} borderRadius="md" bg={lateCardBg} borderWidth="1px" borderColor={lateCardBorder}>
+                        <Text fontSize="sm" fontWeight="semibold" color={lateTitleColor} mb={3}>
                           Detalhes do atraso
                         </Text>
                         <VStack align="stretch" gap={3}>
-                          <InfoRow
-                            label="Motivo"
-                            value={activePunch.lateReason ?? "--"}
-                          />
+                          <InfoRow label="Motivo" value={activePunch.lateReason ?? "--"} />
                           {activePunch.lateNote && (
-                            <InfoRow
-                              label="Observação"
-                              value={activePunch.lateNote}
-                            />
+                            <InfoRow label="Observação" value={activePunch.lateNote} />
                           )}
-                          <Flex
-                            justify="space-between"
-                            align="center"
-                            gap={4}
-                            flexWrap="wrap"
-                          >
-                            <Text fontSize="sm" color="fg.muted">
-                              Anexo
-                            </Text>
+                          <Flex justify="space-between" align="center" gap={4} flexWrap="wrap">
+                            <Text fontSize="sm" color="fg.muted">Anexo</Text>
                             {activePunch.lateAttachmentUrl ? (
                               <Flex align="center" gap={3}>
-                                <Text fontSize="sm" color="fg.muted">
-                                  {activePunch.lateAttachmentName}
-                                </Text>
+                                <Text fontSize="sm" color="fg.muted">{activePunch.lateAttachmentName}</Text>
                                 <Button
                                   as="a"
                                   size="sm"
                                   variant="outline"
                                   borderRadius="full"
                                   p="5px"
-                                  {...({
-                                    href: activePunch.lateAttachmentUrl,
-                                    target: "_blank",
-                                    rel: "noopener noreferrer",
-                                  } as any)}
+                                  {...({ href: activePunch.lateAttachmentUrl, target: "_blank", rel: "noopener noreferrer" } as any)}
                                 >
                                   Ver anexo
                                 </Button>
                               </Flex>
                             ) : (
-                              <Text fontSize="sm" color="fg.muted">
-                                Sem anexo
-                              </Text>
+                              <Text fontSize="sm" color="fg.muted">Sem anexo</Text>
                             )}
                           </Flex>
                         </VStack>
