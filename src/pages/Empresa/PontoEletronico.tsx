@@ -141,7 +141,10 @@ const PontoEletronico = () => {
     };
   }, [cameraActive]);
 
-  const formatTimeOnly = (date: Date) => date.toISOString().slice(11, 19);
+  // Horário local (HH:mm:ss) — a validação de jornada no servidor compara
+  // contra os horários locais do turno, então não enviamos UTC aqui.
+  const formatTimeOnly = (date: Date) =>
+    date.toLocaleTimeString("en-GB", { hour12: false });
 
   const resolveNextPunchType = (lastPunchType?: PunchType) =>
     lastPunchType === "IN" ? "OUT" : "IN";
