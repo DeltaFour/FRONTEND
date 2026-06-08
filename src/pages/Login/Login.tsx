@@ -196,7 +196,17 @@ const Login = () => {
     };
 
     try {
-      await registerCompany(payload);
+      const result = await registerCompany(payload);
+
+      if (result.checkoutUrl) {
+        toaster.success({
+          title: "Sucesso",
+          description: "Empresa cadastrada! Redirecionando para o pagamento...",
+        });
+        window.location.href = result.checkoutUrl;
+        return;
+      }
+
       toaster.success({
         title: "Sucesso",
         description: "Empresa cadastrada com sucesso! Faça login.",

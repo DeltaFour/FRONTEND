@@ -28,6 +28,15 @@ interface RegisterCompanyPayload {
   cpf: string;
 }
 
+interface RegisterCompanyResult {
+  success: boolean;
+  checkoutUrl?: string | null;
+  checkoutSessionId?: string | null;
+  customerId?: string | null;
+  externalId?: string | null;
+  errorMessage?: string | null;
+}
+
 interface AuthContextValue {
   user: AuthUser | null;
   login: (
@@ -35,7 +44,9 @@ interface AuthContextValue {
     password: string,
     rememberMe?: boolean,
   ) => Promise<AuthUser | false>;
-  registerCompany: (payload: RegisterCompanyPayload) => Promise<void>;
+  registerCompany: (
+    payload: RegisterCompanyPayload,
+  ) => Promise<RegisterCompanyResult>;
   logout: () => Promise<void>;
   updateUser: (patch: Partial<AuthUser>) => void;
   isAuthenticated: boolean;
@@ -126,18 +137,23 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const registerCompany = async (
     payload: RegisterCompanyPayload,
-  ): Promise<void> => {
-    await api.post("/subscription/register", {
-      name: payload.companyName,
-      cnpj: payload.cnpj,
-      cpf: payload.cpf,
-      user: {
-        email: payload.email,
-        name: payload.name,
-        password: payload.password,
+  ): Promise<RegisterCompanyResult> => {
+    const response = await api.post<RegisterCompanyResult>(
+      "/subscription/register",
+      {
+        name: payload.companyName,
+        cnpj: payload.cnpj,
         cpf: payload.cpf,
+        user: {
+          email: payload.email,
+          name: payload.name,
+          password: payload.password,
+          cpf: payload.cpf,
+        },
       },
-    });
+    );
+
+    return response.data;
   };
 
   const updateUser = (patch: Partial<AuthUser>): void => {
