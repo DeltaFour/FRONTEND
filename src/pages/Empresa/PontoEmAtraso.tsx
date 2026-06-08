@@ -62,7 +62,9 @@ const PontoEmAtraso = () => {
   const [lateTime, setLateTime] = useState("");
   const [lateReason, setLateReason] = useState("");
   const [lateNote, setLateNote] = useState("");
-  const [lateAttachmentBase64, setLateAttachmentBase64] = useState("");
+  const [lateAttachmentFile, setLateAttachmentFile] = useState<File | null>(
+    null,
+  );
   const [lateAttachmentName, setLateAttachmentName] = useState("");
 
   const maxNoteLength = 200;
@@ -135,22 +137,8 @@ const PontoEmAtraso = () => {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = String(reader.result ?? "");
-      const base64 = dataUrl.split(",")[1] ?? "";
-      setLateAttachmentBase64(base64);
-      setLateAttachmentName(file.name);
-    };
-    reader.onerror = () => {
-      toaster.error({
-        title: "Erro no anexo",
-        description: "Não foi possível ler o arquivo selecionado.",
-      });
-      event.target.value = "";
-    };
-
-    reader.readAsDataURL(file);
+    setLateAttachmentFile(file);
+    setLateAttachmentName(file.name);
   };
 
   const handlePunch = async (shouldExit: boolean) => {
@@ -189,24 +177,30 @@ const PontoEmAtraso = () => {
 
     const resolvedTime = new Date(`${lateDate}T${lateTime}`).toISOString();
 
-    const payload = {
-      type: punchType,
-      timePunched: resolvedTime,
-      shiftType: shiftType ?? "Matutino",
-      justification: lateReason,
-      observation: lateNote.trim() || undefined,
-      fileBase64: lateAttachmentBase64 || undefined,
-    };
+    const formData = new FormData();
+    formData.append("type", punchType);
+    formData.append("timePunched", resolvedTime);
+    formData.append("shiftType", shiftType ?? "Matutino");
+    formData.append("justification", lateReason);
+
+    const trimmedNote = lateNote.trim();
+    if (trimmedNote) {
+      formData.append("observation", trimmedNote);
+    }
+
+    if (lateAttachmentFile) {
+      formData.append("file", lateAttachmentFile);
+    }
 
     try {
-      await api.post("/user/punch-by-email", payload);
+      await api.post("/user/punch-by-email", formData);
       toaster.success({
         title: "Ponto registrado",
         description: "Ponto em atraso registrado com sucesso!",
       });
       setLateReason("");
       setLateNote("");
-      setLateAttachmentBase64("");
+      setLateAttachmentFile(null);
       setLateAttachmentName("");
       if (fileInputRef.current) {
         fileInputRef.current.value = "";

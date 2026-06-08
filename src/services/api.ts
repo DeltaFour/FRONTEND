@@ -631,6 +631,11 @@ if (USE_MOCK_API) {
       if (token && config.headers) {
         config.headers["Authorization"] = `Bearer ${token}`;
       }
+      // Quando os dados são FormData, remove o Content-Type para que o browser
+      // defina automaticamente multipart/form-data com o boundary correto.
+      if (config.data instanceof FormData) {
+        delete config.headers["Content-Type"];
+      }
       return config;
     },
     (error) => {
