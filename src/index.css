@@ -17,6 +17,88 @@
   box-sizing: border-box;
 }
 
+/* ──────────────────────────────────────────────────────────────
+   Seleção de texto / copiar / colar / desfazer
+   Garante que TODO o conteúdo (texto de listagens, células de
+   tabela, parágrafos) seja selecionável com o mouse e que TODOS
+   os inputs/selects/textareas permitam selecionar, copiar, colar,
+   ctrl-z, ctrl-a, etc. Neutraliza qualquer `user-select: none`
+   herdado de um ancestral ou do host/webview.
+   ────────────────────────────────────────────────────────────── */
+html,
+body {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* Campos editáveis: seleção/edição sempre habilitada (alta prioridade) */
+input,
+textarea,
+select,
+[contenteditable="true"] {
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  user-select: text !important;
+}
+
+/* Conteúdo textual (listagens, tabelas, labels) selecionável */
+p,
+span,
+a,
+li,
+label,
+code,
+pre,
+td,
+th,
+caption,
+dd,
+dt {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* Destaque visual da seleção. Sem isto, alguns webviews selecionam
+   o texto (ctrl-c/ctrl-v funcionam) mas não pintam o realce. */
+::selection {
+  background-color: #805ad5;
+  color: #ffffff;
+}
+::-moz-selection {
+  background-color: #805ad5;
+  color: #ffffff;
+}
+input::selection,
+textarea::selection {
+  background-color: #805ad5;
+  color: #ffffff;
+}
+input::-moz-selection,
+textarea::-moz-selection {
+  background-color: #805ad5;
+  color: #ffffff;
+}
+
+/* Elementos de ação permanecem não-selecionáveis (evita selecionar
+   rótulos de botões/ícones ao arrastar). */
+button,
+.chakra-button,
+[role="button"],
+[role="menuitem"],
+[role="tab"],
+[role="option"],
+svg {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
 html,
 body {
   margin: 0;
