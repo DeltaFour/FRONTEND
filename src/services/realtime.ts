@@ -13,7 +13,7 @@ import {
  * A autenticação acontece pelo cookie `Jwt` (enviado via `withCredentials`),
  * o mesmo mecanismo usado pelas chamadas REST.
  */
-const BASE_URL = import.meta.env.VITE_BASE_URL || "";
+const BASE_URL = import.meta.env.VITE_BASE_URL_API || "";
 const HUB_URL = `${BASE_URL}/hubs/notifications`;
 
 let connection: HubConnection | null = null;

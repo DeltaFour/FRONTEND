@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ChangeEvent,
   type CSSProperties,
@@ -38,6 +39,7 @@ import { FaEdit, FaEllipsisV, FaPlus, FaTrash, FaEye, FaTimes, FaClock, FaCalend
 import api from "../../services/api";
 import { ConfirmDeleteModal } from "../../components/Modal/ConfirmDeleteModal";
 import { Input } from "../../components/ui/Input";
+import { Pagination } from "../../components/ui/Pagination";
 import { toaster } from "../../components/ui/toaster";
 import { useColorModeValue } from "../../theme/colorMode";
 import { useAuth } from "../../context/AuthContext";
@@ -119,6 +121,7 @@ const initialFilters: FiltersState = {
   departmentName: "all",
 };
 
+
 const ListarFuncionarios = () => {
   const selectBg = useColorModeValue("#FFFFFF", "#1A1A1F");
   const selectColor = useColorModeValue("#1A202C", "#E2E8F0");
@@ -142,6 +145,11 @@ const ListarFuncionarios = () => {
   const { user } = useAuth();
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [filters, setFilters] = useState<FiltersState>(initialFilters);
+  const [searchInput, setSearchInput] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [employeeToDelete, setEmployeeToDelete] = useState<{
     id: string;
@@ -183,50 +191,66 @@ const ListarFuncionarios = () => {
     }
   };
 
+  const pageRef = useRef(page);
+  const pageSizeRef = useRef(pageSize);
+  const filtersRef = useRef(filters);
+  useEffect(() => { pageRef.current = page; }, [page]);
+  useEffect(() => { pageSizeRef.current = pageSize; }, [pageSize]);
+  useEffect(() => { filtersRef.current = filters; }, [filters]);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1);
+      setFilters((prev) => ({ ...prev, search: searchInput }));
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   const fetchEmployees = useCallback(async (showLoading = true) => {
     try {
-      if (showLoading) {
-        setLoading(true);
-      }
+      if (showLoading) setLoading(true);
 
-      const response = await api.get("/user/list");
-      const data = (response.data?.data ?? response.data) as Funcionario[];
+      const f = filtersRef.current;
+      const p = pageRef.current;
 
-      setFuncionarios(data);
+      const params: Record<string, string | number> = { page: p, pageSize: pageSizeRef.current };
+      if (f.search.trim()) params.search = f.search.trim();
+      if (f.roleName !== "all") params.roleName = f.roleName;
+      if (f.departmentName !== "all") params.departmentName = f.departmentName;
+
+      const response = await api.get("/user/list", { params });
+      const result = response.data as { data: Funcionario[]; total: number; totalPages: number };
+
+      setFuncionarios(result.data ?? []);
+      setTotalRecords(result.total ?? 0);
+      setTotalPages(result.totalPages ?? 1);
     } catch (err) {
       if (showLoading) {
-        const description = "Não foi possível carregar a lista de funcionários.";
-
         toaster.error({
           title: "Erro ao carregar funcionários",
-          description,
+          description: "Não foi possível carregar a lista de funcionários.",
         });
       }
     } finally {
-      if (showLoading) {
-        setLoading(false);
-      }
+      if (showLoading) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     void fetchEmployees(true);
+  }, [page, pageSize, filters, fetchEmployees]);
 
-    const interval = setInterval(() => {
-      void fetchEmployees(false);
-    }, 45000); // Poll every 45 seconds
-
+  useEffect(() => {
+    const interval = setInterval(() => void fetchEmployees(false), 45000);
     return () => clearInterval(interval);
   }, [fetchEmployees]);
 
+  // Derive role/dept options from current page data for the filter dropdowns
   const roleOptions = useMemo(
     () =>
       Array.from(
-        new Set(
-          funcionarios
-            .map((funcionario) => funcionario.roleName.trim())
-            .filter((roleName) => roleName.length > 0),
-        ),
+        new Set(funcionarios.map((f) => f.roleName.trim()).filter((r) => r.length > 0)),
       ).sort((a, b) => a.localeCompare(b, "pt-BR")),
     [funcionarios],
   );
@@ -234,71 +258,22 @@ const ListarFuncionarios = () => {
   const departmentOptions = useMemo(
     () =>
       Array.from(
-        new Set(
-          funcionarios
-            .map((funcionario) => funcionario.departmentName?.trim() ?? "")
-            .filter((dept) => dept.length > 0),
-        ),
+        new Set(funcionarios.map((f) => f.departmentName?.trim() ?? "").filter((d) => d.length > 0)),
       ).sort((a, b) => a.localeCompare(b, "pt-BR")),
     [funcionarios],
   );
 
-  const filteredFuncionarios = useMemo(() => {
-    const normalizedSearch = filters.search.trim().toLowerCase();
-
-    return funcionarios.filter((funcionario) => {
-      const searchableFields = [
-        funcionario.name,
-        funcionario.email,
-        funcionario.cellphone ?? "",
-        funcionario.departmentName ?? "",
-      ];
-
-      const matchesSearch =
-        !normalizedSearch ||
-        searchableFields.some((field) =>
-          field.toLowerCase().includes(normalizedSearch),
-        );
-
-      if (!matchesSearch) {
-        return false;
-      }
-
-      if (
-        filters.roleName !== "all" &&
-        funcionario.roleName !== filters.roleName
-      ) {
-        return false;
-      }
-
-      if (
-        filters.departmentName !== "all" &&
-        (funcionario.departmentName || "") !== filters.departmentName
-      ) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [filters, funcionarios]);
-
-  const hasActiveFilters =
-    filters.search.trim().length > 0 ||
-    filters.roleName !== "all" ||
-    filters.departmentName !== "all";
-
-  const handleFilterChange = (
-    event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
+  const handleSelectFilterChange = (event: ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = event.target;
-
-    setFilters((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setPage(1);
+    setFilters((prev) => ({ ...prev, [name]: value }));
   };
 
-  const clearFilters = () => setFilters(initialFilters);
+  const clearFilters = () => {
+    setSearchInput("");
+    setPage(1);
+    setFilters(initialFilters);
+  };
 
   const handleOpenDetails = async (employee: Funcionario) => {
     setSelectedEmployeeForDetails(employee);
@@ -308,22 +283,17 @@ const ListarFuncionarios = () => {
     try {
       const [shiftsRes, punchesRes] = await Promise.all([
         api.get("/workshift/list"),
-        api.get("/user/get-all-attendances"),
+        api.get("/user/get-all-attendances", {
+          params: { search: employee.name, page: 1, pageSize: 500 },
+        }),
       ]);
 
       const shiftsData = shiftsRes.data?.data ?? shiftsRes.data ?? [];
-      const punchesData = punchesRes.data?.data ?? punchesRes.data ?? [];
+      const punchesData = (punchesRes.data?.data ?? punchesRes.data ?? []) as any[];
 
       setEmployeeDetails(employee);
       setAllShifts(shiftsData);
-
-      const employeeNameLower = employee.name.toLowerCase().trim();
-      const filteredPunches = punchesData.filter((p: any) => {
-        const pName = (p.name ?? p.employeeName ?? "").toLowerCase().trim();
-        return pName === employeeNameLower;
-      });
-
-      setEmployeePunches(filteredPunches);
+      setEmployeePunches(punchesData);
     } catch (err) {
       toaster.error({
         title: "Erro ao carregar detalhes",
@@ -520,8 +490,8 @@ const ListarFuncionarios = () => {
             </Text>
             <Input
               name="search"
-              value={filters.search}
-              onChange={handleFilterChange}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Buscar funcionário"
             />
           </GridItem>
@@ -533,18 +503,8 @@ const ListarFuncionarios = () => {
             <select
               name="departmentName"
               value={filters.departmentName}
-              onChange={handleFilterChange}
-              style={{
-                width: "100%",
-                padding: "10px",
-                borderWidth: "1px",
-                borderStyle: "solid",
-                borderColor: "var(--chakra-colors-border)",
-                borderRadius: "var(--chakra-radii-md)",
-                backgroundColor: "var(--chakra-colors-surface)",
-                color: "var(--chakra-colors-fg)",
-                outline: "none",
-              }}
+              onChange={handleSelectFilterChange}
+              style={selectStyle}
             >
               <option value="all">Todos os departamentos</option>
               {departmentOptions.map((dept) => (
@@ -562,18 +522,8 @@ const ListarFuncionarios = () => {
             <select
               name="roleName"
               value={filters.roleName}
-              onChange={handleFilterChange}
-              style={{
-                width: "100%",
-                padding: "10px",
-                borderWidth: "1px",
-                borderStyle: "solid",
-                borderColor: "var(--chakra-colors-border)",
-                borderRadius: "var(--chakra-radii-md)",
-                backgroundColor: "var(--chakra-colors-surface)",
-                color: "var(--chakra-colors-fg)",
-                outline: "none",
-              }}
+              onChange={handleSelectFilterChange}
+              style={selectStyle}
             >
               <option value="all">Todos os perfis</option>
               {roleOptions.map((role) => (
@@ -653,8 +603,8 @@ const ListarFuncionarios = () => {
           </Box>
 
           <Box as="tbody">
-            {filteredFuncionarios.length > 0 ? (
-              filteredFuncionarios.map((funcionario) => (
+            {funcionarios.length > 0 ? (
+              funcionarios.map((funcionario) => (
                 <Box as="tr" key={funcionario.id} borderTopWidth="1px">
                   <Box
                     as="td"
@@ -794,6 +744,15 @@ const ListarFuncionarios = () => {
           </Box>
         </Box>
       </Box>
+
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        totalRecords={totalRecords}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+      />
 
       <ConfirmDeleteModal
         isOpen={Boolean(employeeToDelete)}

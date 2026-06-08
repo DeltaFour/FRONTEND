@@ -5,7 +5,7 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from "axios";
 
-const BASE_URL = import.meta.env.VITE_BASE_URL || "";
+const BASE_URL = import.meta.env.VITE_BASE_URL_API || "";
 const USE_MOCK_API = import.meta.env.VITE_USE_MOCK === "true";
 
 type UserRole = "ROLE.SUPER_ADMIN" | "ROLE.ADMIN" | "ROLE.RH" | "ROLE.EMPLOYEE";
@@ -630,6 +630,11 @@ if (USE_MOCK_API) {
       const token = localStorage.getItem("authToken");
       if (token && config.headers) {
         config.headers["Authorization"] = `Bearer ${token}`;
+      }
+      // Quando os dados são FormData, remove o Content-Type para que o browser
+      // defina automaticamente multipart/form-data com o boundary correto.
+      if (config.data instanceof FormData) {
+        delete config.headers["Content-Type"];
       }
       return config;
     },
