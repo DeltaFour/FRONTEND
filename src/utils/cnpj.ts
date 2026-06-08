@@ -32,15 +32,11 @@ export const validateCnpj = (cnpj: string): boolean => {
 
   if (!/^\d{2}$/.test(clean.slice(12))) return false;
 
-  if (/^(\d)\1{13}$/.test(clean)) return false;
+  if (/^(.)\1{13}$/.test(clean)) return false;
 
-  const getCharValue = (char: string): number => {
-    const code = char.charCodeAt(0);
-    if (code >= 48 && code <= 57) {
-      return code - 48;
-    }
-    return code - 55;
-  };
+  // Receita Federal alphanumeric CNPJ spec: all chars mapped as charCode - 48
+  // This gives 0-9 for digits and 17-42 for A-Z (not the A=10 numeric-only convention)
+  const getCharValue = (char: string): number => char.charCodeAt(0) - 48;
 
   const digits = Array.from(clean).map(getCharValue);
 

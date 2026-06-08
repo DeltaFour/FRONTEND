@@ -5,7 +5,7 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from "axios";
 
-const BASE_URL = import.meta.env.VITE_BASE_URL || "";
+const BASE_URL = import.meta.env.VITE_BASE_URL_API || "";
 const USE_MOCK_API = import.meta.env.VITE_USE_MOCK === "true";
 
 type UserRole = "ROLE.SUPER_ADMIN" | "ROLE.ADMIN" | "ROLE.RH" | "ROLE.EMPLOYEE";
